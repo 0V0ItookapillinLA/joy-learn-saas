@@ -159,20 +159,158 @@ const Index = () => {
     }
   };
 
-  const handleSaveDraft = (plan: GeneratedPlanData) => {
-    toast({
-      title: "已保存为草稿",
-      description: `「${plan.title}」已保存到草稿箱`
-    });
-    // TODO: Save to database
+  const handleSaveDraft = async (plan: GeneratedPlanData) => {
+    try {
+      // Get user's organization_id from profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "请先登录",
+          description: "需要登录后才能保存培训计划",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const organizationId = profile?.organization_id;
+      if (!organizationId) {
+        toast({
+          title: "保存失败",
+          description: "未找到所属组织",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Insert training plan as draft
+      const { data: trainingPlan, error: planError } = await supabase
+        .from('training_plans')
+        .insert({
+          title: plan.title,
+          description: plan.description,
+          objectives: plan.objectives,
+          organization_id: organizationId,
+          created_by: user.id,
+          status: 'draft',
+        })
+        .select()
+        .single();
+
+      if (planError) throw planError;
+
+      // Insert chapters
+      if (trainingPlan && plan.chapters.length > 0) {
+        const chaptersToInsert = plan.chapters.map((chapter, index) => ({
+          training_plan_id: trainingPlan.id,
+          title: chapter.title,
+          sort_order: index,
+          chapter_type: 'mixed',
+          description: chapter.items.map(i => i.title).join(', '),
+        }));
+
+        const { error: chaptersError } = await supabase
+          .from('training_chapters')
+          .insert(chaptersToInsert);
+
+        if (chaptersError) throw chaptersError;
+      }
+
+      toast({
+        title: "已保存为草稿",
+        description: `「${plan.title}」已保存到草稿箱`
+      });
+      navigate('/training/plans');
+    } catch (error) {
+      console.error('Save draft error:', error);
+      toast({
+        title: "保存失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleCreatePlan = (plan: GeneratedPlanData) => {
-    toast({
-      title: "培训计划已创建",
-      description: `「${plan.title}」已正式入库`
-    });
-    navigate('/training/plans');
+  const handleCreatePlan = async (plan: GeneratedPlanData) => {
+    try {
+      // Get user's organization_id from profile
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast({
+          title: "请先登录",
+          description: "需要登录后才能创建培训计划",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      const organizationId = profile?.organization_id;
+      if (!organizationId) {
+        toast({
+          title: "创建失败",
+          description: "未找到所属组织",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Insert training plan with pending status
+      const { data: trainingPlan, error: planError } = await supabase
+        .from('training_plans')
+        .insert({
+          title: plan.title,
+          description: plan.description,
+          objectives: plan.objectives,
+          organization_id: organizationId,
+          created_by: user.id,
+          status: 'pending',
+        })
+        .select()
+        .single();
+
+      if (planError) throw planError;
+
+      // Insert chapters
+      if (trainingPlan && plan.chapters.length > 0) {
+        const chaptersToInsert = plan.chapters.map((chapter, index) => ({
+          training_plan_id: trainingPlan.id,
+          title: chapter.title,
+          sort_order: index,
+          chapter_type: 'mixed',
+          description: chapter.items.map(i => i.title).join(', '),
+        }));
+
+        const { error: chaptersError } = await supabase
+          .from('training_chapters')
+          .insert(chaptersToInsert);
+
+        if (chaptersError) throw chaptersError;
+      }
+
+      toast({
+        title: "培训计划已创建",
+        description: `「${plan.title}」已正式入库`
+      });
+      navigate('/training/plans');
+    } catch (error) {
+      console.error('Create plan error:', error);
+      toast({
+        title: "创建失败",
+        description: error instanceof Error ? error.message : "请稍后重试",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
