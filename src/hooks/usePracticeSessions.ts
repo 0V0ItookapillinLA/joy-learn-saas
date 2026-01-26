@@ -30,23 +30,36 @@ export function useCreatePracticeSession() {
 
   return useMutation({
     mutationFn: async (session: Omit<PracticeSessionInsert, 'organization_id'>) => {
-      // Get user's organization_id
+      // 开发模式：尝试获取用户和组织信息，如果没有则使用默认值
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('请先登录');
+      let organizationId: string | null = null;
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        organizationId = profile?.organization_id || null;
+      }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // 如果没有组织ID，查询第一个可用的组织
+      if (!organizationId) {
+        const { data: orgs } = await supabase
+          .from('organizations')
+          .select('id')
+          .limit(1)
+          .single();
+        organizationId = orgs?.id || null;
+      }
 
-      if (!profile?.organization_id) throw new Error('未找到所属组织');
+      if (!organizationId) throw new Error('系统中暂无可用组织，请先创建组织');
 
       const { data, error } = await supabase
         .from('practice_sessions')
         .insert({
           ...session,
-          organization_id: profile.organization_id,
+          organization_id: organizationId,
         })
         .select()
         .single();

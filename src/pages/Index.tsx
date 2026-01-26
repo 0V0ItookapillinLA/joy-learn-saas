@@ -161,28 +161,33 @@ const Index = () => {
 
   const handleSaveDraft = async (plan: GeneratedPlanData) => {
     try {
-      // Get user's organization_id from profile
+      // 开发模式：尝试获取用户和组织信息，如果没有则使用默认值
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "请先登录",
-          description: "需要登录后才能保存培训计划",
-          variant: "destructive"
-        });
-        return;
+      let organizationId: string | null = null;
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        organizationId = profile?.organization_id || null;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // 如果没有组织ID，查询第一个可用的组织
+      if (!organizationId) {
+        const { data: orgs } = await supabase
+          .from('organizations')
+          .select('id')
+          .limit(1)
+          .single();
+        organizationId = orgs?.id || null;
+      }
 
-      const organizationId = profile?.organization_id;
       if (!organizationId) {
         toast({
           title: "保存失败",
-          description: "未找到所属组织",
+          description: "系统中暂无可用组织，请先创建组织",
           variant: "destructive"
         });
         return;
@@ -196,7 +201,7 @@ const Index = () => {
           description: plan.description,
           objectives: plan.objectives,
           organization_id: organizationId,
-          created_by: user.id,
+          created_by: user?.id || null,
           status: 'draft',
         })
         .select()
@@ -238,28 +243,33 @@ const Index = () => {
 
   const handleCreatePlan = async (plan: GeneratedPlanData) => {
     try {
-      // Get user's organization_id from profile
+      // 开发模式：尝试获取用户和组织信息，如果没有则使用默认值
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        toast({
-          title: "请先登录",
-          description: "需要登录后才能创建培训计划",
-          variant: "destructive"
-        });
-        return;
+      let organizationId: string | null = null;
+      
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        organizationId = profile?.organization_id || null;
       }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('organization_id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // 如果没有组织ID，查询第一个可用的组织
+      if (!organizationId) {
+        const { data: orgs } = await supabase
+          .from('organizations')
+          .select('id')
+          .limit(1)
+          .single();
+        organizationId = orgs?.id || null;
+      }
 
-      const organizationId = profile?.organization_id;
       if (!organizationId) {
         toast({
           title: "创建失败",
-          description: "未找到所属组织",
+          description: "系统中暂无可用组织，请先创建组织",
           variant: "destructive"
         });
         return;
@@ -273,7 +283,7 @@ const Index = () => {
           description: plan.description,
           objectives: plan.objectives,
           organization_id: organizationId,
-          created_by: user.id,
+          created_by: user?.id || null,
           status: 'pending',
         })
         .select()
