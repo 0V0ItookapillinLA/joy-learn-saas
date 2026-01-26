@@ -10,163 +10,69 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, RotateCcw, Search } from "lucide-react";
+import { Plus, RotateCcw, Search, Loader2 } from "lucide-react";
 import {
   TrainingPlanTable,
   type TrainingPlan,
 } from "@/components/training/TrainingPlanTable";
 import { TrainingPlanSheet } from "@/components/training/TrainingPlanSheet";
 import { toast } from "sonner";
+import { useTrainingPlans, useTogglePlanStatus } from "@/hooks/useTrainingPlans";
 
-// Mock data
-const mockPlans: TrainingPlan[] = [
-  {
-    id: "1",
-    title: "ER-不胜任场景培训",
-    planId: "LTP20143315077023498241",
-    description: "培训ER处理不胜任场景",
-    trainees: [{ name: "杨某" }],
-    invitedCount: 1,
-    participantCount: 1,
-    status: "active",
-  },
-  {
-    id: "2",
-    title: "用于003期新销售AI陪练-第一天",
-    planId: "LTP20131199512533162881",
-    description: "用于003期新销售培训第一日练习...",
-    trainees: [
-      { name: "李格" },
-      { name: "江宇" },
-      { name: "张伟" },
-      { name: "王芳" },
-    ],
-    invitedCount: 122,
-    participantCount: 118,
-    status: "active",
-  },
-  {
-    id: "3",
-    title: "用于003期新销售AI陪练-第二天",
-    planId: "LTP20131235792425902081",
-    description: "用于003期新销售培训第二天产品...",
-    trainees: [{ name: "戴凌" }, { name: "杨江" }],
-    invitedCount: 121,
-    participantCount: 56,
-    status: "active",
-  },
-  {
-    id: "4",
-    title: "汽车销售新员工培训计划",
-    planId: "LTP20088341005877739521",
-    description: "汽车销售新员工培训",
-    trainees: [{ name: "白某" }],
-    invitedCount: 1,
-    participantCount: 1,
-    status: "active",
-  },
-  {
-    id: "5",
-    title: "培训测试",
-    planId: "LTP19980262385806950431",
-    description: "测试",
-    trainees: [
-      { name: "t城" },
-      { name: "j杨" },
-      { name: "王某" },
-      { name: "李某" },
-    ],
-    invitedCount: 7,
-    participantCount: 7,
-    status: "active",
-  },
-  {
-    id: "6",
-    title: "京东健康医用美护采销谈判",
-    planId: "LTP20041119279139676161",
-    description: "采销谈判测试",
-    trainees: [{ name: "白晨" }, { name: "高某" }],
-    invitedCount: 3,
-    participantCount: 2,
-    status: "active",
-  },
-  {
-    id: "7",
-    title: "物流",
-    planId: "LTP19982273457485578241",
-    description: "测试",
-    trainees: [{ name: "妍某" }],
-    invitedCount: 1,
-    participantCount: 1,
-    status: "inactive",
-  },
-  {
-    id: "8",
-    title: "【测试-培训测试】",
-    planId: "LTP19985819484199731201",
-    description: "测试",
-    trainees: [{ name: "t妍" }, { name: "蜂妍" }],
-    invitedCount: 4,
-    participantCount: 4,
-    status: "active",
-  },
-  {
-    id: "9",
-    title: "全量销售售卖多产品",
-    planId: "LTP20014892410142269441",
-    description: "用于全量销售售卖多产品练习使用",
-    trainees: [
-      { name: "王昊" },
-      { name: "马亮" },
-      { name: "张某" },
-      { name: "李某" },
-    ],
-    invitedCount: 193,
-    participantCount: 111,
-    status: "active",
-  },
-  {
-    id: "10",
-    title: "低效销售提效陪练",
-    planId: "LTP20016587073000202241",
-    description: "该培训用于省区低效销售提效使用",
-    trainees: [{ name: "毛马" }, { name: "郑N" }],
-    invitedCount: 130,
-    participantCount: 85,
-    status: "active",
-  },
-];
+// Map database status to display status
+function mapStatus(dbStatus: string | null): "active" | "inactive" {
+  if (dbStatus === 'in_progress' || dbStatus === 'pending' || dbStatus === 'draft') {
+    return 'active';
+  }
+  return 'inactive';
+}
+
+// Transform database data to table format
+function transformToTableFormat(plans: ReturnType<typeof useTrainingPlans>['data']): TrainingPlan[] {
+  if (!plans) return [];
+  
+  return plans.map((plan) => ({
+    id: plan.id,
+    title: plan.title,
+    planId: `LTP${plan.id.slice(0, 20).replace(/-/g, '').toUpperCase()}`,
+    description: plan.description || '',
+    trainees: [], // Will be populated from training_progress in future
+    invitedCount: 0,
+    participantCount: 0,
+    status: mapStatus(plan.status),
+    dbStatus: plan.status,
+    chapterCount: plan.training_chapters?.length || 0,
+    createdAt: plan.created_at,
+    updatedAt: plan.updated_at,
+  }));
+}
 
 export default function TrainingPlans() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [filteredPlans, setFilteredPlans] = useState(mockPlans);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<TrainingPlan | null>(null);
 
-  const handleSearch = () => {
-    let results = mockPlans;
+  const { data: plansData, isLoading, error } = useTrainingPlans();
+  const toggleStatusMutation = useTogglePlanStatus();
 
-    if (searchQuery) {
-      results = results.filter(
-        (plan) =>
-          plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          plan.planId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          plan.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
+  const allPlans = transformToTableFormat(plansData);
 
-    if (statusFilter !== "all") {
-      results = results.filter((plan) => plan.status === statusFilter);
-    }
-
-    setFilteredPlans(results);
-  };
+  // Filter plans based on search and status
+  const filteredPlans = allPlans.filter((plan) => {
+    const matchesSearch = !searchQuery || 
+      plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      plan.planId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      plan.description.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || plan.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const handleReset = () => {
     setSearchQuery("");
     setStatusFilter("all");
-    setFilteredPlans(mockPlans);
   };
 
   const handleEdit = (plan: TrainingPlan) => {
@@ -190,11 +96,11 @@ export default function TrainingPlans() {
     toast.success("邀请链接已复制到剪贴板");
   };
 
-  const handleToggleStatus = (plan: TrainingPlan) => {
-    const newStatus = plan.status === "active" ? "inactive" : "active";
-    toast.success(
-      `已${newStatus === "active" ? "开启" : "停用"}：${plan.title}`
-    );
+  const handleToggleStatus = (plan: TrainingPlan & { dbStatus?: string | null }) => {
+    toggleStatusMutation.mutate({
+      id: plan.id,
+      currentStatus: plan.dbStatus || 'draft',
+    });
   };
 
   const handleSave = (data: Partial<TrainingPlan>) => {
@@ -206,13 +112,23 @@ export default function TrainingPlans() {
   };
 
   // Stats
-  const totalPlans = mockPlans.length;
-  const activePlans = mockPlans.filter((p) => p.status === "active").length;
-  const totalInvited = mockPlans.reduce((sum, p) => sum + p.invitedCount, 0);
-  const totalParticipants = mockPlans.reduce(
+  const totalPlans = allPlans.length;
+  const activePlans = allPlans.filter((p) => p.status === "active").length;
+  const totalInvited = allPlans.reduce((sum, p) => sum + p.invitedCount, 0);
+  const totalParticipants = allPlans.reduce(
     (sum, p) => sum + p.participantCount,
     0
   );
+
+  if (error) {
+    return (
+      <DashboardLayout title="培训计划" description="管理和查看所有培训计划">
+        <div className="text-center py-12 text-destructive">
+          加载失败: {error instanceof Error ? error.message : '未知错误'}
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="培训计划" description="管理和查看所有培训计划">
@@ -280,10 +196,6 @@ export default function TrainingPlans() {
               <RotateCcw className="h-4 w-4 mr-1" />
               重置
             </Button>
-            <Button size="sm" onClick={handleSearch}>
-              <Search className="h-4 w-4 mr-1" />
-              查询
-            </Button>
           </div>
           <Button onClick={handleCreate}>
             <Plus className="h-4 w-4 mr-1" />
@@ -294,13 +206,19 @@ export default function TrainingPlans() {
         {/* Table */}
         <Card>
           <CardContent className="p-0">
-            <TrainingPlanTable
-              plans={filteredPlans}
-              onEdit={handleEdit}
-              onInvite={handleInvite}
-              onCopyLink={handleCopyLink}
-              onToggleStatus={handleToggleStatus}
-            />
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              <TrainingPlanTable
+                plans={filteredPlans}
+                onEdit={handleEdit}
+                onInvite={handleInvite}
+                onCopyLink={handleCopyLink}
+                onToggleStatus={handleToggleStatus}
+              />
+            )}
           </CardContent>
         </Card>
       </div>
