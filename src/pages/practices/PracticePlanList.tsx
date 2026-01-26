@@ -18,110 +18,82 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Copy, Edit, Trash2, UserPlus, Eye } from "lucide-react";
+import { Plus, Search, MoreHorizontal, Copy, Edit, Trash2, UserPlus, Eye, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-import { CreatePracticeDialog } from "@/components/practices/CreatePracticeDialog";
-
-export interface PracticePlan {
-  id: string;
-  title: string;
-  aiRole: string;
-  skillItems: string[];
-  practiceCount: number;
-  usageCount: number;
-  status: "active" | "inactive";
-  updatedAt: string;
-}
-
-const mockPractices: PracticePlan[] = [
-  {
-    id: "1",
-    title: "客户投诉处理场景",
-    aiRole: "愤怒的客户",
-    skillItems: ["沟通技巧", "情绪管理"],
-    practiceCount: 45,
-    usageCount: 128,
-    status: "active",
-    updatedAt: "2025-01-25",
-  },
-  {
-    id: "2",
-    title: "产品推荐场景",
-    aiRole: "咨询客户",
-    skillItems: ["产品知识", "销售技巧"],
-    practiceCount: 32,
-    usageCount: 96,
-    status: "active",
-    updatedAt: "2025-01-24",
-  },
-  {
-    id: "3",
-    title: "价格谈判场景",
-    aiRole: "企业采购",
-    skillItems: ["谈判技巧", "商务沟通"],
-    practiceCount: 28,
-    usageCount: 75,
-    status: "active",
-    updatedAt: "2025-01-23",
-  },
-  {
-    id: "4",
-    title: "售后服务场景",
-    aiRole: "VIP客户",
-    skillItems: ["服务意识", "问题解决"],
-    practiceCount: 56,
-    usageCount: 142,
-    status: "active",
-    updatedAt: "2025-01-22",
-  },
-  {
-    id: "5",
-    title: "新产品介绍场景",
-    aiRole: "潜在客户",
-    skillItems: ["产品演示", "需求挖掘"],
-    practiceCount: 18,
-    usageCount: 45,
-    status: "inactive",
-    updatedAt: "2025-01-20",
-  },
-];
+import { PracticeEditSheet } from "@/components/practices/PracticeEditSheet";
+import { usePracticeSessions, useCreatePracticeSession, useDeletePracticeSession } from "@/hooks/usePracticeSessions";
 
 export default function PracticePlanList() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [practices] = useState(mockPractices);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingPractice, setEditingPractice] = useState<any>(null);
 
-  const filteredPractices = practices.filter(
+  const { data: practices, isLoading } = usePracticeSessions();
+  const createMutation = useCreatePracticeSession();
+  const deleteMutation = useDeletePracticeSession();
+
+  const filteredPractices = (practices || []).filter(
     (practice) =>
       practice.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      practice.aiRole.toLowerCase().includes(searchQuery.toLowerCase())
+      (practice.ai_role || "").toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleInvite = (practice: PracticePlan) => {
-    toast.info(`邀请学员参加：${practice.title}`);
+  const handleCreate = () => {
+    setEditingPractice(null);
+    setSheetOpen(true);
   };
 
-  const handleEdit = (practice: PracticePlan) => {
-    toast.info(`编辑练习：${practice.title}`);
+  const handleEdit = (practice: any) => {
+    setEditingPractice({
+      id: practice.id,
+      title: practice.title,
+      scenarioDescription: practice.scenario_description || "",
+      aiRoleId: "1",
+      aiRoleInfo: practice.ai_role || "",
+      traineeRole: practice.trainee_role || "",
+      dialogueGoal: practice.description || "",
+      passScore: 50,
+      assessmentItems: practice.scoring_criteria?.items || [],
+    });
+    setSheetOpen(true);
   };
 
-  const handleCopy = (practice: PracticePlan) => {
+  const handleSave = async (data: any) => {
+    const scoringCriteria = {
+      items: data.assessmentItems,
+      passScore: data.passScore,
+    };
+
+    await createMutation.mutateAsync({
+      title: data.title,
+      description: data.dialogueGoal,
+      scenario_description: data.scenarioDescription,
+      ai_role: data.aiRoleInfo,
+      trainee_role: data.traineeRole,
+      scoring_criteria: scoringCriteria,
+      practice_mode: 'free_dialogue',
+    });
+  };
+
+  const handleCopy = (practice: any) => {
     toast.success(`已复制练习：${practice.title}`);
   };
 
-  const handleDelete = (practice: PracticePlan) => {
-    toast.success(`已删除练习：${practice.title}`);
+  const handleDelete = (practice: any) => {
+    deleteMutation.mutate(practice.id);
   };
 
-  const handlePreview = (practice: PracticePlan) => {
+  const handlePreview = (practice: any) => {
     toast.info(`预览练习：${practice.title}`);
   };
 
+  const handleInvite = (practice: any) => {
+    toast.info(`邀请学员参加：${practice.title}`);
+  };
+
   // Stats
-  const totalPractices = practices.length;
-  const activePractices = practices.filter((p) => p.status === "active").length;
-  const totalPracticeCount = practices.reduce((sum, p) => sum + p.practiceCount, 0);
-  const totalUsageCount = practices.reduce((sum, p) => sum + p.usageCount, 0);
+  const totalPractices = filteredPractices.length;
+  const activePractices = filteredPractices.length;
 
   return (
     <DashboardLayout title="练习计划" description="管理AI对话练习场景">
@@ -142,13 +114,13 @@ export default function PracticePlanList() {
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalPracticeCount}</div>
+              <div className="text-2xl font-bold">0</div>
               <p className="text-sm text-muted-foreground">练习人数</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalUsageCount}</div>
+              <div className="text-2xl font-bold">0</div>
               <p className="text-sm text-muted-foreground">使用次数</p>
             </CardContent>
           </Card>
@@ -165,7 +137,7 @@ export default function PracticePlanList() {
               className="pl-9"
             />
           </div>
-          <Button onClick={() => setCreateDialogOpen(true)}>
+          <Button onClick={handleCreate}>
             <Plus className="mr-2 h-4 w-4" />
             新建练习计划
           </Button>
@@ -174,92 +146,106 @@ export default function PracticePlanList() {
         {/* Table */}
         <Card>
           <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>练习名称</TableHead>
-                  <TableHead>AI角色</TableHead>
-                  <TableHead>适用能力项</TableHead>
-                  <TableHead className="text-center">练习人数</TableHead>
-                  <TableHead className="text-center">使用次数</TableHead>
-                  <TableHead className="text-center">操作</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPractices.map((practice) => (
-                  <TableRow key={practice.id}>
-                    <TableCell>
-                      <div className="font-medium">{practice.title}</div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{practice.aiRole}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-wrap gap-1">
-                        {practice.skillItems.map((skill, index) => (
-                          <Badge key={index} variant="secondary" className="text-xs">
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center">{practice.practiceCount}</TableCell>
-                    <TableCell className="text-center">{practice.usageCount}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center justify-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleInvite(practice)}
-                          title="邀请"
-                        >
-                          <UserPlus className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handlePreview(practice)}
-                          title="预览"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(practice)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              编辑
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCopy(practice)}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              复制
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(practice)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              删除
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </TableCell>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredPractices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <p>暂无练习计划</p>
+                <p className="text-sm">点击"新建练习计划"创建第一个练习</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>练习名称</TableHead>
+                    <TableHead>AI角色</TableHead>
+                    <TableHead>练习模式</TableHead>
+                    <TableHead>创建时间</TableHead>
+                    <TableHead className="text-center">操作</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredPractices.map((practice) => (
+                    <TableRow key={practice.id}>
+                      <TableCell>
+                        <div className="font-medium">{practice.title}</div>
+                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                          {practice.scenario_description || practice.description}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {practice.ai_role?.slice(0, 20) || "未设置"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">
+                          {practice.practice_mode === 'free_dialogue' ? '自由对话' : '固定剧本'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {practice.created_at ? new Date(practice.created_at).toLocaleDateString() : '-'}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleInvite(practice)}
+                            title="邀请"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handlePreview(practice)}
+                            title="预览"
+                          >
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => handleEdit(practice)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                编辑
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleCopy(practice)}>
+                                <Copy className="mr-2 h-4 w-4" />
+                                复制
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleDelete(practice)}
+                                className="text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                删除
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      <CreatePracticeDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
+      <PracticeEditSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        onSave={handleSave}
+        initialData={editingPractice}
       />
     </DashboardLayout>
   );
