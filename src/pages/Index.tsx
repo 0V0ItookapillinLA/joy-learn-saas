@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { DashboardLayout } from '@/components/layout/DashboardLayout';
 
 interface GeneratedChapter {
   title: string;
@@ -122,40 +123,23 @@ const Index = () => {
   const getChapterTypeBadge = (type: string) => {
     switch (type) {
       case 'lesson':
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-700 hover:bg-blue-100">学习</Badge>;
+        return <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10">学习</Badge>;
       case 'practice':
-        return <Badge variant="secondary" className="bg-green-100 text-green-700 hover:bg-green-100">练习</Badge>;
+        return <Badge variant="secondary" className="bg-secondary text-secondary-foreground hover:bg-secondary">练习</Badge>;
       case 'assessment':
-        return <Badge variant="secondary" className="bg-orange-100 text-orange-700 hover:bg-orange-100">考核</Badge>;
+        return <Badge variant="secondary" className="bg-accent text-accent-foreground hover:bg-accent">考核</Badge>;
       default:
         return <Badge variant="secondary">其他</Badge>;
     }
   };
 
   const handleCreatePlan = () => {
-    // Navigate to training plans with the generated data
     navigate('/training/plans', { state: { generatedPlan } });
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50">
-      {/* Header */}
-      <header className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
-            <span className="font-semibold text-lg">JoyLearning AI</span>
-          </div>
-          <Button variant="ghost" onClick={() => navigate('/dashboard')}>
-            进入控制台 <ArrowRight className="ml-1 h-4 w-4" />
-          </Button>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="container mx-auto px-6 py-12">
+    <DashboardLayout title="AI培训生成工作台" description="一句话生成学练考完整培训计划">
+      <div className="space-y-6">
         {!showResults ? (
           <div className="max-w-3xl mx-auto">
             {/* Hero Section */}
@@ -164,7 +148,7 @@ const Index = () => {
                 <Sparkles className="h-4 w-4" />
                 AI 智能培训计划生成
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 leading-tight">
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
                 一句话生成<br />
                 <span className="text-primary">学练考</span>完整培训计划
               </h1>
@@ -175,7 +159,7 @@ const Index = () => {
 
             {/* Input Section */}
             <div className="relative">
-              <Card className="shadow-xl border-0 bg-white">
+              <Card className="shadow-xl border-0 bg-card">
                 <CardContent className="p-6">
                   <Textarea
                     ref={textareaRef}
@@ -214,13 +198,13 @@ const Index = () => {
 
               {/* Loading Animation */}
               {isGenerating && (
-                <div className="absolute inset-0 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
+                <div className="absolute inset-0 bg-card/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
                   <div className="text-center">
                     <div className="relative mb-4">
                       <div className="h-16 w-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin mx-auto" />
                       <Sparkles className="h-6 w-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
                     </div>
-                    <p className="text-sm font-medium text-slate-700">AI 正在分析需求并设计培训计划...</p>
+                    <p className="text-sm font-medium text-foreground">AI 正在分析需求并设计培训计划...</p>
                     <p className="text-xs text-muted-foreground mt-1">这可能需要 10-30 秒</p>
                   </div>
                 </div>
@@ -238,7 +222,7 @@ const Index = () => {
                   <button
                     key={index}
                     onClick={() => handleExampleClick(example)}
-                    className="text-left p-3 rounded-lg border bg-white hover:bg-slate-50 hover:border-primary/30 transition-colors text-sm text-slate-600"
+                    className="text-left p-3 rounded-lg border bg-card hover:bg-muted hover:border-primary/30 transition-colors text-sm text-muted-foreground"
                     disabled={isGenerating}
                   >
                     {example}
@@ -250,22 +234,22 @@ const Index = () => {
             {/* Features */}
             <div className="grid grid-cols-3 gap-6 mt-16">
               <div className="text-center">
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="h-6 w-6 text-blue-600" />
+                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+                  <BookOpen className="h-6 w-6 text-primary" />
                 </div>
                 <h3 className="font-medium mb-1">智能课程设计</h3>
                 <p className="text-sm text-muted-foreground">自动规划课程大纲和知识点</p>
               </div>
               <div className="text-center">
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                  <MessageSquare className="h-6 w-6 text-green-600" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-3">
+                  <MessageSquare className="h-6 w-6 text-secondary-foreground" />
                 </div>
                 <h3 className="font-medium mb-1">场景化练习</h3>
                 <p className="text-sm text-muted-foreground">生成贴近实战的AI对话练习</p>
               </div>
               <div className="text-center">
-                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center mx-auto mb-3">
-                  <ClipboardCheck className="h-6 w-6 text-orange-600" />
+                <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mx-auto mb-3">
+                  <ClipboardCheck className="h-6 w-6 text-accent-foreground" />
                 </div>
                 <h3 className="font-medium mb-1">自动考核方案</h3>
                 <p className="text-sm text-muted-foreground">智能出题并设置评分标准</p>
@@ -321,7 +305,7 @@ const Index = () => {
             <Card className="mb-6">
               <CardContent className="p-6">
                 <h3 className="font-semibold mb-3">培训目标</h3>
-                <p className="text-slate-600">{generatedPlan?.objectives}</p>
+                <p className="text-muted-foreground">{generatedPlan?.objectives}</p>
                 {generatedPlan?.skillsTargeted && generatedPlan.skillsTargeted.length > 0 && (
                   <div className="flex flex-wrap gap-2 mt-4">
                     {generatedPlan.skillsTargeted.map((skill, index) => (
@@ -338,8 +322,8 @@ const Index = () => {
                 <h3 className="font-semibold mb-4">培训内容</h3>
                 <div className="space-y-4">
                   {generatedPlan?.chapters?.map((chapter, index) => (
-                    <div key={index} className="flex gap-4 p-4 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors">
-                      <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-white shadow-sm flex items-center justify-center">
+                    <div key={index} className="flex gap-4 p-4 rounded-lg bg-muted hover:bg-muted/80 transition-colors">
+                      <div className="flex-shrink-0 h-10 w-10 rounded-lg bg-card shadow-sm flex items-center justify-center">
                         {getChapterTypeIcon(chapter.type)}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -348,7 +332,7 @@ const Index = () => {
                           {getChapterTypeBadge(chapter.type)}
                           <span className="text-xs text-muted-foreground ml-auto">{chapter.duration}</span>
                         </div>
-                        <p className="text-sm text-slate-600 line-clamp-2">{chapter.description}</p>
+                        <p className="text-sm text-muted-foreground line-clamp-2">{chapter.description}</p>
                       </div>
                     </div>
                   ))}
@@ -361,21 +345,14 @@ const Index = () => {
               <Card className="mt-6">
                 <CardContent className="p-6">
                   <h3 className="font-semibold mb-3">成功标准</h3>
-                  <p className="text-slate-600">{generatedPlan.successCriteria}</p>
+                  <p className="text-muted-foreground">{generatedPlan.successCriteria}</p>
                 </CardContent>
               </Card>
             )}
           </div>
         )}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t bg-white mt-16 py-8">
-        <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
-          <p>JoyLearning AI - 让培训更智能、更高效</p>
-        </div>
-      </footer>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 };
 
