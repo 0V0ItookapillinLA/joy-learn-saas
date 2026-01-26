@@ -281,7 +281,9 @@ const Index = () => {
 
       if (planError) throw planError;
 
-      // Insert chapters
+      // Insert chapters and collect practice items
+      const practiceItems: { title: string; description: string; chapterId: string }[] = [];
+
       if (trainingPlan && plan.chapters.length > 0) {
         const chaptersToInsert = plan.chapters.map((chapter, index) => ({
           training_plan_id: trainingPlan.id,
@@ -291,16 +293,51 @@ const Index = () => {
           description: chapter.items.map(i => i.title).join(', '),
         }));
 
-        const { error: chaptersError } = await supabase
+        const { data: insertedChapters, error: chaptersError } = await supabase
           .from('training_chapters')
-          .insert(chaptersToInsert);
+          .insert(chaptersToInsert)
+          .select();
 
         if (chaptersError) throw chaptersError;
+
+        // Collect practice items from the plan
+        plan.chapters.forEach((chapter, chapterIndex) => {
+          chapter.items.forEach((item) => {
+            if (item.type === 'practice') {
+              practiceItems.push({
+                title: item.title,
+                description: item.description || `${chapter.title} - ${item.title}`,
+                chapterId: insertedChapters?.[chapterIndex]?.id || '',
+              });
+            }
+          });
+        });
+
+        // Create practice_sessions for each practice item
+        if (practiceItems.length > 0) {
+          const practiceSessionsToInsert = practiceItems.map((item) => ({
+            title: item.title,
+            description: item.description,
+            organization_id: organizationId,
+            chapter_id: item.chapterId || null,
+            practice_mode: 'free_dialogue',
+            scenario_description: `来自培训计划「${plan.title}」的练习场景`,
+          }));
+
+          const { error: practiceError } = await supabase
+            .from('practice_sessions')
+            .insert(practiceSessionsToInsert);
+
+          if (practiceError) {
+            console.error('Practice sessions insert error:', practiceError);
+            // Don't throw - the main plan is created, just log the error
+          }
+        }
       }
 
       toast({
         title: "培训计划已创建",
-        description: `「${plan.title}」已正式入库`
+        description: `「${plan.title}」已正式入库${practiceItems.length > 0 ? `，同步创建了 ${practiceItems.length} 个练习计划` : ''}`
       });
       navigate('/training/plans');
     } catch (error) {

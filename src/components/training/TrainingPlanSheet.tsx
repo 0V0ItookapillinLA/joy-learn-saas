@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Sheet,
   SheetContent,
@@ -20,7 +20,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GripVertical, Plus, Trash2, Upload, X } from "lucide-react";
+import { GripVertical, Plus, Trash2, Upload, X, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { TrainingPlan } from "./TrainingPlanTable";
 
 interface Chapter {
@@ -43,22 +46,17 @@ interface TrainingPlanSheetProps {
   onSave: (data: Partial<TrainingPlan>) => void;
 }
 
-const typeLabels: Record<string, string> = {
-  lesson: "教学",
-  practice: "练习",
-  exam: "考评",
-};
-
 export function TrainingPlanSheet({
   open,
   onOpenChange,
   plan,
   onSave,
 }: TrainingPlanSheetProps) {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("basic");
-  const [title, setTitle] = useState(plan?.title || "");
+  const [title, setTitle] = useState("");
   const [department, setDepartment] = useState("");
-  const [description, setDescription] = useState(plan?.description || "");
+  const [description, setDescription] = useState("");
   const [sequentialLearning, setSequentialLearning] = useState(false);
   const [chapters, setChapters] = useState<Chapter[]>([
     {
@@ -67,10 +65,29 @@ export function TrainingPlanSheet({
       items: [{ id: "1-1", type: "lesson" }],
     },
   ]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const isEdit = !!plan;
   const basicComplete = title && department && description;
   const contentComplete = chapters.length > 0;
+
+  useEffect(() => {
+    if (plan) {
+      setTitle(plan.title || "");
+      setDescription(plan.description || "");
+    } else {
+      setTitle("");
+      setDescription("");
+      setDepartment("");
+      setChapters([
+        {
+          id: "1",
+          title: "章节1",
+          items: [{ id: "1-1", type: "lesson" }],
+        },
+      ]);
+    }
+  }, [plan, open]);
 
   const addChapter = () => {
     const newId = String(chapters.length + 1);
@@ -139,12 +156,91 @@ export function TrainingPlanSheet({
     );
   };
 
-  const handleSave = () => {
-    onSave({
-      title,
-      description,
-    });
-    onOpenChange(false);
+  const handleSave = async () => {
+    if (!title.trim()) {
+      toast.error("请输入培训名称");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Get user's organization_id
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error("请先登录");
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!profile?.organization_id) {
+        toast.error("未找到所属组织");
+        return;
+      }
+
+      if (isEdit && plan) {
+        // Update existing plan
+        const { error: planError } = await supabase
+          .from('training_plans')
+          .update({
+            title,
+            description,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', plan.id);
+
+        if (planError) throw planError;
+        toast.success("培训计划已更新");
+      } else {
+        // Create new plan
+        const { data: trainingPlan, error: planError } = await supabase
+          .from('training_plans')
+          .insert({
+            title,
+            description,
+            organization_id: profile.organization_id,
+            created_by: user.id,
+            status: 'draft',
+          })
+          .select()
+          .single();
+
+        if (planError) throw planError;
+
+        // Insert chapters
+        if (trainingPlan && chapters.length > 0) {
+          const chaptersToInsert = chapters.map((chapter, index) => ({
+            training_plan_id: trainingPlan.id,
+            title: chapter.title,
+            sort_order: index,
+            chapter_type: 'mixed',
+          }));
+
+          const { error: chaptersError } = await supabase
+            .from('training_chapters')
+            .insert(chaptersToInsert);
+
+          if (chaptersError) throw chaptersError;
+        }
+
+        toast.success("培训计划已创建");
+      }
+
+      // Invalidate query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['training-plans'] });
+
+      onSave({ title, description });
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Save error:', error);
+      toast.error("保存失败: " + (error instanceof Error ? error.message : "未知错误"));
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -386,7 +482,16 @@ export function TrainingPlanSheet({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
-          <Button onClick={handleSave}>确定</Button>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                保存中...
+              </>
+            ) : (
+              "确定"
+            )}
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
