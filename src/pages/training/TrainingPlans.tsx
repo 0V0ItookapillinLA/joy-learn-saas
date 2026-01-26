@@ -2,281 +2,316 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Plus, RotateCcw, Search } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Plus,
-  Search,
-  Filter,
-  MoreHorizontal,
-  BookOpen,
-  Eye,
-  Edit,
-  Trash2,
-  Copy,
-  Users,
-  Calendar,
-} from "lucide-react";
+  TrainingPlanTable,
+  type TrainingPlan,
+} from "@/components/training/TrainingPlanTable";
+import { TrainingPlanSheet } from "@/components/training/TrainingPlanSheet";
+import { toast } from "sonner";
 
-// Mock data for training plans
-const mockPlans = [
+// Mock data
+const mockPlans: TrainingPlan[] = [
   {
     id: "1",
-    title: "新员工入职培训",
-    description: "帮助新员工快速融入公司文化和工作流程",
-    status: "in_progress",
-    startDate: "2024-01-15",
-    endDate: "2024-02-28",
-    participants: 32,
-    chapters: 8,
-    completionRate: 65,
+    title: "ER-不胜任场景培训",
+    planId: "LTP20143315077023498241",
+    description: "培训ER处理不胜任场景",
+    trainees: [{ name: "杨某" }],
+    invitedCount: 1,
+    participantCount: 1,
+    status: "active",
   },
   {
     id: "2",
-    title: "销售技能提升计划",
-    description: "提升销售团队的客户沟通和谈判技巧",
-    status: "in_progress",
-    startDate: "2024-02-01",
-    endDate: "2024-03-15",
-    participants: 18,
-    chapters: 6,
-    completionRate: 42,
+    title: "用于003期新销售AI陪练-第一天",
+    planId: "LTP20131199512533162881",
+    description: "用于003期新销售培训第一日练习...",
+    trainees: [
+      { name: "李格" },
+      { name: "江宇" },
+      { name: "张伟" },
+      { name: "王芳" },
+    ],
+    invitedCount: 122,
+    participantCount: 118,
+    status: "active",
   },
   {
     id: "3",
-    title: "客户服务专项培训",
-    description: "提高客服团队的服务质量和响应效率",
-    status: "pending",
-    startDate: "2024-03-01",
-    endDate: "2024-04-30",
-    participants: 24,
-    chapters: 5,
-    completionRate: 0,
+    title: "用于003期新销售AI陪练-第二天",
+    planId: "LTP20131235792425902081",
+    description: "用于003期新销售培训第二天产品...",
+    trainees: [{ name: "戴凌" }, { name: "杨江" }],
+    invitedCount: 121,
+    participantCount: 56,
+    status: "active",
   },
   {
     id: "4",
-    title: "产品知识培训2024",
-    description: "全面了解公司产品线和技术特点",
-    status: "draft",
-    startDate: null,
-    endDate: null,
-    participants: 0,
-    chapters: 10,
-    completionRate: 0,
+    title: "汽车销售新员工培训计划",
+    planId: "LTP20088341005877739521",
+    description: "汽车销售新员工培训",
+    trainees: [{ name: "白某" }],
+    invitedCount: 1,
+    participantCount: 1,
+    status: "active",
   },
   {
     id: "5",
-    title: "领导力发展计划",
-    description: "培养中层管理者的领导能力",
-    status: "completed",
-    startDate: "2023-10-01",
-    endDate: "2023-12-31",
-    participants: 12,
-    chapters: 12,
-    completionRate: 100,
+    title: "培训测试",
+    planId: "LTP19980262385806950431",
+    description: "测试",
+    trainees: [
+      { name: "t城" },
+      { name: "j杨" },
+      { name: "王某" },
+      { name: "李某" },
+    ],
+    invitedCount: 7,
+    participantCount: 7,
+    status: "active",
+  },
+  {
+    id: "6",
+    title: "京东健康医用美护采销谈判",
+    planId: "LTP20041119279139676161",
+    description: "采销谈判测试",
+    trainees: [{ name: "白晨" }, { name: "高某" }],
+    invitedCount: 3,
+    participantCount: 2,
+    status: "active",
+  },
+  {
+    id: "7",
+    title: "物流",
+    planId: "LTP19982273457485578241",
+    description: "测试",
+    trainees: [{ name: "妍某" }],
+    invitedCount: 1,
+    participantCount: 1,
+    status: "inactive",
+  },
+  {
+    id: "8",
+    title: "【测试-培训测试】",
+    planId: "LTP19985819484199731201",
+    description: "测试",
+    trainees: [{ name: "t妍" }, { name: "蜂妍" }],
+    invitedCount: 4,
+    participantCount: 4,
+    status: "active",
+  },
+  {
+    id: "9",
+    title: "全量销售售卖多产品",
+    planId: "LTP20014892410142269441",
+    description: "用于全量销售售卖多产品练习使用",
+    trainees: [
+      { name: "王昊" },
+      { name: "马亮" },
+      { name: "张某" },
+      { name: "李某" },
+    ],
+    invitedCount: 193,
+    participantCount: 111,
+    status: "active",
+  },
+  {
+    id: "10",
+    title: "低效销售提效陪练",
+    planId: "LTP20016587073000202241",
+    description: "该培训用于省区低效销售提效使用",
+    trainees: [{ name: "毛马" }, { name: "郑N" }],
+    invitedCount: 130,
+    participantCount: 85,
+    status: "active",
   },
 ];
 
-const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" | "destructive" }> = {
-  draft: { label: "草稿", variant: "secondary" },
-  pending: { label: "待发布", variant: "outline" },
-  in_progress: { label: "进行中", variant: "default" },
-  completed: { label: "已完成", variant: "secondary" },
-  archived: { label: "已归档", variant: "outline" },
-};
-
 export default function TrainingPlans() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [filteredPlans, setFilteredPlans] = useState(mockPlans);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingPlan, setEditingPlan] = useState<TrainingPlan | null>(null);
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    if (!query) {
-      setFilteredPlans(mockPlans);
-    } else {
-      setFilteredPlans(
-        mockPlans.filter(
-          (plan) =>
-            plan.title.toLowerCase().includes(query.toLowerCase()) ||
-            plan.description.toLowerCase().includes(query.toLowerCase())
-        )
+  const handleSearch = () => {
+    let results = mockPlans;
+
+    if (searchQuery) {
+      results = results.filter(
+        (plan) =>
+          plan.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          plan.planId.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          plan.description.toLowerCase().includes(searchQuery.toLowerCase())
       );
+    }
+
+    if (statusFilter !== "all") {
+      results = results.filter((plan) => plan.status === statusFilter);
+    }
+
+    setFilteredPlans(results);
+  };
+
+  const handleReset = () => {
+    setSearchQuery("");
+    setStatusFilter("all");
+    setFilteredPlans(mockPlans);
+  };
+
+  const handleEdit = (plan: TrainingPlan) => {
+    setEditingPlan(plan);
+    setSheetOpen(true);
+  };
+
+  const handleCreate = () => {
+    setEditingPlan(null);
+    setSheetOpen(true);
+  };
+
+  const handleInvite = (plan: TrainingPlan) => {
+    toast.info(`邀请学员参加：${plan.title}`);
+  };
+
+  const handleCopyLink = (plan: TrainingPlan) => {
+    navigator.clipboard.writeText(
+      `https://training.example.com/join/${plan.planId}`
+    );
+    toast.success("邀请链接已复制到剪贴板");
+  };
+
+  const handleToggleStatus = (plan: TrainingPlan) => {
+    const newStatus = plan.status === "active" ? "inactive" : "active";
+    toast.success(
+      `已${newStatus === "active" ? "开启" : "停用"}：${plan.title}`
+    );
+  };
+
+  const handleSave = (data: Partial<TrainingPlan>) => {
+    if (editingPlan) {
+      toast.success("培训计划已更新");
+    } else {
+      toast.success("培训计划已创建");
     }
   };
 
-  return (
-    <DashboardLayout title="培训计划" description="创建和管理您的培训计划">
-      <div className="space-y-6">
-        {/* Header Actions */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 gap-2">
-            <div className="relative flex-1 sm:max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="搜索培训计划..."
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            创建培训计划
-          </Button>
-        </div>
+  // Stats
+  const totalPlans = mockPlans.length;
+  const activePlans = mockPlans.filter((p) => p.status === "active").length;
+  const totalInvited = mockPlans.reduce((sum, p) => sum + p.invitedCount, 0);
+  const totalParticipants = mockPlans.reduce(
+    (sum, p) => sum + p.participantCount,
+    0
+  );
 
-        {/* Stats Overview */}
+  return (
+    <DashboardLayout title="培训计划" description="管理和查看所有培训计划">
+      <div className="space-y-6">
+        {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold">12</div>
+              <div className="text-2xl font-bold">{totalPlans}</div>
               <p className="text-sm text-muted-foreground">全部计划</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">5</div>
+              <div className="text-2xl font-bold text-primary">
+                {activePlans}
+              </div>
               <p className="text-sm text-muted-foreground">进行中</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-success">4</div>
-              <p className="text-sm text-muted-foreground">已完成</p>
+              <div className="text-2xl font-bold">{totalInvited}</div>
+              <p className="text-sm text-muted-foreground">总邀请人数</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4">
-              <div className="text-2xl font-bold text-muted-foreground">3</div>
-              <p className="text-sm text-muted-foreground">草稿</p>
+              <div className="text-2xl font-bold">{totalParticipants}</div>
+              <p className="text-sm text-muted-foreground">总参与人数</p>
             </CardContent>
           </Card>
         </div>
 
-        {/* Plans Table */}
+        {/* Filters */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                关键词搜索：
+              </span>
+              <Input
+                placeholder="请输入关键词"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-[200px]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                状态：
+              </span>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[140px]">
+                  <SelectValue placeholder="请选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">全部状态</SelectItem>
+                  <SelectItem value="active">开启</SelectItem>
+                  <SelectItem value="inactive">停用</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button variant="outline" size="sm" onClick={handleReset}>
+              <RotateCcw className="h-4 w-4 mr-1" />
+              重置
+            </Button>
+            <Button size="sm" onClick={handleSearch}>
+              <Search className="h-4 w-4 mr-1" />
+              查询
+            </Button>
+          </div>
+          <Button onClick={handleCreate}>
+            <Plus className="h-4 w-4 mr-1" />
+            新建培训计划
+          </Button>
+        </div>
+
+        {/* Table */}
         <Card>
-          <CardHeader>
-            <CardTitle>培训计划列表</CardTitle>
-            <CardDescription>
-              共 {filteredPlans.length} 个培训计划
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>培训名称</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>时间周期</TableHead>
-                  <TableHead>学员数</TableHead>
-                  <TableHead>章节数</TableHead>
-                  <TableHead>完成率</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPlans.map((plan) => (
-                  <TableRow key={plan.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <BookOpen className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{plan.title}</div>
-                          <div className="text-sm text-muted-foreground line-clamp-1">
-                            {plan.description}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={statusMap[plan.status].variant}>
-                        {statusMap[plan.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {plan.startDate ? (
-                        <div className="flex items-center gap-1 text-sm">
-                          <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
-                          {plan.startDate} ~ {plan.endDate}
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground">未设置</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-1">
-                        <Users className="h-3.5 w-3.5 text-muted-foreground" />
-                        {plan.participants}
-                      </div>
-                    </TableCell>
-                    <TableCell>{plan.chapters}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <div className="h-2 w-16 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${plan.completionRate}%` }}
-                          />
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {plan.completionRate}%
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            查看详情
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Edit className="mr-2 h-4 w-4" />
-                            编辑
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Copy className="mr-2 h-4 w-4" />
-                            复制
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            删除
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+          <CardContent className="p-0">
+            <TrainingPlanTable
+              plans={filteredPlans}
+              onEdit={handleEdit}
+              onInvite={handleInvite}
+              onCopyLink={handleCopyLink}
+              onToggleStatus={handleToggleStatus}
+            />
           </CardContent>
         </Card>
       </div>
+
+      {/* Create/Edit Sheet */}
+      <TrainingPlanSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        plan={editingPlan}
+        onSave={handleSave}
+      />
     </DashboardLayout>
   );
 }
