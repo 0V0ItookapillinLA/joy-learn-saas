@@ -1,35 +1,25 @@
 import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  LayoutDashboard,
+  Home,
   BookOpen,
   MessageSquare,
-  ClipboardCheck,
-  Users,
-  UserPlus,
-  Map,
   Bot,
-  FolderOpen,
-  FileQuestion,
+  Map,
   BarChart3,
-  Activity,
-  Building2,
-  Shield,
-  Package,
+  Settings,
   ChevronDown,
   GraduationCap,
   LogOut,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -46,59 +36,39 @@ import {
 
 const menuItems = [
   {
-    title: "工作台",
-    icon: LayoutDashboard,
-    url: "/dashboard",
+    title: "首页",
+    icon: Home,
+    url: "/",
   },
   {
-    title: "培训管理",
+    title: "培训计划",
     icon: BookOpen,
-    children: [
-      { title: "培训计划", url: "/training/plans", icon: BookOpen },
-      { title: "练习管理", url: "/training/practices", icon: MessageSquare },
-      { title: "考评管理", url: "/training/assessments", icon: ClipboardCheck },
-    ],
+    url: "/training/plans",
   },
   {
-    title: "学员中心",
-    icon: Users,
-    children: [
-      { title: "学员列表", url: "/trainees/list", icon: Users },
-      { title: "邀请管理", url: "/trainees/invitations", icon: UserPlus },
-      { title: "成长地图", url: "/trainees/growth-map", icon: Map },
-    ],
+    title: "练习计划",
+    icon: MessageSquare,
+    url: "/practices",
   },
   {
     title: "角色配置",
     icon: Bot,
-    children: [
-      { title: "AI角色管理", url: "/characters", icon: Bot },
-    ],
+    url: "/characters",
   },
   {
-    title: "内容管理",
-    icon: FolderOpen,
-    children: [
-      { title: "知识库", url: "/content/knowledge", icon: FolderOpen },
-      { title: "题库", url: "/content/questions", icon: FileQuestion },
-    ],
+    title: "成长地图",
+    icon: Map,
+    url: "/growth-map",
   },
   {
     title: "数据看板",
     icon: BarChart3,
-    children: [
-      { title: "培训看板", url: "/analytics/training", icon: BarChart3 },
-      { title: "练习看板", url: "/analytics/practice", icon: Activity },
-    ],
+    url: "/analytics",
   },
   {
     title: "系统设置",
-    icon: Building2,
-    children: [
-      { title: "组织架构", url: "/settings/organization", icon: Building2 },
-      { title: "权限管理", url: "/settings/permissions", icon: Shield },
-      { title: "套餐配置", url: "/settings/plans", icon: Package },
-    ],
+    icon: Settings,
+    url: "/settings",
   },
 ];
 
@@ -106,17 +76,13 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut, user } = useAuth();
-  const [openGroups, setOpenGroups] = useState<string[]>(["培训管理", "学员中心"]);
+  const { signOut } = useAuth();
 
-  const isActive = (url: string) => location.pathname === url;
-  const isGroupActive = (children?: { url: string }[]) =>
-    children?.some((child) => location.pathname.startsWith(child.url));
-
-  const toggleGroup = (title: string) => {
-    setOpenGroups((prev) =>
-      prev.includes(title) ? prev.filter((t) => t !== title) : [...prev, title]
-    );
+  const isActive = (url: string) => {
+    if (url === "/") {
+      return location.pathname === "/";
+    }
+    return location.pathname.startsWith(url);
   };
 
   return (
@@ -143,63 +109,20 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) =>
-                item.children ? (
-                  <Collapsible
-                    key={item.title}
-                    open={openGroups.includes(item.title)}
-                    onOpenChange={() => toggleGroup(item.title)}
-                  >
-                    <SidebarMenuItem>
-                      <CollapsibleTrigger asChild>
-                        <SidebarMenuButton
-                          tooltip={item.title}
-                          isActive={isGroupActive(item.children)}
-                        >
-                          <item.icon className="h-4 w-4" />
-                          {!collapsed && <span>{item.title}</span>}
-                          {!collapsed && (
-                            <ChevronDown
-                              className={`ml-auto h-4 w-4 transition-transform ${
-                                openGroups.includes(item.title) ? "rotate-180" : ""
-                              }`}
-                            />
-                          )}
-                        </SidebarMenuButton>
-                      </CollapsibleTrigger>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {item.children.map((child) => (
-                            <SidebarMenuSubItem key={child.url}>
-                              <NavLink
-                                to={child.url}
-                                className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                                activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                              >
-                                <child.icon className="h-3.5 w-3.5" />
-                                <span>{child.title}</span>
-                              </NavLink>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
-                    </SidebarMenuItem>
-                  </Collapsible>
-                ) : (
-                  <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild tooltip={item.title} isActive={isActive(item.url!)}>
-                      <NavLink
-                        to={item.url!}
-                        className="flex items-center gap-2"
-                        activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                      >
-                        <item.icon className="h-4 w-4" />
-                        {!collapsed && <span>{item.title}</span>}
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              )}
+              {menuItems.map((item) => (
+                <SidebarMenuItem key={item.url}>
+                  <SidebarMenuButton asChild tooltip={item.title} isActive={isActive(item.url)}>
+                    <NavLink
+                      to={item.url}
+                      className="flex items-center gap-2"
+                      activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                    >
+                      <item.icon className="h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
