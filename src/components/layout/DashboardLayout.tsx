@@ -12,22 +12,10 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children, title, description }: DashboardLayoutProps) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="space-y-4">
-          <Skeleton className="h-12 w-48" />
-          <Skeleton className="h-4 w-64" />
-        </div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/auth" replace />;
-  }
+  // 开发模式：跳过认证检查，直接显示内容
+  // const { user, loading } = useAuth();
+  // if (loading) { ... }
+  // if (!user) { return <Navigate to="/auth" replace />; }
 
   return (
     <SidebarProvider>

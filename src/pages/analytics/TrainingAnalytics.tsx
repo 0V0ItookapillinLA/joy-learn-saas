@@ -1,6 +1,8 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -8,323 +10,433 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  AreaChart,
-  Area,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Download,
+  Bell,
+  CheckCircle,
+  Eye,
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
-  PieChart,
-  Pie,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
   Cell,
 } from "recharts";
-import { Download, TrendingUp, Users, Clock, Target } from "lucide-react";
 
-// Mock chart data
-const completionTrend = [
-  { date: "1月1日", completed: 12, enrolled: 45 },
-  { date: "1月8日", completed: 28, enrolled: 52 },
-  { date: "1月15日", completed: 45, enrolled: 60 },
-  { date: "1月22日", completed: 65, enrolled: 78 },
-  { date: "1月29日", completed: 82, enrolled: 85 },
+// 核心指标数据
+const coreMetrics = [
+  {
+    value: "245",
+    label: "总学员数",
+    change: "+12↑",
+  },
+  {
+    value: "87%",
+    label: "活跃率",
+    change: "↑5%",
+  },
+  {
+    value: "68%",
+    label: "整体进度",
+    change: "↑18%",
+  },
+  {
+    value: "75",
+    label: "综合评分",
+    change: "+3分",
+  },
 ];
 
-const departmentStats = [
-  { name: "销售部", completion: 85, avg_score: 82 },
-  { name: "客服部", completion: 92, avg_score: 88 },
-  { name: "市场部", completion: 78, avg_score: 75 },
-  { name: "技术部", completion: 65, avg_score: 90 },
-  { name: "人事部", completion: 88, avg_score: 85 },
+// 四阶段进度数据
+const stageProgress = [
+  {
+    stage: "学",
+    label: "学习资源完成",
+    progress: 82,
+    color: "bg-blue-500",
+    details: "4.5h 平均学习时长 | 85% 资源完成率",
+  },
+  {
+    stage: "练",
+    label: "人机对练完成",
+    progress: 63,
+    color: "bg-green-500",
+    details: "12次 平均对练次数 | 78分 平均得分",
+  },
+  {
+    stage: "考",
+    label: "考试参与率",
+    progress: 58,
+    color: "bg-orange-500",
+    details: "78分 平均考试成绩 | 72% 及格率",
+  },
+  {
+    stage: "评",
+    label: "成果评价完成",
+    progress: 71,
+    color: "bg-purple-500",
+    details: "⭐3.8 综合能力评分 | 68% 评价完成率",
+  },
 ];
 
-const statusDistribution = [
-  { name: "已完成", value: 156, color: "hsl(var(--success))" },
-  { name: "进行中", value: 89, color: "hsl(var(--primary))" },
-  { name: "未开始", value: 45, color: "hsl(var(--muted))" },
-  { name: "已过期", value: 12, color: "hsl(var(--destructive))" },
+// 活跃度趋势数据
+const activityTrendData = [
+  { date: "1/1", newStudents: 12, activeStudents: 98 },
+  { date: "1/5", newStudents: 8, activeStudents: 115 },
+  { date: "1/10", newStudents: 15, activeStudents: 132 },
+  { date: "1/15", newStudents: 22, activeStudents: 158 },
+  { date: "1/20", newStudents: 18, activeStudents: 145 },
+  { date: "1/25", newStudents: 25, activeStudents: 178 },
 ];
 
-const topTrainings = [
-  { title: "新员工入职培训", participants: 156, completion: 92 },
-  { title: "销售技能提升", participants: 89, completion: 78 },
-  { title: "客户服务培训", participants: 124, completion: 85 },
-  { title: "产品知识培训", participants: 203, completion: 68 },
-  { title: "领导力发展", participants: 45, completion: 94 },
+// 各环节完成率数据
+const completionRateData = [
+  { name: "学", rate: 82, fill: "#3B82F6" },
+  { name: "练", rate: 63, fill: "#22C55E" },
+  { name: "考", rate: 58, fill: "#F97316" },
+  { name: "评", rate: 71, fill: "#8B5CF6" },
+];
+
+// 能力评分分布数据
+const abilityRadarData = [
+  { ability: "通讯表达", score: 78, fullMark: 100 },
+  { ability: "知识理解", score: 85, fullMark: 100 },
+  { ability: "应用能力", score: 72, fullMark: 100 },
+  { ability: "问题解决", score: 68, fullMark: 100 },
+  { ability: "团队协作", score: 82, fullMark: 100 },
+];
+
+// 学习地图阶段分布
+const levelDistribution = [
+  { level: "Lv1", label: "初级阶段", count: 98, percentage: 40, color: "bg-blue-500" },
+  { level: "Lv2", label: "中级阶段", count: 87, percentage: 35, color: "bg-green-500" },
+  { level: "Lv3", label: "高级阶段", count: 60, percentage: 25, color: "bg-orange-500" },
+];
+
+// 学员档案数据
+const studentRecords = [
+  { name: "张三", studyProgress: 85, practiceProgress: 72, examScore: 82, evaluationScore: 85, grade: "优秀", gradeColor: "bg-green-500", lastActive: "2天前", level: "Lv2" },
+  { name: "李四", studyProgress: 62, practiceProgress: 48, examScore: 65, evaluationScore: 68, grade: "及格", gradeColor: "bg-yellow-500", lastActive: "7天前", level: "Lv1" },
+  { name: "王五", studyProgress: 45, practiceProgress: 22, examScore: 58, evaluationScore: 62, grade: "不及格", gradeColor: "bg-red-500", lastActive: "15天前", level: "Lv1" },
+  { name: "赵六", studyProgress: 90, practiceProgress: 85, examScore: 91, evaluationScore: 88, grade: "优秀", gradeColor: "bg-green-500", lastActive: "1天前", level: "Lv3" },
+  { name: "钱七", studyProgress: 78, practiceProgress: 65, examScore: 75, evaluationScore: 72, grade: "良好", gradeColor: "bg-blue-500", lastActive: "3天前", level: "Lv2" },
+  { name: "孙八", studyProgress: 55, practiceProgress: 40, examScore: 60, evaluationScore: 58, grade: "及格", gradeColor: "bg-yellow-500", lastActive: "10天前", level: "Lv1" },
+  { name: "周九", studyProgress: 88, practiceProgress: 80, examScore: 85, evaluationScore: 82, grade: "优秀", gradeColor: "bg-green-500", lastActive: "1天前", level: "Lv2" },
+  { name: "吴十", studyProgress: 70, practiceProgress: 55, examScore: 68, evaluationScore: 70, grade: "良好", gradeColor: "bg-blue-500", lastActive: "5天前", level: "Lv1" },
 ];
 
 export default function TrainingAnalytics() {
   return (
-    <DashboardLayout title="培训看板" description="培训数据分析与报告">
-      <div className="space-y-6">
-        {/* Header Actions */}
-        <div className="flex items-center justify-between">
-          <div className="flex gap-2">
-            <Select defaultValue="month">
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="week">本周</SelectItem>
-                <SelectItem value="month">本月</SelectItem>
-                <SelectItem value="quarter">本季度</SelectItem>
-                <SelectItem value="year">本年度</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select defaultValue="all">
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">全部部门</SelectItem>
-                <SelectItem value="sales">销售部</SelectItem>
-                <SelectItem value="service">客服部</SelectItem>
-                <SelectItem value="marketing">市场部</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+    <DashboardLayout title="AI培训效果监控看板" description="全方位监控培训效果与学员成长">
+      {/* 顶部工具栏 */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Select defaultValue="all">
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="全部班级" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">全部班级</SelectItem>
+              <SelectItem value="class1">销售一班</SelectItem>
+              <SelectItem value="class2">销售二班</SelectItem>
+              <SelectItem value="class3">客服班</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select defaultValue="30">
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="时间范围" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">最近7天</SelectItem>
+              <SelectItem value="30">最近30天</SelectItem>
+              <SelectItem value="90">最近90天</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="flex items-center gap-3">
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            导出报告
+            导出
+          </Button>
+          <Button variant="outline">
+            <Bell className="mr-2 h-4 w-4" />
+            订阅
           </Button>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Target className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">78%</div>
-                  <p className="text-sm text-muted-foreground">计划完成率</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-                  <Users className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">248</div>
-                  <p className="text-sm text-muted-foreground">参与学员</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                  <Clock className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">4.2h</div>
-                  <p className="text-sm text-muted-foreground">人均学习时长</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-info/10">
-                  <TrendingUp className="h-5 w-5 text-info" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">86.5</div>
-                  <p className="text-sm text-muted-foreground">平均得分</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* 核心指标 */}
+      <div className="mb-6">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-5 w-1 rounded-full bg-primary" />
+          <h2 className="text-lg font-semibold">核心指标</h2>
         </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Completion Trend */}
-          <Card>
-            <CardHeader>
-              <CardTitle>完成趋势</CardTitle>
-              <CardDescription>培训参与与完成人数趋势</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={completionTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      dataKey="date"
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                    />
-                    <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="enrolled"
-                      stackId="1"
-                      stroke="hsl(var(--muted-foreground))"
-                      fill="hsl(var(--muted))"
-                      name="参与人数"
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="completed"
-                      stackId="2"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
-                      fillOpacity={0.3}
-                      name="完成人数"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Status Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle>状态分布</CardTitle>
-              <CardDescription>学员培训状态统计</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={statusDistribution}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={60}
-                      outerRadius={100}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {statusDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
-                {statusDistribution.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2 text-sm">
-                    <div
-                      className="h-3 w-3 rounded-full"
-                      style={{ backgroundColor: item.color }}
-                    />
-                    <span>{item.name}</span>
-                    <span className="font-medium">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {coreMetrics.map((metric) => (
+            <Card key={metric.label}>
+              <CardContent className="p-6">
+                <div className="text-4xl font-bold">{metric.value}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{metric.label}</div>
+                <div className="mt-2 text-sm text-primary">{metric.change}</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
+      </div>
 
+      {/* 四阶段进度 */}
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <div className="h-5 w-1 rounded-full bg-primary" />
+            <CardTitle className="text-lg">学-练-考-评 四阶段进度</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {stageProgress.map((item) => (
+            <div key={item.stage} className="flex items-center gap-4">
+              <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${item.color} text-white text-sm font-medium`}>
+                {item.stage}
+              </div>
+              <div className="flex-1">
+                <div className="mb-1 flex items-center justify-between">
+                  <span className="text-sm">{item.label}</span>
+                  <span className="font-semibold">{item.progress}%</span>
+                </div>
+                <Progress value={item.progress} className="h-2" />
+              </div>
+              <div className="hidden text-sm text-muted-foreground lg:block min-w-[200px]">
+                {item.details}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {/* 趋势分析 */}
+      <div className="mb-6">
+        <div className="mb-3 flex items-center gap-2">
+          <div className="h-5 w-1 rounded-full bg-primary" />
+          <h2 className="text-lg font-semibold">趋势分析</h2>
+        </div>
+        
         <div className="grid gap-6 lg:grid-cols-2">
-          {/* Department Stats */}
+          {/* 学员学习活跃度趋势 */}
           <Card>
-            <CardHeader>
-              <CardTitle>部门表现</CardTitle>
-              <CardDescription>各部门培训完成率与平均得分</CardDescription>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-1 rounded-full bg-primary" />
+                <CardTitle className="text-base">学员学习活跃度趋势</CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={departmentStats} layout="vertical">
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis
-                      type="number"
-                      domain={[0, 100]}
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="name"
-                      width={60}
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                      }}
-                    />
-                    <Bar
-                      dataKey="completion"
-                      fill="hsl(var(--primary))"
-                      radius={[0, 4, 4, 0]}
-                      name="完成率 %"
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={activityTrendData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--background))", 
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px"
+                    }} 
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="newStudents" 
+                    stroke="#3B82F6" 
+                    name="新增学员" 
+                    strokeWidth={2}
+                    dot={{ fill: "#3B82F6", strokeWidth: 2 }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="activeStudents" 
+                    stroke="#22C55E" 
+                    name="日活学员"
+                    strokeWidth={2}
+                    dot={{ fill: "#22C55E", strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Top Trainings */}
+          {/* 各环节完成率对比 */}
           <Card>
-            <CardHeader>
-              <CardTitle>热门培训</CardTitle>
-              <CardDescription>参与人数最多的培训计划</CardDescription>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-1 rounded-full bg-primary" />
+                <CardTitle className="text-base">各环节完成率对比</CardTitle>
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {topTrainings.map((training, index) => (
-                  <div key={index} className="flex items-center gap-4">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
-                      {index + 1}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium">{training.title}</h4>
-                        <span className="text-sm text-muted-foreground">
-                          {training.participants}人
-                        </span>
-                      </div>
-                      <div className="mt-1 flex items-center gap-2">
-                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full bg-primary transition-all"
-                            style={{ width: `${training.completion}%` }}
-                          />
-                        </div>
-                        <span className="text-xs text-muted-foreground">
-                          {training.completion}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={completionRateData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                  <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" domain={[0, 100]} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: "hsl(var(--background))", 
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px"
+                    }}
+                    formatter={(value) => [`${value}%`, "完成率"]}
+                  />
+                  <Bar dataKey="rate" radius={[4, 4, 0, 0]}>
+                    {completionRateData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {/* 能力评分与学习地图 */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        {/* 学员能力评分分布 */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1 rounded-full bg-primary" />
+              <CardTitle className="text-base">学员能力评分分布</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={250}>
+              <RadarChart data={abilityRadarData}>
+                <PolarGrid stroke="hsl(var(--border))" />
+                <PolarAngleAxis dataKey="ability" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} stroke="hsl(var(--muted-foreground))" />
+                <Radar
+                  name="能力评分"
+                  dataKey="score"
+                  stroke="#3B82F6"
+                  fill="#3B82F6"
+                  fillOpacity={0.3}
+                  strokeWidth={2}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* 学习地图阶段分布 */}
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1 rounded-full bg-primary" />
+              <CardTitle className="text-base">学习地图阶段分布</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {levelDistribution.map((level, index) => (
+              <div key={level.level} className="flex items-center gap-4">
+                <div className={`flex h-6 w-6 items-center justify-center rounded-full border-2 ${index === 0 ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"}`}>
+                  {index === 0 && <CheckCircle className="h-4 w-4" />}
+                </div>
+                <div className="flex-1">
+                  <div className="mb-1 flex items-center justify-between">
+                    <span className="text-sm font-medium">{level.label} <span className="text-muted-foreground">{level.level}</span></span>
+                    <span className="text-sm text-muted-foreground">{level.count}人 ({level.percentage}%)</span>
+                  </div>
+                  <Progress value={level.percentage} className="h-2" />
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* 学员学习档案列表 */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1 rounded-full bg-primary" />
+              <CardTitle className="text-base">学员学习档案列表</CardTitle>
+            </div>
+            <Tabs defaultValue="all">
+              <TabsList className="h-8">
+                <TabsTrigger value="all" className="text-xs">全部</TabsTrigger>
+                <TabsTrigger value="excellent" className="text-xs">优秀</TabsTrigger>
+                <TabsTrigger value="warning" className="text-xs">待关注</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>姓名</TableHead>
+                <TableHead>学习进度</TableHead>
+                <TableHead>对练进度</TableHead>
+                <TableHead>考试成绩</TableHead>
+                <TableHead>评价得分</TableHead>
+                <TableHead>综合评级</TableHead>
+                <TableHead>最近活动</TableHead>
+                <TableHead>学习地图</TableHead>
+                <TableHead>操作</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {studentRecords.map((student) => (
+                <TableRow key={student.name}>
+                  <TableCell className="font-medium">{student.name}</TableCell>
+                  <TableCell>{student.studyProgress}%</TableCell>
+                  <TableCell>{student.practiceProgress}%</TableCell>
+                  <TableCell>{student.examScore}</TableCell>
+                  <TableCell>{student.evaluationScore}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary" className="gap-1">
+                      <div className={`h-2 w-2 rounded-full ${student.gradeColor}`} />
+                      {student.grade}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">{student.lastActive}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline">{student.level}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="sm">
+                      <Eye className="mr-1 h-4 w-4" />
+                      查看
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </DashboardLayout>
   );
 }
