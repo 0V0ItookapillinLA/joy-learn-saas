@@ -6,10 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
-import Dashboard from "./pages/Dashboard";
 import TrainingPlans from "./pages/training/TrainingPlans";
-import PracticeManagement from "./pages/training/PracticeManagement";
-import TraineeList from "./pages/trainees/TraineeList";
+import PracticePlanList from "./pages/practices/PracticePlanList";
+import CharacterConfig from "./pages/characters/CharacterConfig";
 import GrowthMap from "./pages/trainees/GrowthMap";
 import TrainingAnalytics from "./pages/analytics/TrainingAnalytics";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
@@ -27,21 +26,12 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/training/plans" element={<TrainingPlans />} />
-            <Route path="/training/practices" element={<PracticeManagement />} />
-            <Route path="/training/assessments" element={<TrainingPlans />} />
-            <Route path="/trainees/list" element={<TraineeList />} />
-            <Route path="/trainees/invitations" element={<TraineeList />} />
-            <Route path="/trainees/growth-map" element={<GrowthMap />} />
-            <Route path="/characters" element={<PracticeManagement />} />
-            <Route path="/content/knowledge" element={<TrainingPlans />} />
-            <Route path="/content/questions" element={<TrainingPlans />} />
-            <Route path="/analytics/training" element={<TrainingAnalytics />} />
-            <Route path="/analytics/practice" element={<TrainingAnalytics />} />
-            <Route path="/settings/organization" element={<OrganizationSettings />} />
-            <Route path="/settings/permissions" element={<OrganizationSettings />} />
-            <Route path="/settings/plans" element={<OrganizationSettings />} />
+            <Route path="/practices" element={<PracticePlanList />} />
+            <Route path="/characters" element={<CharacterConfig />} />
+            <Route path="/growth-map" element={<GrowthMap />} />
+            <Route path="/analytics" element={<TrainingAnalytics />} />
+            <Route path="/settings" element={<OrganizationSettings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
