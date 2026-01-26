@@ -16,10 +16,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, MessageSquare, Sparkles, Loader2 } from "lucide-react";
+import { Plus, Trash2, MessageSquare, FileText, Loader2, CheckCircle2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -31,12 +32,15 @@ interface AssessmentItem {
 
 interface PracticeFormData {
   title: string;
+  department: string;
+  description: string;
   scenarioDescription: string;
   aiRoleId: string;
   aiRoleInfo: string;
   traineeRole: string;
   dialogueGoal: string;
   passScore: number;
+  passAttempts: number;
   assessmentItems: AssessmentItem[];
 }
 
@@ -54,11 +58,18 @@ const mockAIRoles = [
   { id: "4", name: "企业采购" },
 ];
 
+const mockDepartments = [
+  { id: "1", name: "销售部" },
+  { id: "2", name: "客服部" },
+  { id: "3", name: "人力资源部" },
+  { id: "4", name: "市场部" },
+];
+
 const defaultAssessmentItems: AssessmentItem[] = [
-  { id: "1", name: "沟通技巧", weight: 25 },
-  { id: "2", name: "问题解决能力", weight: 25 },
-  { id: "3", name: "政策理解与解释能力", weight: 25 },
-  { id: "4", name: "情绪管理", weight: 25 },
+  { id: "1", name: "非权力影响", weight: 40 },
+  { id: "2", name: "非权力影响", weight: 0 },
+  { id: "3", name: "勇于进取", weight: 0 },
+  { id: "4", name: "跨界思考", weight: 0 },
 ];
 
 export function PracticeEditSheet({
@@ -67,38 +78,47 @@ export function PracticeEditSheet({
   onSave,
   initialData,
 }: PracticeEditSheetProps) {
+  const [step, setStep] = useState<1 | 2>(1);
+  const [practiceMode, setPracticeMode] = useState<"free" | "fixed">("free");
   const [isGenerating, setIsGenerating] = useState(false);
   const [promptInput, setPromptInput] = useState("");
-  const [hasGenerated, setHasGenerated] = useState(false);
+  const [activeTab, setActiveTab] = useState("basic");
   
   const [formData, setFormData] = useState<PracticeFormData>({
     title: "",
+    department: "",
+    description: "",
     scenarioDescription: "",
     aiRoleId: "",
     aiRoleInfo: "",
     traineeRole: "",
     dialogueGoal: "",
     passScore: 50,
+    passAttempts: 3,
     assessmentItems: defaultAssessmentItems,
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData((prev) => ({ ...prev, ...initialData }));
-      setHasGenerated(true);
+      setStep(2);
     } else {
       setFormData({
         title: "",
+        department: "",
+        description: "",
         scenarioDescription: "",
         aiRoleId: "",
         aiRoleInfo: "",
         traineeRole: "",
         dialogueGoal: "",
         passScore: 50,
+        passAttempts: 3,
         assessmentItems: defaultAssessmentItems,
       });
-      setHasGenerated(false);
+      setStep(1);
       setPromptInput("");
+      setActiveTab("basic");
     }
   }, [initialData, open]);
 
@@ -110,39 +130,41 @@ export function PracticeEditSheet({
 
     setIsGenerating(true);
     try {
-      // Call AI to generate practice content
       const { data, error } = await supabase.functions.invoke('generate-training-plan', {
         body: { 
           prompt: `生成一个AI对话练习场景：${promptInput.trim()}。
 请返回JSON格式，包含以下字段：
-- title: 练习标题
-- scenarioDescription: 培训场景详细描述
+- title: 练习标题（简洁，不超过20字）
+- description: 练习描述（简短说明培训目的）
+- scenarioDescription: 练习场景目标描述
 - aiRoleInfo: AI扮演的角色详细信息（包括姓名、职位、性格特点等）
-- traineeRole: 学员需要扮演的角色和需要注意的要点
-- dialogueGoal: 对话训练目标，包含能力培养点
+- traineeRole: 学员角色设置说明
+- dialogueGoal: 对话训练目标，包含能力培养点和评估要点
 - assessmentItems: 考察项数组，每项包含name和weight（权重百分比，总和为100）`
         }
       });
 
       if (error) throw error;
 
-      // Parse the AI response
       const plan = data.plan;
       setFormData({
-        title: plan.title || promptInput.slice(0, 20) + "...",
-        scenarioDescription: plan.description || `培训场景：${promptInput}`,
+        title: plan.title || promptInput.slice(0, 20),
+        department: "",
+        description: plan.description || `培训场景：${promptInput}`,
+        scenarioDescription: plan.scenarioDescription || `目标：学会倾听客户诉求，提供解决方案，维护客户关系，提升客户满意度`,
         aiRoleId: "1",
-        aiRoleInfo: plan.targetAudience || "AI需要扮演的角色\n\n你的身份：\n• 姓名：待设置\n• 职位：待设置\n• 你在本次培训中扮演一名需要与学员进行多轮、逐步推进的沟通。",
-        traineeRole: "学员角色设置\n\n• 离职时间与交接节奏的安排\n• 赔偿金、未休假期等具体问题的解释与确认\n• 竞业协议相关政策的说明与安抚",
-        dialogueGoal: plan.objectives || "对话训练目标",
+        aiRoleInfo: plan.aiRoleInfo || plan.targetAudience || "",
+        traineeRole: plan.traineeRole || "学员角色设置",
+        dialogueGoal: plan.dialogueGoal || plan.objectives || `练习目标：基于您的需求设定 评估要点：-沟通技巧运用-专业知识掌握 -问题解决能力`,
         passScore: 50,
-        assessmentItems: plan.skillsTargeted?.slice(0, 5).map((skill: string, index: number) => ({
+        passAttempts: 3,
+        assessmentItems: plan.assessmentItems || plan.skillsTargeted?.slice(0, 4).map((skill: string, index: number) => ({
           id: String(index + 1),
           name: skill,
-          weight: Math.floor(100 / Math.min(plan.skillsTargeted.length, 5)),
+          weight: index === 0 ? 40 : 0,
         })) || defaultAssessmentItems,
       });
-      setHasGenerated(true);
+      setStep(2);
       toast.success("练习内容已生成，请检查并完善");
     } catch (error) {
       console.error('Generate error:', error);
@@ -189,112 +211,108 @@ export function PracticeEditSheet({
 
   const handleSave = () => {
     if (!formData.title) {
-      toast.error("请输入练习标题");
+      toast.error("请输入练习名称");
       return;
     }
     onSave(formData);
     onOpenChange(false);
   };
 
+  const handleBack = () => {
+    setStep(1);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="pb-4 border-b">
+      <SheetContent className="w-full sm:max-w-3xl overflow-y-auto p-0">
+        <SheetHeader className="p-6 pb-4 border-b">
           <SheetTitle>
-            {initialData ? "编辑练习计划" : "新建练习计划"}
+            {step === 1 ? "新建练习计划" : "创建练习详情"}
           </SheetTitle>
         </SheetHeader>
 
-        <div className="space-y-6 py-6">
-          {/* AI Generation Section - only show if not generated yet */}
-          {!hasGenerated && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-primary" />
-                  AI 智能生成练习内容
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Textarea
-                  value={promptInput}
-                  onChange={(e) => setPromptInput(e.target.value)}
-                  placeholder="请描述您的练习场景，例如：员工离职面谈场景，需要HR与即将离职的员工进行沟通，处理交接、赔偿等问题..."
-                  rows={4}
-                />
-                <Button
-                  onClick={handleGenerate}
-                  disabled={isGenerating || !promptInput.trim()}
-                  className="w-full"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      AI 正在生成...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      一键生成练习内容
-                    </>
-                  )}
-                </Button>
+        {step === 1 ? (
+          <div className="p-6 space-y-6">
+            {/* Mode Selection */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-medium mb-4">选择练习模式</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <div
+                    className={`relative p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                      practiceMode === "free"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-muted-foreground/50"
+                    }`}
+                    onClick={() => setPracticeMode("free")}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <MessageSquare className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">自由对话</div>
+                        <div className="text-sm text-muted-foreground">本期支持，可点击进行下一步</div>
+                      </div>
+                      {practiceMode === "free" && (
+                        <CheckCircle2 className="h-5 w-5 text-primary absolute top-4 right-4" />
+                      )}
+                    </div>
+                  </div>
+                  <div
+                    className={`relative p-4 rounded-lg border-2 cursor-not-allowed opacity-60 ${
+                      practiceMode === "fixed"
+                        ? "border-primary bg-primary/5"
+                        : "border-border"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-orange-100 flex items-center justify-center">
+                        <FileText className="h-5 w-5 text-orange-500" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="font-medium">固定剧本</div>
+                        <div className="text-sm text-muted-foreground">敬请期待</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </Card>
-          )}
 
-          {/* Generated/Editable Content */}
-          {(hasGenerated || initialData) && (
-            <>
-              {/* Scene Setup */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4 text-primary" />
-                  <h3 className="font-semibold">设置场景</h3>
+            {/* Script Creation */}
+            <Card>
+              <CardContent className="p-6 space-y-6">
+                <h3 className="font-medium">创建副本</h3>
+                
+                {/* Tips */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="p-4 rounded-lg bg-blue-50 border border-blue-100">
+                    <div className="flex items-center gap-2 text-primary font-medium mb-2">
+                      <span>📝</span>
+                      练习场景描述
+                    </div>
+                    <div className="text-sm text-primary/80 space-y-1">
+                      <p>请详细描述练习场景，包括：</p>
+                      <p>具体的业务场景（如客户投诉处理、产品介绍、销售谈判等）</p>
+                      <p>场景的背景和上下文</p>
+                      <p>可能遇到的情况和挑战</p>
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-lg bg-orange-50 border border-orange-100">
+                    <div className="flex items-center gap-2 text-orange-600 font-medium mb-2">
+                      <span>👤</span>
+                      人物角色设定
+                    </div>
+                    <div className="text-sm text-orange-600/80 space-y-1">
+                      <p>请明确参与角色，包括：</p>
+                      <p>学员扮演的角色及其职责</p>
+                      <p>AI扮演的角色及其特点</p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
-                    <span className="text-destructive">*</span>
-                    练习标题
-                  </Label>
-                  <Input
-                    value={formData.title}
-                    onChange={(e) =>
-                      setFormData({ ...formData, title: e.target.value })
-                    }
-                    placeholder="请输入练习标题"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
-                    <span className="text-destructive">*</span>
-                    练习场景
-                  </Label>
-                  <Textarea
-                    value={formData.scenarioDescription}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        scenarioDescription: e.target.value,
-                      })
-                    }
-                    placeholder="培训场景：在模拟的公司内部环境中，通过角色扮演的方式，对HR或相关管理人员进行培训。"
-                    rows={4}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {formData.scenarioDescription.length} / 5000
-                  </p>
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* AI Role */}
-              <div className="space-y-4">
-                <h3 className="font-semibold">AI身份</h3>
-
+                {/* AI Role Selection */}
                 <div className="space-y-2">
                   <Label className="flex items-center gap-1">
                     <span className="text-destructive">*</span>
@@ -319,162 +337,398 @@ export function PracticeEditSheet({
                   </Select>
                 </div>
 
+                {/* Script Input */}
                 <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
-                    <span className="text-destructive">*</span>
-                    AI角色信息
-                  </Label>
-                  <Textarea
-                    value={formData.aiRoleInfo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, aiRoleInfo: e.target.value })
-                    }
-                    placeholder="AI需要扮演的角色详细信息..."
-                    rows={6}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {formData.aiRoleInfo.length} / 5000
+                  <Label>创建剧本</Label>
+                  <p className="text-sm text-muted-foreground">
+                    请在此处详细描述您的练习需求，包括场景、角色和目标。您可以参考上方的引导内容，或者直接开始输入
                   </p>
+                  <Textarea
+                    value={promptInput}
+                    onChange={(e) => setPromptInput(e.target.value)}
+                    placeholder="请输入"
+                    rows={5}
+                  />
+                </div>
+
+                <Button
+                  variant="outline"
+                  onClick={handleGenerate}
+                  disabled={isGenerating || !promptInput.trim()}
+                  className="border-primary text-primary hover:bg-primary/5"
+                >
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      生成中...
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="mr-2 h-4 w-4" />
+                      生成剧本
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : (
+          <div className="flex flex-col h-[calc(100vh-80px)]">
+            {/* Tips Header */}
+            <div className="p-4 grid grid-cols-2 gap-4 border-b bg-muted/30">
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                <div className="flex items-center gap-2 text-primary font-medium text-sm mb-1">
+                  <span>📝</span>
+                  练习场景描述
+                </div>
+                <div className="text-xs text-primary/80 space-y-0.5">
+                  <p>请详细描述练习场景，包括：</p>
+                  <p>具体的业务场景（如客户投诉处理、产品介绍、销售谈判等）</p>
+                  <p>场景的背景和上下文</p>
+                  <p>可能遇到的情况和挑战</p>
                 </div>
               </div>
-
-              <Separator />
-
-              {/* Trainee Role */}
-              <div className="space-y-4">
-                <h3 className="font-semibold">学员身份</h3>
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
-                    <span className="text-destructive">*</span>
-                    学员角色设置
-                  </Label>
-                  <Textarea
-                    value={formData.traineeRole}
-                    onChange={(e) =>
-                      setFormData({ ...formData, traineeRole: e.target.value })
-                    }
-                    placeholder="学员需要扮演的角色和注意事项..."
-                    rows={4}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {formData.traineeRole.length} / 5000
-                  </p>
+              <div className="p-3 rounded-lg bg-orange-50 border border-orange-100">
+                <div className="flex items-center gap-2 text-orange-600 font-medium text-sm mb-1">
+                  <span>👤</span>
+                  人物角色设定
+                </div>
+                <div className="text-xs text-orange-600/80 space-y-0.5">
+                  <p>请明确参与角色，包括：</p>
+                  <p>学员扮演的角色及其职责</p>
+                  <p>AI扮演的角色及其特点</p>
                 </div>
               </div>
+            </div>
 
-              <Separator />
+            {/* Tabs */}
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+              <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0 px-4">
+                <TabsTrigger 
+                  value="basic" 
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none py-3 px-4"
+                >
+                  基本信息
+                  <Badge variant="outline" className="ml-2 text-orange-500 border-orange-300 bg-orange-50">待完善</Badge>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="scene" 
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none py-3 px-4"
+                >
+                  设置场景
+                  <Badge variant="outline" className="ml-2 text-orange-500 border-orange-300 bg-orange-50">待完善</Badge>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="dialogue" 
+                  className="data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none py-3 px-4"
+                >
+                  对话设置
+                  <Badge variant="outline" className="ml-2 text-orange-500 border-orange-300 bg-orange-50">待完善</Badge>
+                </TabsTrigger>
+              </TabsList>
 
-              {/* Dialogue Settings */}
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  <h3 className="font-semibold">对话设置</h3>
-                </div>
+              <div className="flex-1 overflow-y-auto p-6">
+                <TabsContent value="basic" className="mt-0 space-y-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span>📋</span>
+                    <h3 className="font-semibold">基本信息</h3>
+                  </div>
 
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-1">
-                    <span className="text-destructive">*</span>
-                    对话目标
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    根据剧本拆解，各模块/环节目标
-                  </p>
-                  <Textarea
-                    value={formData.dialogueGoal}
-                    onChange={(e) =>
-                      setFormData({ ...formData, dialogueGoal: e.target.value })
-                    }
-                    placeholder="对话训练目标..."
-                    rows={6}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {formData.dialogueGoal.length} / 5000
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>完成规则</Label>
-                    <div className="flex items-center gap-2">
-                      <Label className="text-sm text-muted-foreground">
-                        角色通过分数
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1">
+                        <span className="text-destructive">*</span>
+                        练习名称
                       </Label>
-                      <Input
-                        type="number"
-                        value={formData.passScore}
-                        onChange={(e) =>
-                          setFormData({
-                            ...formData,
-                            passScore: parseInt(e.target.value) || 0,
-                          })
+                      <div className="relative">
+                        <Input
+                          value={formData.title}
+                          onChange={(e) =>
+                            setFormData({ ...formData, title: e.target.value.slice(0, 40) })
+                          }
+                          placeholder="请输入练习名称"
+                          maxLength={40}
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                          {formData.title.length} / 40
+                        </span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1">
+                        <span className="text-destructive">*</span>
+                        所属部门
+                      </Label>
+                      <Select
+                        value={formData.department}
+                        onValueChange={(value) =>
+                          setFormData({ ...formData, department: value })
                         }
-                        className="w-20"
-                        min={0}
-                        max={100}
-                      />
-                      <span className="text-sm text-muted-foreground">分</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Assessment Items */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <Label>考察项</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">权重</span>
-                      <Badge
-                        variant={totalWeight === 100 ? "default" : "destructive"}
                       >
-                        {totalWeight}%
-                      </Badge>
+                        <SelectTrigger>
+                          <SelectValue placeholder="输入框" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockDepartments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
 
-                  <Card className="bg-muted/30">
-                    <CardContent className="p-4 space-y-3">
-                      {formData.assessmentItems.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center gap-3"
-                        >
-                          <Input
-                            value={item.name}
-                            onChange={(e) =>
-                              updateAssessmentItem(item.id, "name", e.target.value)
-                            }
-                            placeholder="考察项名称"
-                            className="flex-1"
-                          />
-                          <span className="text-sm text-muted-foreground">
-                            占比
-                          </span>
+                  <div className="space-y-2">
+                    <Label>练习描述</Label>
+                    <div className="relative">
+                      <Textarea
+                        value={formData.description}
+                        onChange={(e) =>
+                          setFormData({ ...formData, description: e.target.value.slice(0, 500) })
+                        }
+                        placeholder="请输入培训"
+                        rows={3}
+                        maxLength={500}
+                      />
+                      <span className="absolute right-3 bottom-3 text-xs text-muted-foreground">
+                        {formData.description.length} / 500
+                      </span>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="scene" className="mt-0 space-y-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span>📍</span>
+                    <h3 className="font-semibold">设置场景</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>练习场景</Label>
+                    <div className="relative">
+                      <Textarea
+                        value={formData.scenarioDescription}
+                        onChange={(e) =>
+                          setFormData({ ...formData, scenarioDescription: e.target.value.slice(0, 200) })
+                        }
+                        placeholder="目标：学会倾听客户诉求，提供解决方案，维护客户关系，提升客户满意度"
+                        rows={3}
+                        maxLength={200}
+                      />
+                      <span className="absolute right-3 bottom-3 text-xs text-muted-foreground">
+                        {formData.scenarioDescription.length} / 200
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium">AI身份</h4>
+                    
+                    <div className="space-y-2">
+                      <Label className="flex items-center gap-1">
+                        <span className="text-destructive">*</span>
+                        AI角色设置
+                      </Label>
+                      <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors">
+                        <Plus className="h-8 w-8 mx-auto text-primary mb-2" />
+                        <span className="text-primary">点击设置形象</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>人员信息</Label>
+                      <div className="relative">
+                        <Textarea
+                          value={formData.aiRoleInfo}
+                          onChange={(e) =>
+                            setFormData({ ...formData, aiRoleInfo: e.target.value.slice(0, 200) })
+                          }
+                          placeholder="请输入"
+                          rows={3}
+                          maxLength={200}
+                        />
+                        <span className="absolute right-3 bottom-3 text-xs text-muted-foreground">
+                          {formData.aiRoleInfo.length} / 200
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="font-medium">学员身份</h4>
+                      <p className="text-sm text-muted-foreground">学院角色设置</p>
+                    </div>
+                    <div className="relative">
+                      <Textarea
+                        value={formData.traineeRole}
+                        onChange={(e) =>
+                          setFormData({ ...formData, traineeRole: e.target.value.slice(0, 200) })
+                        }
+                        placeholder="请输入"
+                        rows={3}
+                        maxLength={200}
+                      />
+                      <span className="absolute right-3 bottom-3 text-xs text-muted-foreground">
+                        {formData.traineeRole.length} / 200
+                      </span>
+                    </div>
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="dialogue" className="mt-0 space-y-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <span>💬</span>
+                    <h3 className="font-semibold">对话设置</h3>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>对话目标</Label>
+                    <p className="text-sm text-muted-foreground">根据剧本拆解，各模块/环节目标</p>
+                    <div className="relative">
+                      <Textarea
+                        value={formData.dialogueGoal}
+                        onChange={(e) =>
+                          setFormData({ ...formData, dialogueGoal: e.target.value.slice(0, 200) })
+                        }
+                        placeholder="练习目标：基于您的需求设定 评估要点：-沟通技巧运用-专业知识掌握 -问题解决能力"
+                        rows={3}
+                        maxLength={200}
+                      />
+                      <span className="absolute right-3 bottom-3 text-xs text-muted-foreground">
+                        {formData.dialogueGoal.length} / 200
+                      </span>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h4 className="font-medium">完成规则</h4>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          <span className="text-destructive">*</span>
+                          角色通过练习次数
+                        </Label>
+                        <div className="flex items-center gap-2">
                           <Input
                             type="number"
-                            value={item.weight}
+                            value={formData.passAttempts || ""}
                             onChange={(e) =>
-                              updateAssessmentItem(
-                                item.id,
-                                "weight",
-                                parseInt(e.target.value) || 0
-                              )
+                              setFormData({
+                                ...formData,
+                                passAttempts: parseInt(e.target.value) || 0,
+                              })
                             }
-                            className="w-16"
-                            min={0}
-                            max={100}
+                            placeholder="请输入（数字）"
+                            className="flex-1"
                           />
-                          <span className="text-sm text-muted-foreground">%</span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removeAssessmentItem(item.id)}
-                            className="text-destructive hover:text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <span className="text-muted-foreground">次</span>
                         </div>
-                      ))}
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="flex items-center gap-1">
+                          <span className="text-destructive">*</span>
+                          角色通过分数
+                        </Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            value={formData.passScore || ""}
+                            onChange={(e) =>
+                              setFormData({
+                                ...formData,
+                                passScore: parseInt(e.target.value) || 0,
+                              })
+                            }
+                            placeholder="请输入（数字）"
+                            className="flex-1"
+                          />
+                          <span className="text-muted-foreground">分</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* Assessment Table */}
+                  <div className="border rounded-lg overflow-hidden">
+                    <table className="w-full">
+                      <thead className="bg-muted/50">
+                        <tr>
+                          <th className="text-left p-3 font-medium text-sm">考察维度</th>
+                          <th className="text-left p-3 font-medium text-sm">考察项</th>
+                          <th className="text-left p-3 font-medium text-sm">
+                            权重 <span className={totalWeight === 100 ? "text-green-600" : "text-destructive"}>{totalWeight}%</span>
+                          </th>
+                          <th className="w-10"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {formData.assessmentItems.map((item, index) => (
+                          <tr key={item.id} className="border-t">
+                            {index === 0 && (
+                              <td className="p-3 align-top" rowSpan={formData.assessmentItems.length}>
+                                <div className="flex items-center gap-2">
+                                  行为能力
+                                  <Badge variant="outline" className={totalWeight === 100 ? "text-green-600 border-green-300" : "text-destructive border-destructive/30"}>
+                                    {totalWeight}%
+                                  </Badge>
+                                </div>
+                              </td>
+                            )}
+                            <td className="p-3">
+                              <Input
+                                value={item.name}
+                                onChange={(e) =>
+                                  updateAssessmentItem(item.id, "name", e.target.value)
+                                }
+                                placeholder="考察项名称"
+                                className="h-8"
+                              />
+                            </td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="text-muted-foreground text-sm">占比</span>
+                                <Input
+                                  type="number"
+                                  value={item.weight || ""}
+                                  onChange={(e) =>
+                                    updateAssessmentItem(
+                                      item.id,
+                                      "weight",
+                                      parseInt(e.target.value) || 0
+                                    )
+                                  }
+                                  placeholder="请输入（数字）"
+                                  className="w-24 h-8"
+                                  min={0}
+                                  max={100}
+                                />
+                                <span className="text-muted-foreground text-sm">%</span>
+                              </div>
+                            </td>
+                            <td className="p-3">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => removeAssessmentItem(item.id)}
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    <div className="p-3 border-t">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -484,23 +738,26 @@ export function PracticeEditSheet({
                         <Plus className="h-4 w-4 mr-1" />
                         添加考察项
                       </Button>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                  </div>
+                </TabsContent>
               </div>
-            </>
-          )}
-        </div>
+            </Tabs>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 pt-6 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-          <Button onClick={handleSave} disabled={!hasGenerated && !initialData}>
-            保存
-          </Button>
-        </div>
+            {/* Footer */}
+            <div className="flex justify-end gap-3 p-4 border-t bg-background">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                取消
+              </Button>
+              <Button variant="outline" onClick={handleBack}>
+                上一步
+              </Button>
+              <Button onClick={handleSave}>
+                创建计划
+              </Button>
+            </div>
+          </div>
+        )}
       </SheetContent>
     </Sheet>
   );
