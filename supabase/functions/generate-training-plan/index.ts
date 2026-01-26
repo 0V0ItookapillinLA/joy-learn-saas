@@ -28,43 +28,63 @@ serve(async (req) => {
     }
 
     const systemPrompt = `你是一位专业的企业培训课程设计专家，专注于为企业创建完整的培训计划。
-你需要根据用户的输入，生成一个包含"教、练、考"三个维度的完整培训计划。
+你需要根据用户的输入，生成一个包含"学、练、考"三个维度的完整培训计划。
 
 请按照以下JSON格式返回培训计划：
 {
   "title": "培训计划标题",
   "description": "培训计划简介",
   "targetAudience": "目标学员群体",
-  "objectives": "培训目标",
-  "duration": "预计总时长",
+  "objectives": "培训目标详细描述",
+  "duration": "预计总时长(如：3天 / 5小时)",
   "chapters": [
     {
-      "title": "章节标题",
-      "type": "lesson|practice|assessment",
-      "description": "章节描述",
-      "duration": "预计时长(分钟)",
-      "content": {
-        // 根据类型不同，内容结构不同
-        // lesson: { outline: ["知识点1", "知识点2"], resources: ["资源1"] }
-        // practice: { scenario: "场景描述", objectives: ["练习目标"], aiRole: "AI扮演角色", traineeRole: "学员扮演角色" }
-        // assessment: { questions: [{ question: "题目", options: ["A", "B", "C", "D"], answer: "A", explanation: "解析" }] }
-      }
+      "title": "第1章：章节标题",
+      "items": [
+        {
+          "title": "课程内容标题",
+          "type": "lesson",
+          "contentType": "video",
+          "duration": "30分钟",
+          "description": "课程内容描述"
+        },
+        {
+          "title": "AI对练场景标题",
+          "type": "practice",
+          "contentType": "ai_dialogue",
+          "duration": "20分钟",
+          "description": "练习场景描述"
+        },
+        {
+          "title": "考核标题",
+          "type": "assessment",
+          "contentType": "quiz",
+          "duration": "15分钟",
+          "description": "考核内容描述"
+        }
+      ]
     }
   ],
   "skillsTargeted": ["目标技能1", "目标技能2"],
-  "prerequisites": ["前置要求"],
-  "successCriteria": "成功标准"
+  "successCriteria": "成功标准描述"
 }
 
-设计原则：
-1. 课程内容要循序渐进，从基础到进阶
-2. 每个知识点后配套相应的练习场景
-3. 练习场景要贴近实际工作场景，具有实操性
-4. 考核题目要覆盖关键知识点，难度适中
-5. 整体结构要体现"学-练-考"的闭环设计
-6. 时长安排要合理，考虑学员的注意力和学习效率
+章节内容类型说明：
+- type值: "lesson"(学习), "practice"(练习), "assessment"(考核)
+- contentType值: 
+  - lesson时: "video"(视频), "pdf"(PDF文档), "article"(图文)
+  - practice时: "ai_dialogue"(AI对练), "scenario"(情景模拟)
+  - assessment时: "quiz"(理论问卷), "scenario"(情景模拟)
 
-请确保返回有效的JSON格式。`;
+设计原则：
+1. 每个章节应包含2-5个内容项，体现"学-练-考"的闭环设计
+2. 课程内容要循序渐进，从基础到进阶
+3. 每个知识点后配套相应的练习场景
+4. 练习场景要贴近实际工作场景，具有实操性
+5. 考核覆盖关键知识点，难度适中
+6. 时长安排合理，考虑学员注意力
+
+请确保返回有效的JSON格式，不要包含任何其他说明文字。`;
 
     const userMessage = targetAudience || trainingGoals 
       ? `培训对象：${targetAudience || '未指定'}\n培训目标：${trainingGoals || '未指定'}\n\n用户需求：${prompt}`
