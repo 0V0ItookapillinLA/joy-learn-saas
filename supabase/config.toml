@@ -1,7 +1,1 @@
-project_id = "zhnyivcnhhvkzlwbjpwp"
-
-[functions.generate-training-plan]
-verify_jwt = false
-
-[functions.generate-practice-script]
-verify_jwt = false
+project_id = "zigcatprtcogoczcgmau"
