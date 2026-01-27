@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentConfigSheet } from "./ContentConfigSheet";
+import { PracticeConfigDialog } from "./PracticeConfigDialog";
 
 export interface ContentItem {
   id: string;
@@ -108,6 +109,7 @@ export function GeneratedPlanEditor({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [configSheetOpen, setConfigSheetOpen] = useState(false);
+  const [practiceDialogOpen, setPracticeDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     chapterId: string;
     item: ContentItem;
@@ -235,7 +237,45 @@ export function GeneratedPlanEditor({
 
   const openItemConfig = (chapterId: string, item: ContentItem) => {
     setSelectedItem({ chapterId, item });
-    setConfigSheetOpen(true);
+    // 如果是练习类型，打开练习配置弹窗
+    if (item.type === "practice") {
+      setPracticeDialogOpen(true);
+    } else {
+      setConfigSheetOpen(true);
+    }
+  };
+
+  const handlePracticeConfigSave = (config: {
+    title: string;
+    scenarioDescription: string;
+    aiRoleId: string;
+    aiRoleInfo: string;
+    traineeRole: string;
+    dialogueGoal: string;
+    passScore: number;
+    passAttempts: number;
+    assessmentItems: { id: string; name: string; weight: number }[];
+  }) => {
+    if (!selectedItem) return;
+    
+    const updatedItem: ContentItem = {
+      ...selectedItem.item,
+      title: config.title || selectedItem.item.title,
+      description: config.scenarioDescription,
+      config: {
+        ...selectedItem.item.config,
+        scenarioDescription: config.scenarioDescription,
+        aiRoleId: config.aiRoleId,
+        aiRoleInfo: config.aiRoleInfo,
+        traineeRole: config.traineeRole,
+        dialogueGoal: config.dialogueGoal,
+        passScore: config.passScore,
+        passAttempts: config.passAttempts,
+        assessmentItems: config.assessmentItems,
+      },
+    };
+    
+    updateItemConfig(updatedItem);
   };
 
   const updateItemConfig = (updatedItem: ContentItem) => {
@@ -536,6 +576,24 @@ export function GeneratedPlanEditor({
         onOpenChange={setConfigSheetOpen}
         item={selectedItem?.item || null}
         onSave={updateItemConfig}
+      />
+
+      {/* Practice Config Dialog */}
+      <PracticeConfigDialog
+        open={practiceDialogOpen}
+        onOpenChange={setPracticeDialogOpen}
+        onSave={handlePracticeConfigSave}
+        initialData={selectedItem?.item ? {
+          title: selectedItem.item.title,
+          scenarioDescription: (selectedItem.item.config?.scenarioDescription as string) || selectedItem.item.description || "",
+          aiRoleId: (selectedItem.item.config?.aiRoleId as string) || "",
+          aiRoleInfo: (selectedItem.item.config?.aiRoleInfo as string) || "",
+          traineeRole: (selectedItem.item.config?.traineeRole as string) || "",
+          dialogueGoal: (selectedItem.item.config?.dialogueGoal as string) || "",
+          passScore: (selectedItem.item.config?.passScore as number) || 60,
+          passAttempts: (selectedItem.item.config?.passAttempts as number) || 3,
+          assessmentItems: (selectedItem.item.config?.assessmentItems as { id: string; name: string; weight: number }[]) || undefined,
+        } : undefined}
       />
     </div>
   );
