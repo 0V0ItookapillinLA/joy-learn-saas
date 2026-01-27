@@ -493,27 +493,32 @@ export function TrainingPlanSheet({
                                 <SelectItem value="exam">考评</SelectItem>
                               </SelectContent>
                             </Select>
-                            <Select>
-                              <SelectTrigger className="w-[140px]">
-                                <SelectValue placeholder="请选择项目" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="item1">项目1</SelectItem>
-                                <SelectItem value="item2">项目2</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            <Select>
-                              <SelectTrigger className="flex-1">
-                                <SelectValue placeholder="暂无数据" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="none">暂无数据</SelectItem>
-                              </SelectContent>
-                            </Select>
+                            {/* 显示内容项标题 - 如果有AI生成的标题则显示，否则显示占位符 */}
+                            <div className="flex-1 min-w-0">
+                              {item.title ? (
+                                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border">
+                                  <span className="text-sm truncate" title={item.title}>
+                                    {item.title}
+                                  </span>
+                                  <Badge variant="outline" className="text-xs shrink-0">
+                                    {item.type === "lesson" ? "教学" : item.type === "practice" ? "练习" : "考评"}
+                                  </Badge>
+                                </div>
+                              ) : (
+                                <Select>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="请选择内容" />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="none">暂无可选内容</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </div>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8"
+                              className="h-8 w-8 shrink-0"
                               onClick={() =>
                                 removeChapterItem(chapter.id, item.id)
                               }
