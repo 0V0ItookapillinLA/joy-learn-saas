@@ -12,13 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Copy, Edit, Trash2, UserPlus, Eye, Loader2 } from "lucide-react";
+import { Plus, Search, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { PracticeEditSheet } from "@/components/practices/PracticeEditSheet";
 import { usePracticeSessions, useCreatePracticeSession, useDeletePracticeSession } from "@/hooks/usePracticeSessions";
@@ -189,47 +183,47 @@ export default function PracticePlanList() {
                         {practice.created_at ? new Date(practice.created_at).toLocaleDateString() : '-'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center justify-center gap-1">
+                        <div className="flex items-center justify-center gap-2">
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-primary"
                             onClick={() => handleInvite(practice)}
-                            title="邀请"
                           >
-                            <UserPlus className="h-4 w-4" />
+                            邀请
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-primary"
                             onClick={() => handlePreview(practice)}
-                            title="预览"
                           >
-                            <Eye className="h-4 w-4" />
+                            预览
                           </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEdit(practice)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                编辑
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleCopy(practice)}>
-                                <Copy className="mr-2 h-4 w-4" />
-                                复制
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDelete(practice)}
-                                className="text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                删除
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-primary"
+                            onClick={() => handleEdit(practice)}
+                          >
+                            编辑
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-primary"
+                            onClick={() => handleCopy(practice)}
+                          >
+                            复制
+                          </Button>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto p-0 text-destructive"
+                            onClick={() => handleDelete(practice)}
+                          >
+                            删除
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
