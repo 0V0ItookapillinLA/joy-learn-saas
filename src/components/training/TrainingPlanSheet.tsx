@@ -164,42 +164,24 @@ export function TrainingPlanSheet({
 
     setIsSaving(true);
     try {
-      // 开发模式：尝试获取用户和组织信息，如果没有则使用默认值
       const { data: { user } } = await supabase.auth.getUser();
-      let organizationId: string | null = null;
       
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        organizationId = profile?.organization_id || null;
+      if (!user) {
+        toast.error("请先登录后再创建培训计划");
+        return;
       }
-
-      // 如果没有组织ID，查询第一个可用的组织（使用maybeSingle避免报错）
-      if (!organizationId) {
-        const { data: orgs } = await supabase
-          .from('organizations')
-          .select('id')
-          .limit(1)
-          .maybeSingle();
-        organizationId = orgs?.id || null;
-      }
-
-      // 如果仍然没有组织，自动创建一个默认组织
-      if (!organizationId) {
-        const { data: newOrg, error: orgError } = await supabase
-          .from('organizations')
-          .insert({ name: '默认开发组织', status: 'active', plan_type: 'basic' })
-          .select()
-          .single();
-        
-        if (orgError) {
-          toast.error("创建默认组织失败");
-          return;
-        }
-        organizationId = newOrg.id;
+      
+      // 调用初始化函数确保用户有组织
+      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
+        _user_id: user.id,
+        _full_name: user.user_metadata?.full_name || null,
+        _org_name: '我的组织'
+      });
+      
+      if (initError) {
+        console.error('Init error:', initError);
+        toast.error("初始化用户组织失败");
+        return;
       }
 
       if (isEdit && plan) {
@@ -222,7 +204,7 @@ export function TrainingPlanSheet({
           .insert({
             title,
             description,
-            organization_id: organizationId,
+            organization_id: orgId,
             created_by: user?.id || null,
             status: 'draft',
           })

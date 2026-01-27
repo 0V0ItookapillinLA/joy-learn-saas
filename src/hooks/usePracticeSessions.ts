@@ -30,46 +30,29 @@ export function useCreatePracticeSession() {
 
   return useMutation({
     mutationFn: async (session: Omit<PracticeSessionInsert, 'organization_id'>) => {
-      // 开发模式：尝试获取用户和组织信息，自动关联到第一个可用组织
       const { data: { user } } = await supabase.auth.getUser();
-      let organizationId: string | null = null;
       
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        organizationId = profile?.organization_id || null;
+      if (!user) {
+        throw new Error('请先登录后再创建练习计划');
       }
-
-      // 如果没有组织ID，查询第一个可用的组织（使用maybeSingle避免报错）
-      if (!organizationId) {
-        const { data: orgs } = await supabase
-          .from('organizations')
-          .select('id')
-          .limit(1)
-          .maybeSingle();
-        organizationId = orgs?.id || null;
-      }
-
-      // 如果仍然没有组织，自动创建一个默认组织
-      if (!organizationId) {
-        const { data: newOrg, error: orgError } = await supabase
-          .from('organizations')
-          .insert({ name: '默认开发组织', status: 'active', plan_type: 'basic' })
-          .select()
-          .single();
-        
-        if (orgError) throw new Error('创建默认组织失败');
-        organizationId = newOrg.id;
+      
+      // 调用初始化函数确保用户有组织
+      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
+        _user_id: user.id,
+        _full_name: user.user_metadata?.full_name || null,
+        _org_name: '我的组织'
+      });
+      
+      if (initError) {
+        console.error('Init error:', initError);
+        throw new Error('初始化用户组织失败');
       }
 
       const { data, error } = await supabase
         .from('practice_sessions')
         .insert({
           ...session,
-          organization_id: organizationId,
+          organization_id: orgId,
         })
         .select()
         .single();
