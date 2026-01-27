@@ -53,7 +53,19 @@ serve(async (req) => {
           "type": "practice",
           "contentType": "ai_dialogue",
           "duration": "20分钟",
-          "description": "练习场景描述"
+          "description": "练习场景描述",
+          "config": {
+            "scenarioDescription": "详细的场景背景描述，包括具体情境、挑战和上下文",
+            "aiRole": "AI扮演的角色名称和身份",
+            "aiRoleInfo": "AI角色的性格特点、背景信息、行为模式描述",
+            "traineeRole": "学员扮演的角色及其职责描述",
+            "dialogueGoal": "练习的具体目标和期望达成的效果",
+            "assessmentItems": [
+              {"name": "考察维度1", "weight": 40},
+              {"name": "考察维度2", "weight": 30},
+              {"name": "考察维度3", "weight": 30}
+            ]
+          }
         },
         {
           "title": "考核标题",
@@ -76,11 +88,19 @@ serve(async (req) => {
   - practice时: "ai_dialogue"(AI对练), "scenario"(情景模拟)
   - assessment时: "quiz"(理论问卷), "scenario"(情景模拟)
 
+练习config字段必填说明（type为practice时）：
+- scenarioDescription: 2-3句话描述练习的具体场景背景
+- aiRole: AI扮演的角色，如"愤怒的客户"、"挑剔的采购经理"
+- aiRoleInfo: AI角色的详细性格和行为特征
+- traineeRole: 学员扮演的角色，如"客服专员"、"销售代表"
+- dialogueGoal: 学员在对话中需要达成的具体目标
+- assessmentItems: 考察维度数组，权重总和应为100
+
 设计原则：
 1. 每个章节应包含2-5个内容项，体现"学-练-考"的闭环设计
 2. 课程内容要循序渐进，从基础到进阶
 3. 每个知识点后配套相应的练习场景
-4. 练习场景要贴近实际工作场景，具有实操性
+4. 练习场景要贴近实际工作场景，具有实操性，必须包含详细的config配置
 5. 考核覆盖关键知识点，难度适中
 6. 时长安排合理，考虑学员注意力
 

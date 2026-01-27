@@ -51,6 +51,7 @@ function transformToTableFormat(plans: ReturnType<typeof useTrainingPlans>['data
       chapter_type: ch.chapter_type,
       sort_order: ch.sort_order,
       duration_minutes: ch.duration_minutes,
+      content_items: (ch as any).content_items,
     })),
   }));
 }

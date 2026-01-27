@@ -35,14 +35,32 @@ function transformToEditorFormat(apiPlan: any): GeneratedPlanData {
         chapters.push({
           id: chapterId,
           title: chapter.title || `第${index + 1}章`,
-          items: chapter.items.map((item: any, itemIndex: number) => ({
-            id: `${chapterId}-item-${itemIndex}`,
-            title: item.title || item.name || '未命名内容',
-            type: item.type || 'lesson',
-            contentType: item.contentType || (item.type === 'lesson' ? 'video' : item.type === 'practice' ? 'ai_dialogue' : 'quiz'),
-            duration: item.duration,
-            description: item.description,
-          })),
+          items: chapter.items.map((item: any, itemIndex: number) => {
+            const contentItem: ContentItem = {
+              id: `${chapterId}-item-${itemIndex}`,
+              title: item.title || item.name || '未命名内容',
+              type: item.type || 'lesson',
+              contentType: item.contentType || (item.type === 'lesson' ? 'video' : item.type === 'practice' ? 'ai_dialogue' : 'quiz'),
+              duration: item.duration,
+              description: item.description,
+            };
+            
+            // 保留AI生成的练习配置
+            if (item.type === 'practice' && item.config) {
+              contentItem.config = {
+                scenarioDescription: item.config.scenarioDescription || item.description || '',
+                aiRole: item.config.aiRole || '',
+                aiRoleInfo: item.config.aiRoleInfo || '',
+                traineeRole: item.config.traineeRole || '',
+                dialogueGoal: item.config.dialogueGoal || '',
+                assessmentItems: item.config.assessmentItems || [],
+                passScore: 60,
+                passAttempts: 3,
+              };
+            }
+            
+            return contentItem;
+          }),
         });
       } else {
         // Treat each chapter as an item (flat structure from API)
@@ -55,14 +73,30 @@ function transformToEditorFormat(apiPlan: any): GeneratedPlanData {
           chapters.push(currentChapter);
         }
         
-        currentChapter.items.push({
+        const contentItem: ContentItem = {
           id: `item-${index}`,
           title: chapter.title || '未命名内容',
           type: chapter.type || 'lesson',
           contentType: chapter.type === 'lesson' ? 'video' : chapter.type === 'practice' ? 'ai_dialogue' : 'quiz',
           duration: chapter.duration,
           description: chapter.description,
-        });
+        };
+        
+        // 保留AI生成的练习配置
+        if (chapter.type === 'practice' && chapter.config) {
+          contentItem.config = {
+            scenarioDescription: chapter.config.scenarioDescription || chapter.description || '',
+            aiRole: chapter.config.aiRole || '',
+            aiRoleInfo: chapter.config.aiRoleInfo || '',
+            traineeRole: chapter.config.traineeRole || '',
+            dialogueGoal: chapter.config.dialogueGoal || '',
+            assessmentItems: chapter.config.assessmentItems || [],
+            passScore: 60,
+            passAttempts: 3,
+          };
+        }
+        
+        currentChapter.items.push(contentItem);
       }
     });
   }
@@ -363,7 +397,7 @@ const Index = () => {
 
       if (planError) throw planError;
 
-      // Insert chapters
+      // Insert chapters with content_items
       if (trainingPlan && plan.chapters.length > 0) {
         const chaptersToInsert = plan.chapters.map((chapter, index) => ({
           training_plan_id: trainingPlan.id,
@@ -371,6 +405,15 @@ const Index = () => {
           sort_order: index,
           chapter_type: 'mixed',
           description: chapter.items.map(i => i.title).join(', '),
+          content_items: JSON.stringify(chapter.items.map(item => ({
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            contentType: item.contentType,
+            duration: item.duration,
+            description: item.description,
+            config: item.config || {},
+          }))),
         }));
 
         const { error: chaptersError } = await supabase
@@ -437,8 +480,14 @@ const Index = () => {
 
       if (planError) throw planError;
 
-      // Insert chapters and collect practice items
-      const practiceItems: { title: string; description: string; chapterId: string }[] = [];
+      // Insert chapters and collect practice items with their configs
+      interface PracticeItemWithConfig {
+        title: string;
+        description: string;
+        chapterId: string;
+        config?: Record<string, unknown>;
+      }
+      const practiceItems: PracticeItemWithConfig[] = [];
 
       if (trainingPlan && plan.chapters.length > 0) {
         const chaptersToInsert = plan.chapters.map((chapter, index) => ({
@@ -447,6 +496,15 @@ const Index = () => {
           sort_order: index,
           chapter_type: 'mixed',
           description: chapter.items.map(i => i.title).join(', '),
+          content_items: JSON.stringify(chapter.items.map(item => ({
+            id: item.id,
+            title: item.title,
+            type: item.type,
+            contentType: item.contentType,
+            duration: item.duration,
+            description: item.description,
+            config: item.config || {},
+          }))),
         }));
 
         const { data: insertedChapters, error: chaptersError } = await supabase
@@ -456,7 +514,7 @@ const Index = () => {
 
         if (chaptersError) throw chaptersError;
 
-        // Collect practice items from the plan
+        // Collect practice items from the plan with their AI-generated configs
         plan.chapters.forEach((chapter, chapterIndex) => {
           chapter.items.forEach((item) => {
             if (item.type === 'practice') {
@@ -464,12 +522,13 @@ const Index = () => {
                 title: item.title,
                 description: item.description || `${chapter.title} - ${item.title}`,
                 chapterId: insertedChapters?.[chapterIndex]?.id || '',
+                config: item.config,
               });
             }
           });
         });
 
-        // Create practice_sessions for each practice item
+        // Create practice_sessions for each practice item with AI-generated config
         if (practiceItems.length > 0) {
           const practiceSessionsToInsert = practiceItems.map((item) => ({
             title: item.title,
@@ -477,7 +536,14 @@ const Index = () => {
             organization_id: orgId,
             chapter_id: item.chapterId || null,
             practice_mode: 'free_dialogue',
-            scenario_description: `来自培训计划「${plan.title}」的练习场景`,
+            scenario_description: (item.config?.scenarioDescription as string) || `来自培训计划「${plan.title}」的练习场景`,
+            ai_role: (item.config?.aiRole as string) || null,
+            trainee_role: (item.config?.traineeRole as string) || null,
+            scoring_criteria: item.config?.assessmentItems ? JSON.stringify({
+              dialogueGoal: item.config?.dialogueGoal || '',
+              aiRoleInfo: item.config?.aiRoleInfo || '',
+              assessmentItems: item.config?.assessmentItems || [],
+            }) : null,
           }));
 
           const { error: practiceError } = await supabase
