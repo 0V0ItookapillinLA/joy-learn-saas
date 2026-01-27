@@ -20,7 +20,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GripVertical, Plus, Trash2, Upload, X, Loader2 } from "lucide-react";
+import { GripVertical, Plus, Trash2, Upload, X, Loader2, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -66,6 +66,8 @@ export function TrainingPlanSheet({
     },
   ]);
   const [isSaving, setIsSaving] = useState(false);
+  const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
+  const [editingChapterTitle, setEditingChapterTitle] = useState("");
 
   const isEdit = !!plan;
   const basicComplete = title && department && description;
@@ -226,6 +228,30 @@ export function TrainingPlanSheet({
         return chapter;
       })
     );
+  };
+
+  const startEditChapter = (chapter: Chapter) => {
+    setEditingChapterId(chapter.id);
+    setEditingChapterTitle(chapter.title);
+  };
+
+  const saveChapterTitle = () => {
+    if (editingChapterId && editingChapterTitle.trim()) {
+      setChapters(
+        chapters.map((chapter) =>
+          chapter.id === editingChapterId
+            ? { ...chapter, title: editingChapterTitle.trim() }
+            : chapter
+        )
+      );
+    }
+    setEditingChapterId(null);
+    setEditingChapterTitle("");
+  };
+
+  const cancelEditChapter = () => {
+    setEditingChapterId(null);
+    setEditingChapterTitle("");
   };
 
   const handleSave = async () => {
@@ -447,24 +473,67 @@ export function TrainingPlanSheet({
                     <Card key={chapter.id} className="bg-muted/30">
                       <CardContent className="p-4 space-y-3">
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                            <span className="font-medium text-sm">
-                              {chapter.title}
-                            </span>
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-move shrink-0" />
+                            {editingChapterId === chapter.id ? (
+                              <Input
+                                value={editingChapterTitle}
+                                onChange={(e) => setEditingChapterTitle(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    saveChapterTitle();
+                                  } else if (e.key === 'Escape') {
+                                    cancelEditChapter();
+                                  }
+                                }}
+                                className="h-8 text-sm flex-1"
+                                autoFocus
+                              />
+                            ) : (
+                              <span className="font-medium text-sm truncate">
+                                {chapter.title}
+                              </span>
+                            )}
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button variant="ghost" size="sm">
-                              编辑
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => removeChapter(chapter.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {editingChapterId === chapter.id ? (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={saveChapterTitle}
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={cancelEditChapter}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => startEditChapter(chapter)}
+                                >
+                                  编辑
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8"
+                                  onClick={() => removeChapter(chapter.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
 
