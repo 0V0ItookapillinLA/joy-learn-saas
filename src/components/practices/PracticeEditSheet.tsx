@@ -552,10 +552,38 @@ export function PracticeEditSheet({
                         <span className="text-destructive">*</span>
                         AI角色设置
                       </Label>
-                      <div className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors">
-                        <Plus className="h-8 w-8 mx-auto text-primary mb-2" />
-                        <span className="text-primary">点击设置形象</span>
-                      </div>
+                      <Select
+                        value={formData.aiRoleId}
+                        onValueChange={(value) => {
+                          const selectedCharacter = aiCharacters.find(c => c.id === value);
+                          setFormData({ 
+                            ...formData, 
+                            aiRoleId: value,
+                            aiRoleInfo: selectedCharacter?.personality || selectedCharacter?.system_prompt || ""
+                          });
+                        }}
+                        disabled={isLoadingCharacters}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder={isLoadingCharacters ? "加载中..." : "请选择AI角色"} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {aiCharacters.length === 0 ? (
+                            <div className="py-6 text-center text-sm text-muted-foreground">
+                              暂无预设角色，请在角色配置页面添加
+                            </div>
+                          ) : (
+                            aiCharacters.map((character) => (
+                              <SelectItem key={character.id} value={character.id}>
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-4 w-4 text-muted-foreground" />
+                                  {character.name}
+                                </div>
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
                     </div>
 
                     <div className="space-y-2">
@@ -566,7 +594,7 @@ export function PracticeEditSheet({
                           onChange={(e) =>
                             setFormData({ ...formData, aiRoleInfo: e.target.value.slice(0, 200) })
                           }
-                          placeholder="请输入"
+                          placeholder="选择角色后自动填充，也可手动修改"
                           rows={3}
                           maxLength={200}
                         />
