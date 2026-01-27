@@ -130,45 +130,53 @@ export function PracticeEditSheet({
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke('generate-training-plan', {
+      console.log('Calling generate-practice-script with prompt:', promptInput.trim());
+      
+      const { data, error } = await supabase.functions.invoke('generate-practice-script', {
         body: { 
-          prompt: `生成一个AI对话练习场景：${promptInput.trim()}。
-请返回JSON格式，包含以下字段：
-- title: 练习标题（简洁，不超过20字）
-- description: 练习描述（简短说明培训目的）
-- scenarioDescription: 练习场景目标描述
-- aiRoleInfo: AI扮演的角色详细信息（包括姓名、职位、性格特点等）
-- traineeRole: 学员角色设置说明
-- dialogueGoal: 对话训练目标，包含能力培养点和评估要点
-- assessmentItems: 考察项数组，每项包含name和weight（权重百分比，总和为100）`
+          prompt: promptInput.trim(),
+          practiceMode: practiceMode
         }
       });
 
-      if (error) throw error;
+      console.log('Edge function response:', data, error);
 
-      const plan = data.plan;
+      if (error) {
+        console.error('Supabase function error:', error);
+        throw error;
+      }
+
+      if (!data || !data.success) {
+        throw new Error(data?.error || '生成失败');
+      }
+
+      const script = data.script;
+      console.log('Generated script:', script);
+      
       setFormData({
-        title: plan.title || promptInput.slice(0, 20),
+        title: script.title || promptInput.slice(0, 20),
         department: "",
-        description: plan.description || `培训场景：${promptInput}`,
-        scenarioDescription: plan.scenarioDescription || `目标：学会倾听客户诉求，提供解决方案，维护客户关系，提升客户满意度`,
+        description: script.description || `培训场景：${promptInput}`,
+        scenarioDescription: script.scenarioDescription || `目标：学会倾听客户诉求，提供解决方案，维护客户关系，提升客户满意度`,
         aiRoleId: "1",
-        aiRoleInfo: plan.aiRoleInfo || plan.targetAudience || "",
-        traineeRole: plan.traineeRole || "学员角色设置",
-        dialogueGoal: plan.dialogueGoal || plan.objectives || `练习目标：基于您的需求设定 评估要点：-沟通技巧运用-专业知识掌握 -问题解决能力`,
+        aiRoleInfo: script.aiRoleInfo || "",
+        traineeRole: script.traineeRole || "学员角色设置",
+        dialogueGoal: script.dialogueGoal || `练习目标：基于您的需求设定 评估要点：-沟通技巧运用-专业知识掌握-问题解决能力`,
         passScore: 50,
         passAttempts: 3,
-        assessmentItems: plan.assessmentItems || plan.skillsTargeted?.slice(0, 4).map((skill: string, index: number) => ({
-          id: String(index + 1),
-          name: skill,
-          weight: index === 0 ? 40 : 0,
-        })) || defaultAssessmentItems,
+        assessmentItems: script.assessmentItems || defaultAssessmentItems,
       });
       setStep(2);
-      toast.success("练习内容已生成，请检查并完善");
+      toast.success("练习剧本已生成，请检查并完善");
     } catch (error) {
       console.error('Generate error:', error);
-      toast.error("生成失败，请重试");
+      if (error instanceof Error && error.message.includes('429')) {
+        toast.error("请求过于频繁，请稍后再试");
+      } else if (error instanceof Error && error.message.includes('402')) {
+        toast.error("AI服务配额已用尽");
+      } else {
+        toast.error("生成失败：" + (error instanceof Error ? error.message : '请重试'));
+      }
     } finally {
       setIsGenerating(false);
     }
