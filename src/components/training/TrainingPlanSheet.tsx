@@ -80,10 +80,10 @@ export function TrainingPlanSheet({
       if (plan.training_chapters && plan.training_chapters.length > 0) {
         const loadedChapters: Chapter[] = plan.training_chapters
           .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-          .map((chapter, index) => ({
+          .map((chapter) => ({
             id: chapter.id,
             title: chapter.title,
-            items: parseChapterItems(chapter.description || "", chapter.id),
+            items: parseChapterItems(chapter),
           }));
         setChapters(loadedChapters);
       } else {
@@ -109,8 +109,32 @@ export function TrainingPlanSheet({
     }
   }, [plan, open]);
 
-  // 解析章节描述中的内容项
-  const parseChapterItems = (description: string, chapterId: string): ChapterItem[] => {
+  // 解析章节中的内容项 - 优先使用 content_items，否则从 description 解析
+  const parseChapterItems = (chapter: { id: string; description: string | null; content_items?: string | null }): ChapterItem[] => {
+    const chapterId = chapter.id;
+    
+    // 优先尝试从 content_items 解析（JSON格式）
+    if (chapter.content_items) {
+      try {
+        const items = typeof chapter.content_items === 'string' 
+          ? JSON.parse(chapter.content_items) 
+          : chapter.content_items;
+        
+        if (Array.isArray(items) && items.length > 0) {
+          return items.map((item: any, index: number) => ({
+            id: item.id || `${chapterId}-${index + 1}`,
+            type: item.type === 'assessment' ? 'exam' : (item.type || 'lesson'),
+            title: item.title,
+            itemId: item.itemId,
+          }));
+        }
+      } catch (e) {
+        console.error('Failed to parse content_items:', e);
+      }
+    }
+    
+    // 降级：从 description 解析
+    const description = chapter.description || '';
     if (!description) {
       return [{ id: `${chapterId}-1`, type: "lesson" }];
     }

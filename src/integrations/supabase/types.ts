@@ -353,6 +353,7 @@ export type Database = {
       training_chapters: {
         Row: {
           chapter_type: string | null
+          content_items: Json | null
           created_at: string | null
           description: string | null
           duration_minutes: number | null
@@ -364,6 +365,7 @@ export type Database = {
         }
         Insert: {
           chapter_type?: string | null
+          content_items?: Json | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null
@@ -375,6 +377,7 @@ export type Database = {
         }
         Update: {
           chapter_type?: string | null
+          content_items?: Json | null
           created_at?: string | null
           description?: string | null
           duration_minutes?: number | null

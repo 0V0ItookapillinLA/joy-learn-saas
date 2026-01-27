@@ -18,6 +18,7 @@ export interface TrainingChapter {
   chapter_type: string | null;
   sort_order: number | null;
   duration_minutes: number | null;
+  content_items?: string | null;
 }
 
 export interface TrainingPlan {
