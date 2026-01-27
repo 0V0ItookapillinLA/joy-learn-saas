@@ -129,11 +129,26 @@ serve(async (req) => {
       throw new Error(`AI gateway error: ${response.status}`);
     }
 
-    const data = await response.json();
-    console.log('AI response received');
+    // Safely read response body
+    const responseText = await response.text();
+    console.log('AI response received, length:', responseText.length);
+    
+    if (!responseText || responseText.trim() === '') {
+      throw new Error('Empty response from AI gateway');
+    }
+
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse AI gateway response:', parseError);
+      console.error('Response text preview:', responseText.substring(0, 500));
+      throw new Error('Invalid JSON response from AI gateway');
+    }
 
     const content = data.choices?.[0]?.message?.content;
     if (!content) {
+      console.error('No content in AI response. Full response:', JSON.stringify(data).substring(0, 500));
       throw new Error('No content in AI response');
     }
 
@@ -145,9 +160,22 @@ serve(async (req) => {
       const jsonStr = jsonMatch ? jsonMatch[1].trim() : content.trim();
       trainingPlan = JSON.parse(jsonStr);
     } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', parseError);
-      // Return raw content if parsing fails
-      trainingPlan = { rawContent: content, parseError: true };
+      console.error('Failed to parse AI content as JSON:', parseError);
+      console.error('Content preview:', content.substring(0, 500));
+      
+      // Attempt to repair truncated JSON
+      const lastBrace = content.lastIndexOf("}");
+      if (lastBrace > 0) {
+        try {
+          const repairedContent = content.substring(0, lastBrace + 1);
+          trainingPlan = JSON.parse(repairedContent);
+          console.log('Successfully repaired truncated JSON');
+        } catch {
+          trainingPlan = { rawContent: content, parseError: true };
+        }
+      } else {
+        trainingPlan = { rawContent: content, parseError: true };
+      }
     }
 
     return new Response(
