@@ -10,8 +10,9 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GeneratedPlanEditor, type GeneratedPlanData, type Chapter, type ContentItem } from '@/components/training/GeneratedPlanEditor';
 import { GenerationProgress } from '@/components/training/GenerationProgress';
 import { KnowledgeConfirmation, type DiscoveredContext } from '@/components/training/KnowledgeConfirmation';
-
-type GenerationPhase = 'input' | 'searching' | 'confirming' | 'generating' | 'results';
+import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
+import { VoiceInputButton } from '@/components/input/VoiceInputButton';
+import { FileAttachment, type AttachedFile } from '@/components/input/FileAttachment';
 
 const EXAMPLE_PROMPTS = [
   "为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景",
@@ -125,6 +126,8 @@ function transformToEditorFormat(apiPlan: any): GeneratedPlanData {
   };
 }
 
+type GenerationPhase = 'input' | 'searching' | 'confirming' | 'generating' | 'results';
+
 const Index = () => {
   const [prompt, setPrompt] = useState('');
   const [phase, setPhase] = useState<GenerationPhase>('input');
@@ -132,8 +135,29 @@ const Index = () => {
   const [generateProgress, setGenerateProgress] = useState(0);
   const [discoveredContext, setDiscoveredContext] = useState<DiscoveredContext | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlanData | null>(null);
+  const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
+
+  // Voice recognition hook
+  const { 
+    isListening, 
+    isSupported: isVoiceSupported, 
+    startListening, 
+    stopListening,
+    transcript 
+  } = useVoiceRecognition({
+    onResult: (text) => {
+      setPrompt(prev => prev ? `${prev} ${text}` : text);
+    },
+    onError: (error) => {
+      toast({
+        title: '语音识别错误',
+        description: error,
+        variant: 'destructive',
+      });
+    },
+  });
 
   useEffect(() => {
     if (textareaRef.current && phase === 'input') {
@@ -596,21 +620,58 @@ const Index = () => {
             <div className="relative">
               <Card className="shadow-xl border-0 bg-card">
                 <CardContent className="p-6">
-                  <Textarea
-                    ref={textareaRef}
-                    value={prompt}
-                    onChange={(e) => setPrompt(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="描述您的培训需求，例如：为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景..."
-                    className="min-h-[120px] text-base border-0 focus-visible:ring-0 resize-none p-0"
-                  />
+                  <div className="relative">
+                    <Textarea
+                      ref={textareaRef}
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="描述您的培训需求，例如：为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景..."
+                      className="min-h-[120px] text-base border-0 focus-visible:ring-0 resize-none p-0 pr-12"
+                    />
+                    {/* Voice indicator */}
+                    {isListening && (
+                      <div className="absolute top-0 right-0 flex items-center gap-2 text-xs text-destructive">
+                        <span className="animate-pulse">● 正在录音...</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Attached files display */}
+                  {attachedFiles.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-dashed">
+                      <FileAttachment 
+                        files={attachedFiles} 
+                        onFilesChange={setAttachedFiles}
+                      />
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <span className="text-xs text-muted-foreground">
-                      按 ⌘ + Enter 快速生成
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {/* Voice Input Button */}
+                      <VoiceInputButton
+                        isListening={isListening}
+                        isSupported={isVoiceSupported}
+                        onStart={startListening}
+                        onStop={stopListening}
+                      />
+                      
+                      {/* File Attachment Button */}
+                      <FileAttachment
+                        files={attachedFiles}
+                        onFilesChange={setAttachedFiles}
+                        maxFiles={5}
+                        maxSizeMB={10}
+                      />
+                      
+                      <span className="text-xs text-muted-foreground ml-2">
+                        ⌘ + Enter 快速生成
+                      </span>
+                    </div>
                     <Button 
                       onClick={handleStartSearch} 
-                      disabled={!prompt.trim()}
+                      disabled={!prompt.trim() || isListening}
                       size="lg"
                       className="gap-2"
                     >
