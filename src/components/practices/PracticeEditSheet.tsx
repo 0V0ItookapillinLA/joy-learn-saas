@@ -23,6 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, MessageSquare, FileText, Loader2, CheckCircle2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAICharacters } from "@/hooks/useAICharacters";
 
 interface AssessmentItem {
   id: string;
@@ -51,12 +52,6 @@ interface PracticeEditSheetProps {
   initialData?: Partial<PracticeFormData>;
 }
 
-const mockAIRoles = [
-  { id: "1", name: "ER陪练-员工" },
-  { id: "2", name: "愤怒的客户" },
-  { id: "3", name: "咨询客户" },
-  { id: "4", name: "企业采购" },
-];
 
 const mockDepartments = [
   { id: "1", name: "销售部" },
@@ -83,6 +78,8 @@ export function PracticeEditSheet({
   const [isGenerating, setIsGenerating] = useState(false);
   const [promptInput, setPromptInput] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
+  
+  const { data: aiCharacters = [], isLoading: isLoadingCharacters } = useAICharacters();
   
   const [formData, setFormData] = useState<PracticeFormData>({
     title: "",
@@ -328,19 +325,34 @@ export function PracticeEditSheet({
                   </Label>
                   <Select
                     value={formData.aiRoleId}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, aiRoleId: value })
-                    }
+                    onValueChange={(value) => {
+                      const selectedCharacter = aiCharacters.find(c => c.id === value);
+                      setFormData({ 
+                        ...formData, 
+                        aiRoleId: value,
+                        aiRoleInfo: selectedCharacter?.personality || selectedCharacter?.system_prompt || ""
+                      });
+                    }}
+                    disabled={isLoadingCharacters}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="请选择AI角色" />
+                      <SelectValue placeholder={isLoadingCharacters ? "加载中..." : "请选择AI角色"} />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockAIRoles.map((role) => (
-                        <SelectItem key={role.id} value={role.id}>
-                          {role.name}
-                        </SelectItem>
-                      ))}
+                      {aiCharacters.length === 0 ? (
+                        <div className="py-6 text-center text-sm text-muted-foreground">
+                          暂无预设角色，请在角色配置页面添加
+                        </div>
+                      ) : (
+                        aiCharacters.map((character) => (
+                          <SelectItem key={character.id} value={character.id}>
+                            <div className="flex items-center gap-2">
+                              <Users className="h-4 w-4 text-muted-foreground" />
+                              {character.name}
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
                     </SelectContent>
                   </Select>
                 </div>
