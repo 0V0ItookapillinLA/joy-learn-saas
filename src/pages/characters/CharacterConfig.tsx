@@ -13,13 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Plus, Search, MoreHorizontal, Edit, Trash2, Eye, Settings } from "lucide-react";
+import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import { CharacterEditSheet } from "@/components/characters/CharacterEditSheet";
 
@@ -215,43 +209,31 @@ export default function CharacterConfig() {
                       {character.updatedAt}
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center justify-center gap-1">
+                      <div className="flex items-center justify-center gap-2">
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-primary"
                           onClick={() => handlePreview(character)}
-                          title="预览"
                         >
-                          <Eye className="h-4 w-4" />
+                          预览
                         </Button>
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-primary"
                           onClick={() => handleEdit(character)}
-                          title="配置"
                         >
-                          <Settings className="h-4 w-4" />
+                          编辑
                         </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleEdit(character)}>
-                              <Edit className="mr-2 h-4 w-4" />
-                              编辑
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={() => handleDelete(character)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              删除
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-destructive"
+                          onClick={() => handleDelete(character)}
+                        >
+                          删除
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
