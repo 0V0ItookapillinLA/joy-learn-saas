@@ -23,7 +23,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, Trash2, MessageSquare, FileText, Loader2, CheckCircle2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { useAICharacters } from "@/hooks/useAICharacters";
+import { useActiveAICharacters } from "@/hooks/useAICharacters";
 
 interface AssessmentItem {
   id: string;
@@ -79,7 +79,7 @@ export function PracticeEditSheet({
   const [promptInput, setPromptInput] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
   
-  const { data: aiCharacters = [], isLoading: isLoadingCharacters } = useAICharacters();
+  const { data: aiCharacters = [], isLoading: isLoadingCharacters } = useActiveAICharacters();
   
   const [formData, setFormData] = useState<PracticeFormData>({
     title: "",

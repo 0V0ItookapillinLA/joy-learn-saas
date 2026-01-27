@@ -15,14 +15,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Plus, Trash2, Check } from "lucide-react";
-import type { AICharacter } from "@/pages/characters/CharacterConfig";
+import { Plus, Trash2, Check, Loader2 } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type AICharacterRow = Database['public']['Tables']['ai_characters']['Row'];
 
 interface CharacterEditSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  character: AICharacter | null;
+  character: AICharacterRow | null;
   voiceStyles: string[];
+  onSave: (data: {
+    name: string;
+    personality: string;
+    voiceStyle: string;
+    systemPrompt: string;
+    avatarUrl: string;
+  }) => Promise<void>;
+  isSaving?: boolean;
 }
 
 const mockAvatars = [
@@ -44,6 +54,8 @@ export function CharacterEditSheet({
   onOpenChange,
   character,
   voiceStyles,
+  onSave,
+  isSaving = false,
 }: CharacterEditSheetProps) {
   const [formData, setFormData] = useState({
     name: "",
@@ -60,10 +72,10 @@ export function CharacterEditSheet({
     if (character) {
       setFormData({
         name: character.name,
-        personality: character.personality,
-        voiceStyle: character.voiceStyle,
-        systemPrompt: character.systemPrompt,
-        avatarUrl: character.avatarUrl,
+        personality: character.personality || "",
+        voiceStyle: character.voice_style || "",
+        systemPrompt: character.system_prompt || "",
+        avatarUrl: character.avatar_url || "",
         selectedAgentId: "",
       });
     } else {
@@ -76,15 +88,20 @@ export function CharacterEditSheet({
         selectedAgentId: "",
       });
     }
-  }, [character]);
+  }, [character, open]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!formData.name) {
       toast.error("请输入角色名称");
       return;
     }
-    toast.success(character ? "角色已更新" : "角色已创建");
-    onOpenChange(false);
+    await onSave({
+      name: formData.name,
+      personality: formData.personality,
+      voiceStyle: formData.voiceStyle,
+      systemPrompt: formData.systemPrompt,
+      avatarUrl: formData.avatarUrl,
+    });
   };
 
   const isEditing = !!character;
@@ -102,9 +119,9 @@ export function CharacterEditSheet({
             </Avatar>
             <div>
               <SheetTitle>{isEditing ? formData.name : "新建AI角色"}</SheetTitle>
-              {isEditing && (
+              {isEditing && character?.updated_at && (
                 <p className="text-xs text-muted-foreground">
-                  数据保存于 2025-01-25 17:40:45
+                  数据保存于 {new Date(character.updated_at).toLocaleString()}
                 </p>
               )}
             </div>
@@ -118,6 +135,41 @@ export function CharacterEditSheet({
           </TabsList>
 
           <TabsContent value="config" className="space-y-6 mt-4">
+            {/* Basic Info */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">基本信息</Label>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">角色名称 *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="请输入角色名称"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="personality">性格特点</Label>
+                  <Input
+                    id="personality"
+                    value={formData.personality}
+                    onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
+                    placeholder="如：专业、严谨、有耐心"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="systemPrompt">系统提示词</Label>
+                  <Textarea
+                    id="systemPrompt"
+                    value={formData.systemPrompt}
+                    onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
+                    placeholder="请输入角色的系统提示词..."
+                    rows={4}
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Agent Selection */}
             <div className="space-y-3">
               <Label className="text-base font-medium">员工技能</Label>
@@ -241,13 +293,8 @@ export function CharacterEditSheet({
                   </Avatar>
                   <h3 className="font-medium text-lg">{formData.name || "AI角色"}</h3>
                   <p className="text-sm text-muted-foreground mt-2 text-center max-w-md">
-                    外布需找如何帮帮你？在运用变找边门AI搜索来获取相关大信息！
+                    {formData.personality || "请设置角色性格特点"}
                   </p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground mt-4">
-                    <span>✓ 12.9s</span>
-                    <span>|</span>
-                    <span>266 tokens</span>
-                  </div>
                 </div>
 
                 <div className="border-t pt-4 mt-4">
@@ -270,10 +317,11 @@ export function CharacterEditSheet({
         </Tabs>
 
         <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             取消
           </Button>
-          <Button onClick={handleSave}>
+          <Button onClick={handleSave} disabled={isSaving}>
+            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             保存
           </Button>
         </div>
