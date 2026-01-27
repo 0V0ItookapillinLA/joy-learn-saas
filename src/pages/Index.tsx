@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Send, Loader2, BookOpen, MessageSquare, ClipboardCheck, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,10 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GeneratedPlanEditor, type GeneratedPlanData, type Chapter, type ContentItem } from '@/components/training/GeneratedPlanEditor';
+import { GenerationProgress } from '@/components/training/GenerationProgress';
+import { KnowledgeConfirmation, type DiscoveredContext } from '@/components/training/KnowledgeConfirmation';
+
+type GenerationPhase = 'input' | 'searching' | 'confirming' | 'generating' | 'results';
 
 const EXAMPLE_PROMPTS = [
   "为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景",
@@ -89,19 +93,136 @@ function transformToEditorFormat(apiPlan: any): GeneratedPlanData {
 
 const Index = () => {
   const [prompt, setPrompt] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [phase, setPhase] = useState<GenerationPhase>('input');
+  const [searchProgress, setSearchProgress] = useState(0);
+  const [generateProgress, setGenerateProgress] = useState(0);
+  const [discoveredContext, setDiscoveredContext] = useState<DiscoveredContext | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlanData | null>(null);
-  const [showResults, setShowResults] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (textareaRef.current) {
+    if (textareaRef.current && phase === 'input') {
       textareaRef.current.focus();
     }
+  }, [phase]);
+
+  // 模拟搜索进度动画
+  const simulateSearchProgress = useCallback(() => {
+    return new Promise<void>((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 15 + 5;
+        if (progress >= 100) {
+          setSearchProgress(100);
+          clearInterval(interval);
+          resolve();
+        } else {
+          setSearchProgress(Math.min(progress, 95));
+        }
+      }, 400);
+    });
   }, []);
 
-  const handleGenerate = async () => {
+  // 模拟生成进度动画
+  const simulateGenerateProgress = useCallback(() => {
+    return new Promise<void>((resolve) => {
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += Math.random() * 10 + 3;
+        if (progress >= 100) {
+          setGenerateProgress(100);
+          clearInterval(interval);
+          resolve();
+        } else {
+          setGenerateProgress(Math.min(progress, 95));
+        }
+      }, 500);
+    });
+  }, []);
+
+  // 生成模拟的发现上下文
+  const generateDiscoveredContext = useCallback((promptText: string): DiscoveredContext => {
+    // 从prompt中提取关键词来生成相关的上下文
+    const isSales = promptText.includes('销售') || promptText.includes('客户');
+    const isService = promptText.includes('客服') || promptText.includes('投诉');
+    const isManager = promptText.includes('经理') || promptText.includes('项目');
+    
+    let targetRole = '业务岗位';
+    let competencyName = '通用能力模型';
+    let dimensions = [];
+    let knowledge = [];
+    
+    if (isSales) {
+      targetRole = '销售代表';
+      competencyName = '销售能力模型';
+      dimensions = [
+        { id: 'd1', name: '客户开发', description: '识别潜在客户、建立初步联系的能力', selected: true },
+        { id: 'd2', name: '沟通表达', description: '清晰传达产品价值、倾听客户需求的能力', selected: true },
+        { id: 'd3', name: '异议处理', description: '应对客户质疑、化解成交阻力的能力', selected: true },
+        { id: 'd4', name: '商务谈判', description: '把握时机、达成双赢结果的能力', selected: true },
+        { id: 'd5', name: '客户维护', description: '建立长期关系、促进复购的能力', selected: false },
+      ];
+      knowledge = [
+        { id: 'k1', title: '电话销售话术手册', category: '话术', selected: true },
+        { id: 'k2', title: '客户拜访流程规范', category: '流程', selected: true },
+        { id: 'k3', title: '产品知识FAQ', category: '产品', selected: true },
+        { id: 'k4', title: 'SPIN销售法则详解', category: '方法论', selected: true },
+        { id: 'k5', title: '竞品对比分析', category: '市场', selected: false },
+      ];
+    } else if (isService) {
+      targetRole = '客服专员';
+      competencyName = '客户服务能力模型';
+      dimensions = [
+        { id: 'd1', name: '问题诊断', description: '快速理解客户问题本质的能力', selected: true },
+        { id: 'd2', name: '情绪管理', description: '控制自身情绪、安抚客户情绪的能力', selected: true },
+        { id: 'd3', name: '解决方案', description: '提供有效解决方案的能力', selected: true },
+        { id: 'd4', name: '沟通技巧', description: '清晰、友好地与客户沟通的能力', selected: true },
+      ];
+      knowledge = [
+        { id: 'k1', title: '投诉处理流程规范', category: '流程', selected: true },
+        { id: 'k2', title: '常见问题解决方案库', category: '知识库', selected: true },
+        { id: 'k3', title: '客户满意度提升技巧', category: '技巧', selected: true },
+      ];
+    } else if (isManager) {
+      targetRole = '项目经理';
+      competencyName = '项目管理能力模型';
+      dimensions = [
+        { id: 'd1', name: '计划制定', description: '制定可执行项目计划的能力', selected: true },
+        { id: 'd2', name: '团队协调', description: '协调跨职能团队协作的能力', selected: true },
+        { id: 'd3', name: '风险管理', description: '识别和应对项目风险的能力', selected: true },
+        { id: 'd4', name: '敏捷实践', description: '运用敏捷方法论的能力', selected: true },
+      ];
+      knowledge = [
+        { id: 'k1', title: 'Scrum框架指南', category: '方法论', selected: true },
+        { id: 'k2', title: '敏捷迭代管理手册', category: '流程', selected: true },
+        { id: 'k3', title: '项目复盘最佳实践', category: '技巧', selected: true },
+      ];
+    } else {
+      dimensions = [
+        { id: 'd1', name: '专业技能', description: '岗位所需的核心专业技能', selected: true },
+        { id: 'd2', name: '沟通协作', description: '与团队成员有效沟通协作的能力', selected: true },
+        { id: 'd3', name: '问题解决', description: '分析和解决工作中问题的能力', selected: true },
+      ];
+      knowledge = [
+        { id: 'k1', title: '岗位操作手册', category: '流程', selected: true },
+        { id: 'k2', title: '常见问题处理指南', category: '知识库', selected: true },
+      ];
+    }
+
+    return {
+      targetRole,
+      roleLevel: '初级 / P1-P2',
+      competencyModel: {
+        name: competencyName,
+        dimensions,
+      },
+      growthMapPath: ['基础认知', '技能训练', '实战演练', '独立上岗'],
+      relatedKnowledge: knowledge,
+    };
+  }, []);
+
+  const handleStartSearch = async () => {
     if (!prompt.trim()) {
       toast({
         title: "请输入培训需求",
@@ -111,29 +232,65 @@ const Index = () => {
       return;
     }
 
-    setIsGenerating(true);
-    setShowResults(false);
+    setPhase('searching');
+    setSearchProgress(0);
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-training-plan', {
-        body: { prompt: prompt.trim() }
+      // 模拟搜索进度
+      await simulateSearchProgress();
+      
+      // 生成发现的上下文
+      const context = generateDiscoveredContext(prompt);
+      setDiscoveredContext(context);
+      
+      setPhase('confirming');
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "搜索失败",
+        description: "请稍后重试",
+        variant: "destructive"
       });
+      setPhase('input');
+    }
+  };
 
-      if (error) {
-        throw error;
+  const handleConfirmContext = async (context: DiscoveredContext) => {
+    setDiscoveredContext(context);
+    setPhase('generating');
+    setGenerateProgress(0);
+
+    try {
+      // 并行执行：模拟进度 + 实际API调用
+      const [, response] = await Promise.all([
+        simulateGenerateProgress(),
+        supabase.functions.invoke('generate-training-plan', {
+          body: { 
+            prompt: prompt.trim(),
+            targetAudience: context.targetRole,
+            trainingGoals: context.competencyModel.dimensions
+              .filter(d => d.selected)
+              .map(d => d.name)
+              .join('、')
+          }
+        })
+      ]);
+
+      if (response.error) {
+        throw response.error;
       }
 
-      if (data.error) {
-        throw new Error(data.error);
+      if (response.data.error) {
+        throw new Error(response.data.error);
       }
 
-      if (data.success && data.plan) {
-        const transformedPlan = transformToEditorFormat(data.plan);
+      if (response.data.success && response.data.plan) {
+        const transformedPlan = transformToEditorFormat(response.data.plan);
         setGeneratedPlan(transformedPlan);
-        setShowResults(true);
+        setPhase('results');
         toast({
           title: "培训计划生成成功",
-          description: `已生成「${data.plan.title}」培训计划`
+          description: `已生成「${response.data.plan.title}」培训计划`
         });
       }
     } catch (error) {
@@ -143,9 +300,14 @@ const Index = () => {
         description: error instanceof Error ? error.message : "请稍后重试",
         variant: "destructive"
       });
-    } finally {
-      setIsGenerating(false);
+      setPhase('confirming');
     }
+  };
+
+  const handleBackToInput = () => {
+    setPhase('input');
+    setSearchProgress(0);
+    setGenerateProgress(0);
   };
 
   const handleExampleClick = (example: string) => {
@@ -155,39 +317,35 @@ const Index = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      handleGenerate();
+      handleStartSearch();
     }
   };
 
   const handleSaveDraft = async (plan: GeneratedPlanData) => {
     try {
-      // 开发模式：尝试获取用户和组织信息，如果没有则使用默认值
       const { data: { user } } = await supabase.auth.getUser();
-      let organizationId: string | null = null;
       
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        organizationId = profile?.organization_id || null;
+      if (!user) {
+        toast({
+          title: "请先登录",
+          description: "保存培训计划需要先登录",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // 如果没有组织ID，查询第一个可用的组织
-      if (!organizationId) {
-        const { data: orgs } = await supabase
-          .from('organizations')
-          .select('id')
-          .limit(1)
-          .single();
-        organizationId = orgs?.id || null;
-      }
+      // 使用RPC确保用户有组织绑定
+      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
+        _user_id: user.id,
+        _full_name: user.user_metadata?.full_name || null,
+        _org_name: '我的组织'
+      });
 
-      if (!organizationId) {
+      if (initError || !orgId) {
+        console.error('Init error:', initError);
         toast({
           title: "保存失败",
-          description: "系统中暂无可用组织，请先创建组织",
+          description: "初始化用户组织失败",
           variant: "destructive"
         });
         return;
@@ -200,8 +358,8 @@ const Index = () => {
           title: plan.title,
           description: plan.description,
           objectives: plan.objectives,
-          organization_id: organizationId,
-          created_by: user?.id || null,
+          organization_id: orgId,
+          created_by: user.id,
           status: 'draft',
         })
         .select()
@@ -243,33 +401,29 @@ const Index = () => {
 
   const handleCreatePlan = async (plan: GeneratedPlanData) => {
     try {
-      // 开发模式：尝试获取用户和组织信息，如果没有则使用默认值
       const { data: { user } } = await supabase.auth.getUser();
-      let organizationId: string | null = null;
       
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('organization_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
-        organizationId = profile?.organization_id || null;
+      if (!user) {
+        toast({
+          title: "请先登录",
+          description: "创建培训计划需要先登录",
+          variant: "destructive"
+        });
+        return;
       }
 
-      // 如果没有组织ID，查询第一个可用的组织
-      if (!organizationId) {
-        const { data: orgs } = await supabase
-          .from('organizations')
-          .select('id')
-          .limit(1)
-          .single();
-        organizationId = orgs?.id || null;
-      }
+      // 使用RPC确保用户有组织绑定
+      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
+        _user_id: user.id,
+        _full_name: user.user_metadata?.full_name || null,
+        _org_name: '我的组织'
+      });
 
-      if (!organizationId) {
+      if (initError || !orgId) {
+        console.error('Init error:', initError);
         toast({
           title: "创建失败",
-          description: "系统中暂无可用组织，请先创建组织",
+          description: "初始化用户组织失败",
           variant: "destructive"
         });
         return;
@@ -282,8 +436,8 @@ const Index = () => {
           title: plan.title,
           description: plan.description,
           objectives: plan.objectives,
-          organization_id: organizationId,
-          created_by: user?.id || null,
+          organization_id: orgId,
+          created_by: user.id,
           status: 'pending',
         })
         .select()
@@ -328,7 +482,7 @@ const Index = () => {
           const practiceSessionsToInsert = practiceItems.map((item) => ({
             title: item.title,
             description: item.description,
-            organization_id: organizationId,
+            organization_id: orgId,
             chapter_id: item.chapterId || null,
             practice_mode: 'free_dialogue',
             scenario_description: `来自培训计划「${plan.title}」的练习场景`,
@@ -340,7 +494,6 @@ const Index = () => {
 
           if (practiceError) {
             console.error('Practice sessions insert error:', practiceError);
-            // Don't throw - the main plan is created, just log the error
           }
         }
       }
@@ -363,7 +516,8 @@ const Index = () => {
   return (
     <DashboardLayout title="AI培训生成工作台" description="一句话生成学练考完整培训计划">
       <div className="space-y-6">
-        {!showResults ? (
+        {/* Phase: Input */}
+        {phase === 'input' && (
           <div className="max-w-3xl mx-auto">
             {/* Hero Section */}
             <div className="text-center mb-12">
@@ -391,47 +545,23 @@ const Index = () => {
                     onKeyDown={handleKeyDown}
                     placeholder="描述您的培训需求，例如：为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景..."
                     className="min-h-[120px] text-base border-0 focus-visible:ring-0 resize-none p-0"
-                    disabled={isGenerating}
                   />
                   <div className="flex items-center justify-between mt-4 pt-4 border-t">
                     <span className="text-xs text-muted-foreground">
                       按 ⌘ + Enter 快速生成
                     </span>
                     <Button 
-                      onClick={handleGenerate} 
-                      disabled={isGenerating || !prompt.trim()}
+                      onClick={handleStartSearch} 
+                      disabled={!prompt.trim()}
                       size="lg"
                       className="gap-2"
                     >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          AI 正在设计...
-                        </>
-                      ) : (
-                        <>
-                          <Send className="h-4 w-4" />
-                          一键生成培训计划
-                        </>
-                      )}
+                      <Send className="h-4 w-4" />
+                      一键生成培训计划
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Loading Animation */}
-              {isGenerating && (
-                <div className="absolute inset-0 bg-card/80 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="relative mb-4">
-                      <div className="h-16 w-16 rounded-full border-4 border-primary/20 border-t-primary animate-spin mx-auto" />
-                      <Sparkles className="h-6 w-6 text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-                    </div>
-                    <p className="text-sm font-medium text-foreground">AI 正在分析需求并设计培训计划...</p>
-                    <p className="text-xs text-muted-foreground mt-1">这可能需要 10-30 秒</p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Example Prompts */}
@@ -446,7 +576,6 @@ const Index = () => {
                     key={index}
                     onClick={() => handleExampleClick(example)}
                     className="text-left p-3 rounded-lg border bg-card hover:bg-muted hover:border-primary/30 transition-colors text-sm text-muted-foreground"
-                    disabled={isGenerating}
                   >
                     {example}
                   </button>
@@ -479,16 +608,45 @@ const Index = () => {
               </div>
             </div>
           </div>
-        ) : (
-          /* Results Section - Editable Structure */
-          generatedPlan && (
-            <GeneratedPlanEditor
-              plan={generatedPlan}
-              onBack={() => setShowResults(false)}
-              onSaveDraft={handleSaveDraft}
-              onCreatePlan={handleCreatePlan}
+        )}
+
+        {/* Phase: Searching */}
+        {phase === 'searching' && (
+          <div className="max-w-2xl mx-auto">
+            <GenerationProgress
+              phase="searching"
+              progress={searchProgress}
             />
-          )
+          </div>
+        )}
+
+        {/* Phase: Confirming */}
+        {phase === 'confirming' && discoveredContext && (
+          <KnowledgeConfirmation
+            context={discoveredContext}
+            onConfirm={handleConfirmContext}
+            onBack={handleBackToInput}
+          />
+        )}
+
+        {/* Phase: Generating */}
+        {phase === 'generating' && (
+          <div className="max-w-2xl mx-auto">
+            <GenerationProgress
+              phase="generating"
+              progress={generateProgress}
+            />
+          </div>
+        )}
+
+        {/* Phase: Results */}
+        {phase === 'results' && generatedPlan && (
+          <GeneratedPlanEditor
+            plan={generatedPlan}
+            onBack={handleBackToInput}
+            onSaveDraft={handleSaveDraft}
+            onCreatePlan={handleCreatePlan}
+          />
         )}
       </div>
     </DashboardLayout>
