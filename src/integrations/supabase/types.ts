@@ -585,6 +585,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      initialize_user_with_organization: {
+        Args: { _full_name?: string; _org_name?: string; _user_id: string }
+        Returns: string
+      }
       is_org_admin: {
         Args: { _org_id: string; _user_id: string }
         Returns: boolean

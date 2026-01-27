@@ -33,6 +33,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        
+        // 登录成功后自动初始化用户组织
+        if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+          setTimeout(async () => {
+            try {
+              await supabase.rpc('initialize_user_with_organization', {
+                _user_id: session.user.id,
+                _full_name: session.user.user_metadata?.full_name || null,
+                _org_name: '我的组织'
+              });
+            } catch (error) {
+              console.log('User organization initialization:', error);
+            }
+          }, 0);
+        }
       }
     );
 
@@ -41,6 +56,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      
+      // 现有会话也初始化组织
+      if (session?.user) {
+        (async () => {
+          try {
+            await supabase.rpc('initialize_user_with_organization', {
+              _user_id: session.user.id,
+              _full_name: session.user.user_metadata?.full_name || null,
+              _org_name: '我的组织'
+            });
+          } catch (e) {
+            console.log('Init org error:', e);
+          }
+        })();
+      }
     });
 
     return () => subscription.unsubscribe();
