@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   BookOpen,
@@ -8,12 +7,14 @@ import {
   Map,
   BarChart3,
   Settings,
-  ChevronDown,
   GraduationCap,
   LogOut,
+  User,
+  Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   Sidebar,
   SidebarContent,
@@ -24,15 +25,11 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const menuItems = [
   {
@@ -76,13 +73,32 @@ export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const location = useLocation();
-  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { isAdmin, isSuperAdmin, role } = useUserRole();
 
   const isActive = (url: string) => {
     if (url === "/") {
-      return location.pathname === "/";
+      return location.pathname === "/" || location.pathname === "/dashboard";
     }
     return location.pathname.startsWith(url);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  // Get user display name and initials
+  const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '用户';
+  const initials = displayName.slice(0, 2).toUpperCase();
+
+  // Role display
+  const getRoleLabel = () => {
+    if (isSuperAdmin) return '超级管理员';
+    if (role === 'org_admin') return '组织管理员';
+    if (role === 'manager') return '管理员';
+    return '学员';
   };
 
   return (
@@ -129,12 +145,44 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter className="border-t border-sidebar-border">
+        {/* User info section */}
+        <div className="px-2 py-3">
+          {!collapsed ? (
+            <div className="flex items-center gap-3 mb-3">
+              <Avatar className="h-9 w-9">
+                <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {displayName}
+                </p>
+                <div className="flex items-center gap-1">
+                  {isAdmin && <Shield className="h-3 w-3 text-primary" />}
+                  <span className="text-xs text-sidebar-foreground/60">
+                    {getRoleLabel()}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center mb-2">
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="bg-primary/10 text-primary text-xs">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+          )}
+        </div>
+
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
-              onClick={() => signOut()}
+              onClick={handleSignOut}
               tooltip="退出登录"
-              className="text-sidebar-foreground/70 hover:text-sidebar-foreground"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <LogOut className="h-4 w-4" />
               {!collapsed && <span>退出登录</span>}

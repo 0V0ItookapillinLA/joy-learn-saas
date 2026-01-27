@@ -41,13 +41,13 @@ export default function Auth() {
   const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
 
-  const { signIn, signUp, user } = useAuth();
+  const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Redirect if already logged in
-  if (user) {
-    navigate("/dashboard", { replace: true });
+  if (!authLoading && user) {
+    navigate("/", { replace: true });
     return null;
   }
 
