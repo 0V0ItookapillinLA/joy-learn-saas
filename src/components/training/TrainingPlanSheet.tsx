@@ -177,19 +177,29 @@ export function TrainingPlanSheet({
         organizationId = profile?.organization_id || null;
       }
 
-      // 如果没有组织ID，查询第一个可用的组织
+      // 如果没有组织ID，查询第一个可用的组织（使用maybeSingle避免报错）
       if (!organizationId) {
         const { data: orgs } = await supabase
           .from('organizations')
           .select('id')
           .limit(1)
-          .single();
+          .maybeSingle();
         organizationId = orgs?.id || null;
       }
 
+      // 如果仍然没有组织，自动创建一个默认组织
       if (!organizationId) {
-        toast.error("系统中暂无可用组织，请先创建组织");
-        return;
+        const { data: newOrg, error: orgError } = await supabase
+          .from('organizations')
+          .insert({ name: '默认开发组织', status: 'active', plan_type: 'basic' })
+          .select()
+          .single();
+        
+        if (orgError) {
+          toast.error("创建默认组织失败");
+          return;
+        }
+        organizationId = newOrg.id;
       }
 
       if (isEdit && plan) {
