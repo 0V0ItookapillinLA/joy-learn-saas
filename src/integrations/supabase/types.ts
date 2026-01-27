@@ -109,6 +109,109 @@ export type Database = {
           },
         ]
       }
+      exams: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          exam_type: string | null
+          id: string
+          is_active: boolean | null
+          max_attempts: number | null
+          organization_id: string
+          passing_score: number | null
+          questions: Json | null
+          time_limit_minutes: number | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          exam_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_attempts?: number | null
+          organization_id: string
+          passing_score?: number | null
+          questions?: Json | null
+          time_limit_minutes?: number | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          exam_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_attempts?: number | null
+          organization_id?: string
+          passing_score?: number | null
+          questions?: Json | null
+          time_limit_minutes?: number | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_contents: {
+        Row: {
+          content_text: string | null
+          content_type: string | null
+          content_url: string | null
+          created_at: string | null
+          description: string | null
+          duration_minutes: number | null
+          id: string
+          is_active: boolean | null
+          organization_id: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          content_text?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          organization_id: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          content_text?: string | null
+          content_type?: string | null
+          content_url?: string | null
+          created_at?: string | null
+          description?: string | null
+          duration_minutes?: number | null
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_contents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizations: {
         Row: {
           created_at: string | null

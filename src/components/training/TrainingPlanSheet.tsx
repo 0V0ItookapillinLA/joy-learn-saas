@@ -26,6 +26,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { TrainingPlan } from "./TrainingPlanTable";
 import { usePracticeSessions } from "@/hooks/usePracticeSessions";
+import { useLessonContents } from "@/hooks/useLessonContents";
+import { useExams } from "@/hooks/useExams";
 
 interface Chapter {
   id: string;
@@ -55,6 +57,8 @@ export function TrainingPlanSheet({
 }: TrainingPlanSheetProps) {
   const queryClient = useQueryClient();
   const { data: practiceSessions = [] } = usePracticeSessions();
+  const { data: lessonContents = [] } = useLessonContents();
+  const { data: exams = [] } = useExams();
   const [activeTab, setActiveTab] = useState("basic");
   const [title, setTitle] = useState("");
   const [department, setDepartment] = useState("");
@@ -258,6 +262,20 @@ export function TrainingPlanSheet({
   const getSelectedPracticeIds = (chapter: Chapter, currentItemId: string): string[] => {
     return chapter.items
       .filter((item) => item.type === "practice" && item.itemId && item.id !== currentItemId)
+      .map((item) => item.itemId as string);
+  };
+
+  // 获取章节中已选择的教学ID列表
+  const getSelectedLessonIds = (chapter: Chapter, currentItemId: string): string[] => {
+    return chapter.items
+      .filter((item) => item.type === "lesson" && item.itemId && item.id !== currentItemId)
+      .map((item) => item.itemId as string);
+  };
+
+  // 获取章节中已选择的考评ID列表
+  const getSelectedExamIds = (chapter: Chapter, currentItemId: string): string[] => {
+    return chapter.items
+      .filter((item) => item.type === "exam" && item.itemId && item.id !== currentItemId)
       .map((item) => item.itemId as string);
   };
 
@@ -632,24 +650,78 @@ export function TrainingPlanSheet({
                                     )}
                                   </SelectContent>
                                 </Select>
-                              ) : item.title ? (
-                                // 有AI生成标题的内容项
-                                <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border">
-                                  <span className="text-sm truncate" title={item.title}>
-                                    {item.title}
-                                  </span>
-                                  <Badge variant="outline" className="text-xs shrink-0">
-                                    {item.type === "lesson" ? "教学" : "考评"}
-                                  </Badge>
-                                </div>
-                              ) : (
-                                // 未选择内容的占位符
-                                <Select>
+                              ) : item.type === "lesson" ? (
+                                // 教学类型：显示教学内容下拉框
+                                <Select
+                                  value={item.itemId || ""}
+                                  onValueChange={(value) => {
+                                    const selectedLesson = lessonContents.find(l => l.id === value);
+                                    if (selectedLesson) {
+                                      updateChapterItemSelection(chapter.id, item.id, value, selectedLesson.title);
+                                    }
+                                  }}
+                                >
                                   <SelectTrigger>
-                                    <SelectValue placeholder="请选择内容" />
+                                    <SelectValue placeholder="请选择教学内容">
+                                      {item.title || "请选择教学内容"}
+                                    </SelectValue>
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="none" disabled>暂无可选内容</SelectItem>
+                                    {lessonContents.length === 0 ? (
+                                      <SelectItem value="none" disabled>暂无教学内容</SelectItem>
+                                    ) : (
+                                      lessonContents.map((lesson) => {
+                                        const selectedIds = getSelectedLessonIds(chapter, item.id);
+                                        const isDisabled = selectedIds.includes(lesson.id);
+                                        return (
+                                          <SelectItem 
+                                            key={lesson.id} 
+                                            value={lesson.id}
+                                            disabled={isDisabled}
+                                          >
+                                            {lesson.title}
+                                            {isDisabled && " (已选择)"}
+                                          </SelectItem>
+                                        );
+                                      })
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                // 考评类型：显示考评下拉框
+                                <Select
+                                  value={item.itemId || ""}
+                                  onValueChange={(value) => {
+                                    const selectedExam = exams.find(e => e.id === value);
+                                    if (selectedExam) {
+                                      updateChapterItemSelection(chapter.id, item.id, value, selectedExam.title);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="请选择考评">
+                                      {item.title || "请选择考评"}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {exams.length === 0 ? (
+                                      <SelectItem value="none" disabled>暂无考评</SelectItem>
+                                    ) : (
+                                      exams.map((exam) => {
+                                        const selectedIds = getSelectedExamIds(chapter, item.id);
+                                        const isDisabled = selectedIds.includes(exam.id);
+                                        return (
+                                          <SelectItem 
+                                            key={exam.id} 
+                                            value={exam.id}
+                                            disabled={isDisabled}
+                                          >
+                                            {exam.title}
+                                            {isDisabled && " (已选择)"}
+                                          </SelectItem>
+                                        );
+                                      })
+                                    )}
                                   </SelectContent>
                                 </Select>
                               )}
