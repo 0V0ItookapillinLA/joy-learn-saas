@@ -9,6 +9,7 @@ interface TrainingPlanRequest {
   prompt: string;
   targetAudience?: string;
   trainingGoals?: string;
+  attachmentContent?: string; // Content from uploaded files
 }
 
 serve(async (req) => {
@@ -18,16 +19,16 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt, targetAudience, trainingGoals }: TrainingPlanRequest = await req.json();
+    const { prompt, targetAudience, trainingGoals, attachmentContent }: TrainingPlanRequest = await req.json();
     
-    console.log('Received request:', { prompt, targetAudience, trainingGoals });
+    console.log('Received request:', { prompt, targetAudience, trainingGoals, hasAttachment: !!attachmentContent });
 
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const systemPrompt = `你是一位专业的企业培训课程设计专家，专注于为企业创建完整的培训计划。
+    const baseSystemPrompt = `你是一位专业的企业培训课程设计专家，专注于为企业创建完整的培训计划。
 你需要根据用户的输入，生成一个包含"学、练、考"三个维度的完整培训计划。
 
 请按照以下JSON格式返回培训计划：
@@ -102,9 +103,16 @@ serve(async (req) => {
 3. 每个知识点后配套相应的练习场景
 4. 练习场景要贴近实际工作场景，具有实操性，必须包含详细的config配置
 5. 考核覆盖关键知识点，难度适中
-6. 时长安排合理，考虑学员注意力
+6. 时长安排合理，考虑学员注意力`;
 
-请确保返回有效的JSON格式，不要包含任何其他说明文字。`;
+    // Add attachment context if provided
+    const attachmentInstruction = attachmentContent 
+      ? `\n\n【重要】用户上传了参考资料，请仔细阅读以下内容，并据此设计更加精准、贴合实际的培训计划。
+参考资料中的专业术语、流程规范、产品知识等应直接体现在培训内容中：
+${attachmentContent}`
+      : '';
+
+    const systemPrompt = baseSystemPrompt + `\n\n请确保返回有效的JSON格式，不要包含任何其他说明文字。` + attachmentInstruction;
 
     const userMessage = targetAudience || trainingGoals 
       ? `培训对象：${targetAudience || '未指定'}\n培训目标：${trainingGoals || '未指定'}\n\n用户需求：${prompt}`

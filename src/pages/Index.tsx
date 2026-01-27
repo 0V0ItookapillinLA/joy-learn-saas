@@ -13,6 +13,7 @@ import { KnowledgeConfirmation, type DiscoveredContext } from '@/components/trai
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { VoiceInputButton } from '@/components/input/VoiceInputButton';
 import { FileAttachment, type AttachedFile } from '@/components/input/FileAttachment';
+import { parseMultipleFiles } from '@/lib/fileParser';
 
 const EXAMPLE_PROMPTS = [
   "为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景",
@@ -319,6 +320,17 @@ const Index = () => {
     setGenerateProgress(0);
 
     try {
+      // Parse attachment content if any files are attached
+      let attachmentContent = '';
+      if (attachedFiles.length > 0) {
+        const uploadedFiles = attachedFiles.filter(f => f.url && !f.uploading);
+        if (uploadedFiles.length > 0) {
+          attachmentContent = await parseMultipleFiles(
+            uploadedFiles.map(f => ({ name: f.name, url: f.url, type: f.type }))
+          );
+        }
+      }
+
       // 并行执行：模拟进度 + 实际API调用
       const [, response] = await Promise.all([
         simulateGenerateProgress(),
@@ -329,7 +341,8 @@ const Index = () => {
             trainingGoals: context.competencyModel.dimensions
               .filter(d => d.selected)
               .map(d => d.name)
-              .join('、')
+              .join('、'),
+            attachmentContent: attachmentContent || undefined
           }
         })
       ]);
@@ -629,13 +642,31 @@ const Index = () => {
                       placeholder="描述您的培训需求，例如：为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景..."
                       className="min-h-[120px] text-base border-0 focus-visible:ring-0 resize-none p-0 pr-12"
                     />
-                    {/* Voice indicator */}
+                    {/* Voice indicator badge */}
                     {isListening && (
-                      <div className="absolute top-0 right-0 flex items-center gap-2 text-xs text-destructive">
-                        <span className="animate-pulse">● 正在录音...</span>
+                      <div className="absolute top-0 right-0 flex items-center gap-2 text-xs text-destructive font-medium">
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
+                          录音中
+                        </span>
                       </div>
                     )}
                   </div>
+                  
+                  {/* Real-time voice transcript display */}
+                  {isListening && transcript && (
+                    <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-dashed border-primary/30">
+                      <div className="flex items-start gap-2">
+                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
+                          <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-xs text-muted-foreground mb-1">实时转写：</p>
+                          <p className="text-sm text-foreground">{transcript}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   
                   {/* Attached files display */}
                   {attachedFiles.length > 0 && (
