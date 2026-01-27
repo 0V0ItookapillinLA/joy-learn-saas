@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { TrainingPlan } from "./TrainingPlanTable";
+import { usePracticeSessions } from "@/hooks/usePracticeSessions";
 
 interface Chapter {
   id: string;
@@ -53,6 +54,7 @@ export function TrainingPlanSheet({
   onSave,
 }: TrainingPlanSheetProps) {
   const queryClient = useQueryClient();
+  const { data: practiceSessions = [] } = usePracticeSessions();
   const [activeTab, setActiveTab] = useState("basic");
   const [title, setTitle] = useState("");
   const [department, setDepartment] = useState("");
@@ -221,13 +223,42 @@ export function TrainingPlanSheet({
           return {
             ...chapter,
             items: chapter.items.map((item) =>
-              item.id === itemId ? { ...item, type } : item
+              item.id === itemId ? { ...item, type, itemId: undefined, title: undefined } : item
             ),
           };
         }
         return chapter;
       })
     );
+  };
+
+  // 更新章节项的具体内容选择
+  const updateChapterItemSelection = (
+    chapterId: string,
+    itemId: string,
+    selectedItemId: string,
+    selectedTitle: string
+  ) => {
+    setChapters(
+      chapters.map((chapter) => {
+        if (chapter.id === chapterId) {
+          return {
+            ...chapter,
+            items: chapter.items.map((item) =>
+              item.id === itemId ? { ...item, itemId: selectedItemId, title: selectedTitle } : item
+            ),
+          };
+        }
+        return chapter;
+      })
+    );
+  };
+
+  // 获取章节中已选择的练习ID列表
+  const getSelectedPracticeIds = (chapter: Chapter, currentItemId: string): string[] => {
+    return chapter.items
+      .filter((item) => item.type === "practice" && item.itemId && item.id !== currentItemId)
+      .map((item) => item.itemId as string);
   };
 
   const startEditChapter = (chapter: Chapter) => {
@@ -562,24 +593,63 @@ export function TrainingPlanSheet({
                                 <SelectItem value="exam">考评</SelectItem>
                               </SelectContent>
                             </Select>
-                            {/* 显示内容项标题 - 如果有AI生成的标题则显示，否则显示占位符 */}
+                            {/* 显示内容项标题 - 根据类型显示不同的选择器 */}
                             <div className="flex-1 min-w-0">
-                              {item.title ? (
+                              {item.type === "practice" ? (
+                                // 练习类型：显示练习计划下拉框
+                                <Select
+                                  value={item.itemId || ""}
+                                  onValueChange={(value) => {
+                                    const selectedPractice = practiceSessions.find(p => p.id === value);
+                                    if (selectedPractice) {
+                                      updateChapterItemSelection(chapter.id, item.id, value, selectedPractice.title);
+                                    }
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="请选择练习计划">
+                                      {item.title || "请选择练习计划"}
+                                    </SelectValue>
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    {practiceSessions.length === 0 ? (
+                                      <SelectItem value="none" disabled>暂无练习计划</SelectItem>
+                                    ) : (
+                                      practiceSessions.map((practice) => {
+                                        const selectedIds = getSelectedPracticeIds(chapter, item.id);
+                                        const isDisabled = selectedIds.includes(practice.id);
+                                        return (
+                                          <SelectItem 
+                                            key={practice.id} 
+                                            value={practice.id}
+                                            disabled={isDisabled}
+                                          >
+                                            {practice.title}
+                                            {isDisabled && " (已选择)"}
+                                          </SelectItem>
+                                        );
+                                      })
+                                    )}
+                                  </SelectContent>
+                                </Select>
+                              ) : item.title ? (
+                                // 有AI生成标题的内容项
                                 <div className="flex items-center gap-2 px-3 py-2 bg-muted/50 rounded-md border">
                                   <span className="text-sm truncate" title={item.title}>
                                     {item.title}
                                   </span>
                                   <Badge variant="outline" className="text-xs shrink-0">
-                                    {item.type === "lesson" ? "教学" : item.type === "practice" ? "练习" : "考评"}
+                                    {item.type === "lesson" ? "教学" : "考评"}
                                   </Badge>
                                 </div>
                               ) : (
+                                // 未选择内容的占位符
                                 <Select>
                                   <SelectTrigger>
                                     <SelectValue placeholder="请选择内容" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="none">暂无可选内容</SelectItem>
+                                    <SelectItem value="none" disabled>暂无可选内容</SelectItem>
                                   </SelectContent>
                                 </Select>
                               )}
