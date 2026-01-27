@@ -75,6 +75,26 @@ export function TrainingPlanSheet({
     if (plan) {
       setTitle(plan.title || "");
       setDescription(plan.description || "");
+      
+      // 加载已保存的章节内容
+      if (plan.training_chapters && plan.training_chapters.length > 0) {
+        const loadedChapters: Chapter[] = plan.training_chapters
+          .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((chapter, index) => ({
+            id: chapter.id,
+            title: chapter.title,
+            items: parseChapterItems(chapter.description || "", chapter.id),
+          }));
+        setChapters(loadedChapters);
+      } else {
+        setChapters([
+          {
+            id: "1",
+            title: "章节1",
+            items: [{ id: "1-1", type: "lesson" }],
+          },
+        ]);
+      }
     } else {
       setTitle("");
       setDescription("");
@@ -88,6 +108,34 @@ export function TrainingPlanSheet({
       ]);
     }
   }, [plan, open]);
+
+  // 解析章节描述中的内容项
+  const parseChapterItems = (description: string, chapterId: string): ChapterItem[] => {
+    if (!description) {
+      return [{ id: `${chapterId}-1`, type: "lesson" }];
+    }
+    
+    const itemTitles = description.split(', ').filter(Boolean);
+    if (itemTitles.length === 0) {
+      return [{ id: `${chapterId}-1`, type: "lesson" }];
+    }
+    
+    return itemTitles.map((title, index) => {
+      // 根据标题关键词判断类型
+      let type: "lesson" | "practice" | "exam" = "lesson";
+      if (title.includes('模拟') || title.includes('演练') || title.includes('对练') || title.includes('练习')) {
+        type = "practice";
+      } else if (title.includes('测验') || title.includes('考核') || title.includes('评估') || title.includes('考评') || title.includes('案例分析')) {
+        type = "exam";
+      }
+      
+      return {
+        id: `${chapterId}-${index + 1}`,
+        type,
+        title,
+      };
+    });
+  };
 
   const addChapter = () => {
     const newId = String(chapters.length + 1);

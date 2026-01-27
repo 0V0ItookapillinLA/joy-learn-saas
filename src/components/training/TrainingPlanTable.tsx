@@ -11,6 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
+export interface TrainingChapter {
+  id: string;
+  title: string;
+  description: string | null;
+  chapter_type: string | null;
+  sort_order: number | null;
+  duration_minutes: number | null;
+}
+
 export interface TrainingPlan {
   id: string;
   title: string;
@@ -20,6 +29,7 @@ export interface TrainingPlan {
   invitedCount: number;
   participantCount: number;
   status: "active" | "inactive";
+  training_chapters?: TrainingChapter[];
 }
 
 interface TrainingPlanTableProps {

@@ -44,6 +44,14 @@ function transformToTableFormat(plans: ReturnType<typeof useTrainingPlans>['data
     chapterCount: plan.training_chapters?.length || 0,
     createdAt: plan.created_at,
     updatedAt: plan.updated_at,
+    training_chapters: plan.training_chapters?.map(ch => ({
+      id: ch.id,
+      title: ch.title,
+      description: ch.description,
+      chapter_type: ch.chapter_type,
+      sort_order: ch.sort_order,
+      duration_minutes: ch.duration_minutes,
+    })),
   }));
 }
 
