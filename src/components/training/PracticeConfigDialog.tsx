@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,7 +83,19 @@ export function PracticeConfigDialog({
   useEffect(() => {
     if (open) {
       if (initialData) {
-        setFormData((prev) => ({ ...prev, ...initialData }));
+        setFormData({
+          title: initialData.title || "",
+          scenarioDescription: initialData.scenarioDescription || "",
+          aiRoleId: initialData.aiRoleId || "",
+          aiRoleInfo: initialData.aiRoleInfo || "",
+          traineeRole: initialData.traineeRole || "",
+          dialogueGoal: initialData.dialogueGoal || "",
+          passScore: initialData.passScore ?? 60,
+          passAttempts: initialData.passAttempts ?? 3,
+          assessmentItems: initialData.assessmentItems && initialData.assessmentItems.length > 0 
+            ? initialData.assessmentItems 
+            : defaultAssessmentItems,
+        });
       } else {
         setFormData({
           title: "",
@@ -148,6 +161,9 @@ export function PracticeConfigDialog({
             <MessageSquare className="h-5 w-5 text-primary" />
             练习配置
           </DialogTitle>
+          <DialogDescription>
+            配置练习计划的角色设定、目标和打分维度
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
