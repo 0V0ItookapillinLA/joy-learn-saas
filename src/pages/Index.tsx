@@ -325,30 +325,33 @@ const Index = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        toast({
-          title: "请先登录",
-          description: "保存培训计划需要先登录",
-          variant: "destructive"
+      // 静默获取或创建组织（不要求登录）
+      let orgId: string | null = null;
+      
+      if (user) {
+        const { data } = await supabase.rpc('initialize_user_with_organization', {
+          _user_id: user.id,
+          _full_name: user.user_metadata?.full_name || null,
+          _org_name: '我的组织'
         });
-        return;
+        orgId = data;
+      }
+      
+      // 如果没有用户或组织，使用开发模式的默认组织
+      if (!orgId) {
+        const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
+        orgId = orgs?.[0]?.id || null;
       }
 
-      // 使用RPC确保用户有组织绑定
-      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
-        _user_id: user.id,
-        _full_name: user.user_metadata?.full_name || null,
-        _org_name: '我的组织'
-      });
-
-      if (initError || !orgId) {
-        console.error('Init error:', initError);
-        toast({
-          title: "保存失败",
-          description: "初始化用户组织失败",
-          variant: "destructive"
-        });
-        return;
+      if (!orgId) {
+        // 创建一个开发用组织
+        const { data: newOrg, error: orgError } = await supabase
+          .from('organizations')
+          .insert({ name: '开发组织', status: 'active', plan_type: 'basic' })
+          .select()
+          .single();
+        if (orgError) throw orgError;
+        orgId = newOrg.id;
       }
 
       // Insert training plan as draft
@@ -359,7 +362,7 @@ const Index = () => {
           description: plan.description,
           objectives: plan.objectives,
           organization_id: orgId,
-          created_by: user.id,
+          created_by: user?.id || null,
           status: 'draft',
         })
         .select()
@@ -403,30 +406,33 @@ const Index = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        toast({
-          title: "请先登录",
-          description: "创建培训计划需要先登录",
-          variant: "destructive"
+      // 静默获取或创建组织（不要求登录）
+      let orgId: string | null = null;
+      
+      if (user) {
+        const { data } = await supabase.rpc('initialize_user_with_organization', {
+          _user_id: user.id,
+          _full_name: user.user_metadata?.full_name || null,
+          _org_name: '我的组织'
         });
-        return;
+        orgId = data;
+      }
+      
+      // 如果没有用户或组织，使用开发模式的默认组织
+      if (!orgId) {
+        const { data: orgs } = await supabase.from('organizations').select('id').limit(1);
+        orgId = orgs?.[0]?.id || null;
       }
 
-      // 使用RPC确保用户有组织绑定
-      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
-        _user_id: user.id,
-        _full_name: user.user_metadata?.full_name || null,
-        _org_name: '我的组织'
-      });
-
-      if (initError || !orgId) {
-        console.error('Init error:', initError);
-        toast({
-          title: "创建失败",
-          description: "初始化用户组织失败",
-          variant: "destructive"
-        });
-        return;
+      if (!orgId) {
+        // 创建一个开发用组织
+        const { data: newOrg, error: orgError } = await supabase
+          .from('organizations')
+          .insert({ name: '开发组织', status: 'active', plan_type: 'basic' })
+          .select()
+          .single();
+        if (orgError) throw orgError;
+        orgId = newOrg.id;
       }
 
       // Insert training plan with pending status
@@ -437,7 +443,7 @@ const Index = () => {
           description: plan.description,
           objectives: plan.objectives,
           organization_id: orgId,
-          created_by: user.id,
+          created_by: user?.id || null,
           status: 'pending',
         })
         .select()

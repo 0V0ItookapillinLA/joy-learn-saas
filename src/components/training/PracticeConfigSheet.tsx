@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,7 +40,7 @@ interface PracticeConfig {
   assessmentItems: AssessmentItem[];
 }
 
-interface PracticeConfigDialogProps {
+interface PracticeConfigSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (config: PracticeConfig) => void;
@@ -61,12 +61,12 @@ const defaultAssessmentItems: AssessmentItem[] = [
   { id: "4", name: "问题解决", weight: 10 },
 ];
 
-export function PracticeConfigDialog({
+export function PracticeConfigSheet({
   open,
   onOpenChange,
   onSave,
   initialData,
-}: PracticeConfigDialogProps) {
+}: PracticeConfigSheetProps) {
   const [activeTab, setActiveTab] = useState("basic");
   const [formData, setFormData] = useState<PracticeConfig>({
     title: "",
@@ -154,17 +154,17 @@ export function PracticeConfigDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col p-0">
-        <DialogHeader className="p-6 pb-0">
-          <DialogTitle className="flex items-center gap-2">
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-2xl overflow-hidden flex flex-col p-0">
+        <SheetHeader className="p-6 pb-0">
+          <SheetTitle className="flex items-center gap-2">
             <MessageSquare className="h-5 w-5 text-primary" />
             练习配置
-          </DialogTitle>
-          <DialogDescription>
+          </SheetTitle>
+          <SheetDescription>
             配置练习计划的角色设定、目标和打分维度
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
           <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0 px-6">
@@ -463,8 +463,8 @@ export function PracticeConfigDialog({
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => removeAssessmentItem(item.id)}
                               className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                              onClick={() => removeAssessmentItem(item.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -473,25 +473,23 @@ export function PracticeConfigDialog({
                       ))}
                     </tbody>
                   </table>
-                  <div className="p-3 border-t bg-muted/20">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={addAssessmentItem}
-                      className="text-primary"
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      添加考察项
-                    </Button>
-                  </div>
                 </div>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={addAssessmentItem}
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  添加考察项
+                </Button>
               </div>
             </TabsContent>
           </div>
         </Tabs>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 p-6 border-t bg-background">
+        <div className="flex items-center justify-end gap-3 p-6 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             取消
           </Button>
@@ -499,7 +497,7 @@ export function PracticeConfigDialog({
             保存配置
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

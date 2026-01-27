@@ -34,7 +34,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentConfigSheet } from "./ContentConfigSheet";
-import { PracticeConfigDialog } from "./PracticeConfigDialog";
+import { PracticeConfigSheet } from "./PracticeConfigSheet";
 
 export interface ContentItem {
   id: string;
@@ -109,7 +109,7 @@ export function GeneratedPlanEditor({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
   const [configSheetOpen, setConfigSheetOpen] = useState(false);
-  const [practiceDialogOpen, setPracticeDialogOpen] = useState(false);
+  const [practiceSheetOpen, setPracticeSheetOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{
     chapterId: string;
     item: ContentItem;
@@ -237,9 +237,9 @@ export function GeneratedPlanEditor({
 
   const openItemConfig = (chapterId: string, item: ContentItem) => {
     setSelectedItem({ chapterId, item });
-    // 如果是练习类型，打开练习配置弹窗
+    // 如果是练习类型，打开练习配置抽屉
     if (item.type === "practice") {
-      setPracticeDialogOpen(true);
+      setPracticeSheetOpen(true);
     } else {
       setConfigSheetOpen(true);
     }
@@ -578,10 +578,10 @@ export function GeneratedPlanEditor({
         onSave={updateItemConfig}
       />
 
-      {/* Practice Config Dialog */}
-      <PracticeConfigDialog
-        open={practiceDialogOpen}
-        onOpenChange={setPracticeDialogOpen}
+      {/* Practice Config Sheet */}
+      <PracticeConfigSheet
+        open={practiceSheetOpen}
+        onOpenChange={setPracticeSheetOpen}
         onSave={handlePracticeConfigSave}
         initialData={selectedItem?.item ? {
           title: selectedItem.item.title,
