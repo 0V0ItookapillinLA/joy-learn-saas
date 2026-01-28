@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { BehaviorTagTree } from "@/components/tags/BehaviorTagTree";
 import { BehaviorTagTable } from "@/components/tags/BehaviorTagTable";
 import { BehaviorTagDrawer } from "@/components/tags/BehaviorTagDrawer";
 import { NewBehaviorTagSheet } from "@/components/tags/NewBehaviorTagSheet";
 import { TaskTagTree } from "@/components/tags/TaskTagTree";
-import { TaskTagDetailPanel } from "@/components/tags/TaskTagDetailPanel";
+import { TaskTagTable } from "@/components/tags/TaskTagTable";
 import { AliasMappingTable } from "@/components/tags/AliasMappingTable";
 
 export default function GrowthMap() {
@@ -47,7 +48,16 @@ export default function GrowthMap() {
           {/* Tab Contents */}
           <TabsContent value="behavior" className="mt-0 flex-1 overflow-hidden">
             <div className="flex h-full">
-              {/* Full width table - no left tree */}
+              {/* Left: Tree */}
+              <div className="w-[280px] shrink-0">
+                <BehaviorTagTree
+                  selectedDomain={selectedBehaviorDomain}
+                  selectedCluster={selectedBehaviorCluster}
+                  onSelectDomain={setSelectedBehaviorDomain}
+                  onSelectCluster={setSelectedBehaviorCluster}
+                />
+              </div>
+              {/* Right: Table */}
               <div className="flex-1 overflow-hidden">
                 <BehaviorTagTable
                   onViewTag={handleViewTag}
@@ -72,10 +82,10 @@ export default function GrowthMap() {
                   onSelectCluster={setSelectedTaskCluster}
                 />
               </div>
-              {/* Right: Detail View when cluster selected, otherwise Table */}
+              {/* Right: Table */}
               <div className="flex-1 overflow-hidden">
-                <TaskTagDetailPanel
-                  selectedPosition={selectedTaskPosition}
+                <TaskTagTable
+                  selectedPosition={selectedTaskPosition || "物流销售"}
                   selectedDomain={selectedTaskDomain}
                   selectedCluster={selectedTaskCluster}
                 />

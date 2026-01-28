@@ -183,6 +183,7 @@ export function BehaviorTagTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[200px]">标签名</TableHead>
               <TableHead>一级能力</TableHead>
               <TableHead>二级能力</TableHead>
               <TableHead>适用岗位</TableHead>
@@ -196,7 +197,8 @@ export function BehaviorTagTable({
           <TableBody>
             {behaviorTags.map((tag) => (
               <TableRow key={tag.id}>
-                <TableCell className="font-medium">{tag.domain}</TableCell>
+                <TableCell className="font-medium">{tag.name}</TableCell>
+                <TableCell>{tag.domain}</TableCell>
                 <TableCell>{tag.cluster}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
