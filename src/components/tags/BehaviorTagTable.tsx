@@ -33,7 +33,7 @@ const behaviorTags = [
     domain: "沟通能力",
     cluster: "表达清晰",
     positions: ["物流销售", "客服", "药房营业员", "电商客服"],
-    growthPath: { complete: true, levels: ["L1", "L2", "L3", "L4"] },
+    growthPath: { complete: true, currentLevel: "P8", maxLevel: "P15" },
     status: "published",
     version: "v2",
     updatedBy: "张经理",
@@ -45,7 +45,7 @@ const behaviorTags = [
     domain: "问题解决",
     cluster: "方案制定",
     positions: ["物流销售", "客服"],
-    growthPath: { complete: true, levels: ["L1", "L2", "L3", "L4"] },
+    growthPath: { complete: true, currentLevel: "P12", maxLevel: "P15" },
     status: "published",
     version: "v1",
     updatedBy: "李主管",
@@ -57,7 +57,7 @@ const behaviorTags = [
     domain: "客户服务",
     cluster: "需求识别",
     positions: ["物流销售"],
-    growthPath: { complete: false, levels: ["L1", "L2"] },
+    growthPath: { complete: false, currentLevel: "P3", maxLevel: "P15" },
     status: "draft",
     version: "v1",
     updatedBy: "王培训",
@@ -69,7 +69,7 @@ const behaviorTags = [
     domain: "客户服务",
     cluster: "关系维护",
     positions: ["物流销售", "药房营业员"],
-    growthPath: { complete: true, levels: ["L1", "L2", "L3", "L4"] },
+    growthPath: { complete: true, currentLevel: "P15", maxLevel: "P15" },
     status: "disabled",
     version: "v3",
     updatedBy: "张经理",
@@ -81,7 +81,7 @@ const behaviorTags = [
     domain: "团队协作",
     cluster: "信息共享",
     positions: ["物流销售", "客服", "药房营业员"],
-    growthPath: { complete: true, levels: ["L1", "L2", "L3", "L4"] },
+    growthPath: { complete: true, currentLevel: "P10", maxLevel: "P15" },
     status: "published",
     version: "v1",
     updatedBy: "李主管",
@@ -122,31 +122,9 @@ export function BehaviorTagTable({
               placeholder="搜索标签名 / 别名..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[200px] pl-8"
+              className="w-[240px] pl-8"
             />
           </div>
-          <Select defaultValue="all">
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="一级能力" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">全部一级能力</SelectItem>
-              <SelectItem value="communication">沟通能力</SelectItem>
-              <SelectItem value="problem">问题解决</SelectItem>
-              <SelectItem value="service">客户服务</SelectItem>
-              <SelectItem value="team">团队协作</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select defaultValue="all">
-            <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="二级能力" />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              <SelectItem value="all">全部二级能力</SelectItem>
-              <SelectItem value="express">表达清晰</SelectItem>
-              <SelectItem value="listen">倾听理解</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[100px]">
               <SelectValue placeholder="状态" />
@@ -231,7 +209,7 @@ export function BehaviorTagTable({
                       <AlertCircle className="h-4 w-4 text-warning" />
                     )}
                     <span className="text-xs text-muted-foreground">
-                      {tag.growthPath.levels.join("-")}
+                      {tag.growthPath.currentLevel} / {tag.growthPath.maxLevel}
                     </span>
                   </div>
                 </TableCell>
@@ -257,39 +235,21 @@ export function BehaviorTagTable({
                     >
                       查看
                     </Button>
-                    {tag.status === "draft" && (
-                      <>
-                        <Button variant="link" size="sm" className="h-auto p-0">
-                          编辑
-                        </Button>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-auto p-0 text-destructive"
-                        >
-                          停用
-                        </Button>
-                      </>
-                    )}
-                    {tag.status === "published" && (
-                      <>
-                        <Button variant="link" size="sm" className="h-auto p-0">
-                          创建新版本
-                        </Button>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="h-auto p-0 text-destructive"
-                        >
-                          停用
-                        </Button>
-                      </>
-                    )}
-                    {tag.status === "disabled" && (
-                      <Button variant="link" size="sm" className="h-auto p-0">
-                        版本记录
-                      </Button>
-                    )}
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0"
+                      onClick={() => onViewTag(tag.id)}
+                    >
+                      编辑
+                    </Button>
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="h-auto p-0 text-destructive"
+                    >
+                      删除
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>

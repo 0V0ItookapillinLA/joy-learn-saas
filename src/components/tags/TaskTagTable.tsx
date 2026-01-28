@@ -28,7 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Trash2, X } from "lucide-react";
+import { Search, Plus, Trash2, X, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 // Mock data for task tags - now includes more variety for different positions/domains
@@ -39,7 +39,7 @@ const taskTags = [
     position: "物流销售",
     domain: "销售流程",
     cluster: "客户获取",
-    behaviorTagCount: 5,
+    growthPath: { complete: true, currentLevel: "P10", maxLevel: "P15" },
     status: "published",
     version: "v1",
     updatedBy: "张经理",
@@ -57,7 +57,7 @@ const taskTags = [
     position: "物流销售",
     domain: "销售流程",
     cluster: "成交转化",
-    behaviorTagCount: 4,
+    growthPath: { complete: true, currentLevel: "P12", maxLevel: "P15" },
     status: "published",
     version: "v2",
     updatedBy: "李主管",
@@ -75,7 +75,7 @@ const taskTags = [
     position: "客服",
     domain: "服务流程",
     cluster: "问题解决",
-    behaviorTagCount: 6,
+    growthPath: { complete: false, currentLevel: "P5", maxLevel: "P15" },
     status: "draft",
     version: "v1",
     updatedBy: "王培训",
@@ -93,7 +93,7 @@ const taskTags = [
     position: "物流销售",
     domain: "销售流程",
     cluster: "需求分析",
-    behaviorTagCount: 3,
+    growthPath: { complete: true, currentLevel: "P8", maxLevel: "P15" },
     status: "published",
     version: "v1",
     updatedBy: "张经理",
@@ -111,7 +111,7 @@ const taskTags = [
     position: "物流销售",
     domain: "客户维护",
     cluster: "关系维护",
-    behaviorTagCount: 2,
+    growthPath: { complete: true, currentLevel: "P15", maxLevel: "P15" },
     status: "published",
     version: "v1",
     updatedBy: "李主管",
@@ -129,7 +129,7 @@ const taskTags = [
     position: "客服",
     domain: "服务流程",
     cluster: "咨询解答",
-    behaviorTagCount: 4,
+    growthPath: { complete: true, currentLevel: "P7", maxLevel: "P15" },
     status: "published",
     version: "v1",
     updatedBy: "王培训",
@@ -391,7 +391,7 @@ export function TaskTagTable({
                 <TableHead>岗位</TableHead>
                 <TableHead>一级能力</TableHead>
                 <TableHead>二级能力</TableHead>
-                <TableHead>关联技能标签数</TableHead>
+                <TableHead>成长路径</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>版本</TableHead>
                 <TableHead>最近更新</TableHead>
@@ -413,7 +413,16 @@ export function TaskTagTable({
                     <TableCell>{tag.domain}</TableCell>
                     <TableCell>{tag.cluster}</TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{tag.behaviorTagCount}</Badge>
+                      <div className="flex items-center gap-1.5">
+                        {tag.growthPath.complete ? (
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        ) : (
+                          <AlertCircle className="h-4 w-4 text-warning" />
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {tag.growthPath.currentLevel} / {tag.growthPath.maxLevel}
+                        </span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={statusConfig[tag.status as keyof typeof statusConfig].variant}>
@@ -437,46 +446,22 @@ export function TaskTagTable({
                         >
                           查看
                         </Button>
-                        {tag.status === "draft" && (
-                          <>
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="h-auto p-0"
-                              onClick={() => handleEdit(tag)}
-                            >
-                              编辑
-                            </Button>
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 text-destructive"
-                              onClick={() => toast({ title: "已停用", description: "标签已停用" })}
-                            >
-                              停用
-                            </Button>
-                          </>
-                        )}
-                        {tag.status === "published" && (
-                          <>
-                            <Button 
-                              variant="link" 
-                              size="sm" 
-                              className="h-auto p-0"
-                              onClick={() => handleEdit(tag)}
-                            >
-                              创建新版本
-                            </Button>
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto p-0 text-destructive"
-                              onClick={() => toast({ title: "已停用", description: "标签已停用" })}
-                            >
-                              停用
-                            </Button>
-                          </>
-                        )}
+                        <Button 
+                          variant="link" 
+                          size="sm" 
+                          className="h-auto p-0"
+                          onClick={() => handleEdit(tag)}
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0 text-destructive"
+                          onClick={() => toast({ title: "已删除", description: "标签已删除" })}
+                        >
+                          删除
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>
