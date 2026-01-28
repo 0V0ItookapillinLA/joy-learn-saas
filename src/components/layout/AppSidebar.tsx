@@ -6,10 +6,8 @@ import {
   Bot,
   Map,
   BarChart3,
-  Settings,
   GraduationCap,
   LogOut,
-  User,
   Shield,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -28,8 +26,6 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 
 const menuItems = [
   {
@@ -61,11 +57,6 @@ const menuItems = [
     title: "数据看板",
     icon: BarChart3,
     url: "/analytics",
-  },
-  {
-    title: "系统设置",
-    icon: Settings,
-    url: "/settings",
   },
 ];
 
