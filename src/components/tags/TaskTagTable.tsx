@@ -25,7 +25,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Download } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 
 // Mock data for task tags
 const taskTags = [
@@ -131,20 +131,20 @@ export function TaskTagTable({
             </Select>
             <Select defaultValue="all">
               <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="任务域" />
+                <SelectValue placeholder="一级能力" />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="all">全部域</SelectItem>
+                <SelectItem value="all">全部一级能力</SelectItem>
                 <SelectItem value="sales">销售流程</SelectItem>
                 <SelectItem value="service">服务流程</SelectItem>
               </SelectContent>
             </Select>
             <Select defaultValue="all">
               <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="任务簇" />
+                <SelectValue placeholder="二级能力" />
               </SelectTrigger>
               <SelectContent className="bg-popover">
-                <SelectItem value="all">全部簇</SelectItem>
+                <SelectItem value="all">全部二级能力</SelectItem>
                 <SelectItem value="acquire">客户获取</SelectItem>
                 <SelectItem value="convert">成交转化</SelectItem>
               </SelectContent>
@@ -163,7 +163,7 @@ export function TaskTagTable({
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="搜索任务标签..."
+                placeholder="搜索能力标签..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-[180px] pl-8"
@@ -171,12 +171,26 @@ export function TaskTagTable({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button>
+            <Button onClick={() => setViewingTag({
+              id: "new",
+              name: "",
+              position: "物流销售",
+              domain: "",
+              cluster: "",
+              behaviorTagCount: 0,
+              status: "draft",
+              version: "v1",
+              updatedBy: "",
+              updatedAt: "",
+              definition: "",
+              triggerConditions: [],
+              successCriteria: [],
+              keySteps: [],
+              riskPoints: [],
+              relatedBehaviorTags: [],
+            })}>
               <Plus className="mr-1 h-4 w-4" />
-              新增任务标签
-            </Button>
-            <Button variant="outline" size="icon">
-              <Download className="h-4 w-4" />
+              新增能力标签
             </Button>
           </div>
         </div>
@@ -186,11 +200,11 @@ export function TaskTagTable({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[160px]">任务标签名</TableHead>
+                <TableHead className="w-[160px]">能力标签名</TableHead>
                 <TableHead>岗位</TableHead>
-                <TableHead>任务域</TableHead>
-                <TableHead>任务簇</TableHead>
-                <TableHead>关联行为标签数</TableHead>
+                <TableHead>一级能力</TableHead>
+                <TableHead>二级能力</TableHead>
+                <TableHead>关联技能标签数</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>版本</TableHead>
                 <TableHead>最近更新</TableHead>
@@ -283,8 +297,8 @@ export function TaskTagTable({
                   </Badge>
                   <Badge variant="outline">{viewingTag.version}</Badge>
                 </div>
-                <SheetDescription>
-                  {viewingTag.position} · {viewingTag.domain} · {viewingTag.cluster}
+              <SheetDescription>
+                  {viewingTag.position} · 一级能力: {viewingTag.domain} · 二级能力: {viewingTag.cluster}
                 </SheetDescription>
               </SheetHeader>
 
@@ -337,7 +351,7 @@ export function TaskTagTable({
                 <Separator />
 
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold">关联行为标签</h4>
+                  <h4 className="mb-2 text-sm font-semibold">关联技能标签</h4>
                   <div className="flex flex-wrap gap-2">
                     {viewingTag.relatedBehaviorTags.map((tag) => (
                       <Badge key={tag} variant="secondary">

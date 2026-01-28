@@ -106,7 +106,7 @@ export function BehaviorTagTree({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="搜索行为域/簇..."
+            placeholder="搜索一级/二级能力..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8"
@@ -163,7 +163,7 @@ export function BehaviorTagTree({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="bg-popover">
-                    <DropdownMenuItem>新增簇</DropdownMenuItem>
+                    <DropdownMenuItem>新增二级能力</DropdownMenuItem>
                     <DropdownMenuItem>编辑</DropdownMenuItem>
                     <DropdownMenuItem className="text-destructive">
                       停用

@@ -17,7 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Search, Plus, Download } from "lucide-react";
 import { AliasMappingDrawer } from "./AliasMappingDrawer";
 
@@ -127,7 +127,6 @@ export function AliasMappingTable() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
-  const [activeTab, setActiveTab] = useState("by-term");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingMapping, setEditingMapping] = useState<typeof aliasMappings[0] | null>(null);
 
@@ -135,8 +134,6 @@ export function AliasMappingTable() {
     if (searchQuery && !mapping.term.includes(searchQuery)) return false;
     if (statusFilter !== "all" && mapping.status !== statusFilter) return false;
     if (sourceFilter !== "all" && mapping.source !== sourceFilter) return false;
-    if (activeTab === "pending" && mapping.status !== "pending" && mapping.status !== "conflict")
-      return false;
     return true;
   });
 
@@ -153,22 +150,6 @@ export function AliasMappingTable() {
   return (
     <>
       <div className="flex h-full flex-col">
-        {/* Sub-tabs */}
-        <div className="border-b px-4 pt-4">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="by-term">按岗位术语</TabsTrigger>
-              <TabsTrigger value="by-tag">按标准标签</TabsTrigger>
-              <TabsTrigger value="pending">
-                待审核 / 冲突
-                <Badge variant="destructive" className="ml-2">
-                  2
-                </Badge>
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
           <div className="flex flex-wrap items-center gap-3">
@@ -199,8 +180,8 @@ export function AliasMappingTable() {
               </SelectTrigger>
               <SelectContent className="bg-popover">
                 <SelectItem value="all">全部</SelectItem>
-                <SelectItem value="behavior">行为标签</SelectItem>
-                <SelectItem value="task">专业任务标签</SelectItem>
+                <SelectItem value="behavior">通用技能标签</SelectItem>
+                <SelectItem value="task">专业能力标签</SelectItem>
               </SelectContent>
             </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -256,7 +237,7 @@ export function AliasMappingTable() {
                 <TableHead>岗位术语</TableHead>
                 <TableHead>术语类型</TableHead>
                 <TableHead>映射到</TableHead>
-                <TableHead>所属域/簇</TableHead>
+                <TableHead>所属一级/二级能力</TableHead>
                 <TableHead>优先级</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>来源</TableHead>
@@ -283,7 +264,7 @@ export function AliasMappingTable() {
                     <div className="flex items-center gap-1.5">
                       <span>{mapping.mappedTo}</span>
                       <Badge variant="outline" className="text-xs">
-                        {mapping.mappedToType === "behavior" ? "行为" : "任务"}
+                        {mapping.mappedToType === "behavior" ? "技能" : "能力"}
                       </Badge>
                     </div>
                   </TableCell>
