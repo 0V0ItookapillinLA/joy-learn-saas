@@ -9,14 +9,28 @@ import { TaskTagTree } from "@/components/tags/TaskTagTree";
 import { TaskTagTable } from "@/components/tags/TaskTagTable";
 import { AliasMappingTable } from "@/components/tags/AliasMappingTable";
 
+export interface BehaviorTagData {
+  id: string;
+  name: string;
+  domain: string;
+  cluster: string;
+  positions: string[];
+  growthPath: { complete: boolean; currentLevel: string; maxLevel: string };
+  status: string;
+  version: string;
+  updatedBy: string;
+  updatedAt: string;
+}
+
 export default function GrowthMap() {
   const [activeTab, setActiveTab] = useState("behavior");
   
   // Behavior tag states
   const [selectedBehaviorDomain, setSelectedBehaviorDomain] = useState<string | null>(null);
   const [selectedBehaviorCluster, setSelectedBehaviorCluster] = useState<string | null>(null);
-  const [viewingTagId, setViewingTagId] = useState<string | null>(null);
+  const [viewingTag, setViewingTag] = useState<BehaviorTagData | null>(null);
   const [tagDrawerOpen, setTagDrawerOpen] = useState(false);
+  const [tagDrawerMode, setTagDrawerMode] = useState<"view" | "edit">("view");
   const [newTagSheetOpen, setNewTagSheetOpen] = useState(false);
 
   // Task tag states
@@ -24,8 +38,15 @@ export default function GrowthMap() {
   const [selectedTaskDomain, setSelectedTaskDomain] = useState<string | null>(null);
   const [selectedTaskCluster, setSelectedTaskCluster] = useState<string | null>(null);
 
-  const handleViewTag = (tagId: string) => {
-    setViewingTagId(tagId);
+  const handleViewTag = (tag: BehaviorTagData) => {
+    setViewingTag(tag);
+    setTagDrawerMode("view");
+    setTagDrawerOpen(true);
+  };
+
+  const handleEditTag = (tag: BehaviorTagData) => {
+    setViewingTag(tag);
+    setTagDrawerMode("edit");
     setTagDrawerOpen(true);
   };
 
@@ -61,6 +82,7 @@ export default function GrowthMap() {
               <div className="flex-1 overflow-hidden">
                 <BehaviorTagTable
                   onViewTag={handleViewTag}
+                  onEditTag={handleEditTag}
                   onNewTag={() => setNewTagSheetOpen(true)}
                   selectedDomain={selectedBehaviorDomain}
                   selectedCluster={selectedBehaviorCluster}
@@ -103,7 +125,9 @@ export default function GrowthMap() {
       <BehaviorTagDrawer
         open={tagDrawerOpen}
         onOpenChange={setTagDrawerOpen}
-        tagId={viewingTagId}
+        tag={viewingTag}
+        mode={tagDrawerMode}
+        onModeChange={setTagDrawerMode}
       />
       <NewBehaviorTagSheet
         open={newTagSheetOpen}

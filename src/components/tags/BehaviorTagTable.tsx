@@ -211,8 +211,22 @@ const statusConfig = {
   disabled: { label: "停用", variant: "outline" as const },
 };
 
+interface BehaviorTagData {
+  id: string;
+  name: string;
+  domain: string;
+  cluster: string;
+  positions: string[];
+  growthPath: { complete: boolean; currentLevel: string; maxLevel: string };
+  status: string;
+  version: string;
+  updatedBy: string;
+  updatedAt: string;
+}
+
 interface BehaviorTagTableProps {
-  onViewTag: (tagId: string) => void;
+  onViewTag: (tag: BehaviorTagData) => void;
+  onEditTag: (tag: BehaviorTagData) => void;
   onNewTag: () => void;
   selectedDomain: string | null;
   selectedCluster: string | null;
@@ -220,6 +234,7 @@ interface BehaviorTagTableProps {
 
 export function BehaviorTagTable({
   onViewTag,
+  onEditTag,
   onNewTag,
   selectedDomain,
   selectedCluster,
@@ -386,7 +401,7 @@ export function BehaviorTagTable({
                       variant="link"
                       size="sm"
                       className="h-auto p-0"
-                      onClick={() => onViewTag(tag.id)}
+                      onClick={() => onViewTag(tag)}
                     >
                       查看
                     </Button>
@@ -394,7 +409,7 @@ export function BehaviorTagTable({
                       variant="link"
                       size="sm"
                       className="h-auto p-0"
-                      onClick={() => onViewTag(tag.id)}
+                      onClick={() => onEditTag(tag)}
                     >
                       编辑
                     </Button>

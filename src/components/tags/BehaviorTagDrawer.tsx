@@ -1,10 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
@@ -21,46 +24,68 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronDown, ExternalLink, History, Link2, XCircle } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, History, XCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+
+interface BehaviorTagData {
+  id: string;
+  name: string;
+  domain: string;
+  cluster: string;
+  positions: string[];
+  growthPath: { complete: boolean; currentLevel: string; maxLevel: string };
+  status: string;
+  version: string;
+  updatedBy: string;
+  updatedAt: string;
+}
 
 interface BehaviorTagDrawerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  tagId: string | null;
+  tag: BehaviorTagData | null;
+  mode: "view" | "edit";
+  onModeChange: (mode: "view" | "edit") => void;
 }
 
-// Mock data for the selected tag
-const mockTagDetail = {
-  id: "tag-1",
-  name: "清晰表达产品价值",
-  status: "published",
-  version: "v2",
-  domain: "沟通能力",
-  cluster: "表达清晰",
+// Generate growth path levels based on range
+const generateGrowthPathLevels = (startLevel: string, endLevel: string) => {
+  const start = parseInt(startLevel.replace("P", ""));
+  const end = parseInt(endLevel.replace("P", ""));
+  const levels = [];
+  
+  const descriptions: Record<number, { description: string; keyPoints: string[] }> = {
+    1: { description: "了解产品基本信息", keyPoints: ["熟悉产品名称", "了解基本功能"] },
+    2: { description: "能够复述产品卖点", keyPoints: ["记住核心卖点", "基础话术运用"] },
+    3: { description: "能够准确描述产品规格", keyPoints: ["参数熟练", "规格对比"] },
+    4: { description: "掌握常见问题解答", keyPoints: ["FAQ熟练", "基础异议处理"] },
+    5: { description: "能够识别客户类型", keyPoints: ["客户分类", "需求初判"] },
+    6: { description: "能够匹配相应话术", keyPoints: ["话术匹配", "场景应用"] },
+    7: { description: "能够处理简单异议", keyPoints: ["异议识别", "基础应对"] },
+    8: { description: "能够突出客户相关价值点", keyPoints: ["价值提炼", "针对性表达"] },
+    9: { description: "能够挖掘客户深层需求", keyPoints: ["深度提问", "需求分析"] },
+    10: { description: "能够用价值语言回应", keyPoints: ["价值转化", "利益呈现"] },
+    11: { description: "能够引导客户成交", keyPoints: ["成交技巧", "临门一脚"] },
+    12: { description: "能够处理复杂异议", keyPoints: ["复杂异议", "多维应对"] },
+    13: { description: "能够创造性组合产品价值", keyPoints: ["价值组合", "创新表达"] },
+    14: { description: "能够形成个性化解决方案", keyPoints: ["方案定制", "个性服务"] },
+    15: { description: "能够培训指导他人", keyPoints: ["经验传承", "团队赋能"] },
+  };
+
+  for (let i = start; i <= end; i++) {
+    levels.push({
+      level: `P${i}`,
+      ...descriptions[i],
+    });
+  }
+  
+  return levels;
+};
+
+// Mock detailed data (signals, examples)
+const mockDetailData = {
   aliases: ["产品价值表达", "价值传递"],
-  definition:
-    "能够准确、简洁地向客户传达产品的核心价值主张，使用客户易于理解的语言，并根据客户需求调整表达重点。",
-  positions: ["物流销售", "客服", "药房营业员", "电商客服"],
-  updatedBy: "张经理",
-  updatedAt: "2024-01-15 14:30",
-  growthPath: [
-    { level: "P1", description: "了解产品基本信息", keyPoints: ["熟悉产品名称", "了解基本功能"] },
-    { level: "P2", description: "能够复述产品卖点", keyPoints: ["记住核心卖点", "基础话术运用"] },
-    { level: "P3", description: "能够准确描述产品规格", keyPoints: ["参数熟练", "规格对比"] },
-    { level: "P4", description: "掌握常见问题解答", keyPoints: ["FAQ熟练", "基础异议处理"] },
-    { level: "P5", description: "能够识别客户类型", keyPoints: ["客户分类", "需求初判"] },
-    { level: "P6", description: "能够匹配相应话术", keyPoints: ["话术匹配", "场景应用"] },
-    { level: "P7", description: "能够处理简单异议", keyPoints: ["异议识别", "基础应对"] },
-    { level: "P8", description: "能够突出客户相关价值点", keyPoints: ["价值提炼", "针对性表达"] },
-    { level: "P9", description: "能够挖掘客户深层需求", keyPoints: ["深度提问", "需求分析"] },
-    { level: "P10", description: "能够用价值语言回应", keyPoints: ["价值转化", "利益呈现"] },
-    { level: "P11", description: "能够引导客户成交", keyPoints: ["成交技巧", "临门一脚"] },
-    { level: "P12", description: "能够处理复杂异议", keyPoints: ["复杂异议", "多维应对"] },
-    { level: "P13", description: "能够创造性组合产品价值", keyPoints: ["价值组合", "创新表达"] },
-    { level: "P14", description: "能够形成个性化解决方案", keyPoints: ["方案定制", "个性服务"] },
-    { level: "P15", description: "能够培训指导他人", keyPoints: ["经验传承", "团队赋能"] },
-  ],
+  definition: "能够准确、简洁地向客户传达产品的核心价值主张，使用客户易于理解的语言，并根据客户需求调整表达重点。",
   signals: {
     positive: [
       "使用客户易懂的语言",
@@ -72,24 +97,20 @@ const mockTagDetail = {
       "只介绍功能不讲价值",
       "忽略客户反馈继续推销",
     ],
-    evidencePrompt:
-      "请从对话中提取员工描述产品价值的语句，分析是否使用了客户易懂的语言、是否关联了客户需求、是否有数据或案例支撑。",
+    evidencePrompt: "请从对话中提取员工描述产品价值的语句，分析是否使用了客户易懂的语言、是否关联了客户需求、是否有数据或案例支撑。",
   },
   positionExamples: [
     {
       position: "物流销售",
       scenario: "客户询问物流时效",
-      positiveExample:
-        "我们的次日达服务覆盖了您主要的发货区域，相比普通快递能帮您节省1-2天的配送时间，您的客户满意度会明显提升。",
-      negativeExample:
-        "我们有次日达、隔日达、经济件三种服务，次日达最快。",
+      positiveExample: "我们的次日达服务覆盖了您主要的发货区域，相比普通快递能帮您节省1-2天的配送时间，您的客户满意度会明显提升。",
+      negativeExample: "我们有次日达、隔日达、经济件三种服务，次日达最快。",
       remarks: "强调客户利益而非产品特性",
     },
     {
       position: "客服",
       scenario: "客户投诉延迟",
-      positiveExample:
-        "非常理解您的心情。我已经帮您查到包裹目前在XX中转站，预计明天送达。为表歉意，我为您申请了一张10元运费券。",
+      positiveExample: "非常理解您的心情。我已经帮您查到包裹目前在XX中转站，预计明天送达。为表歉意，我为您申请了一张10元运费券。",
       negativeExample: "您的包裹在路上了，请耐心等待。",
       remarks: "展示解决方案和补偿措施",
     },
@@ -100,14 +121,38 @@ const mockTagDetail = {
   },
 };
 
+const statusConfig = {
+  draft: { label: "草稿", variant: "secondary" as const },
+  published: { label: "已发布", variant: "default" as const },
+  disabled: { label: "停用", variant: "outline" as const },
+};
+
 export function BehaviorTagDrawer({
   open,
   onOpenChange,
-  tagId,
+  tag,
+  mode,
+  onModeChange,
 }: BehaviorTagDrawerProps) {
-  const [expandedLevels, setExpandedLevels] = useState<string[]>(["L1"]);
+  const [expandedLevels, setExpandedLevels] = useState<string[]>([]);
+  const [editData, setEditData] = useState({
+    definition: mockDetailData.definition,
+    aliases: mockDetailData.aliases,
+    positiveSignals: mockDetailData.signals.positive,
+    negativeSignals: mockDetailData.signals.negative,
+    evidencePrompt: mockDetailData.signals.evidencePrompt,
+  });
 
-  const tag = mockTagDetail;
+  // Generate growth path based on tag's range
+  const growthPath = tag 
+    ? generateGrowthPathLevels(tag.growthPath.currentLevel, tag.growthPath.maxLevel)
+    : [];
+
+  useEffect(() => {
+    if (growthPath.length > 0) {
+      setExpandedLevels([growthPath[0].level]);
+    }
+  }, [tag]);
 
   const toggleLevel = (level: string) => {
     setExpandedLevels((prev) =>
@@ -117,11 +162,9 @@ export function BehaviorTagDrawer({
     );
   };
 
-  const statusConfig = {
-    draft: { label: "草稿", variant: "secondary" as const },
-    published: { label: "已发布", variant: "default" as const },
-    disabled: { label: "停用", variant: "outline" as const },
-  };
+  if (!tag) return null;
+
+  const isEditing = mode === "edit";
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -129,8 +172,8 @@ export function BehaviorTagDrawer({
         <SheetHeader>
           <div className="flex items-center gap-3">
             <SheetTitle className="text-xl">{tag.name}</SheetTitle>
-            <Badge variant={statusConfig[tag.status as keyof typeof statusConfig].variant}>
-              {statusConfig[tag.status as keyof typeof statusConfig].label}
+            <Badge variant={statusConfig[tag.status as keyof typeof statusConfig]?.variant || "secondary"}>
+              {statusConfig[tag.status as keyof typeof statusConfig]?.label || tag.status}
             </Badge>
             <Badge variant="outline">{tag.version}</Badge>
           </div>
@@ -141,32 +184,24 @@ export function BehaviorTagDrawer({
 
         {/* Action Buttons */}
         <div className="mt-4 flex gap-2">
-          {tag.status === "published" && (
+          {!isEditing ? (
             <>
-              <Button size="sm">创建新版本</Button>
-              <Button size="sm" variant="outline">
-                <Link2 className="mr-1 h-4 w-4" />
-                关联学习地图能力
-              </Button>
+              <Button size="sm" onClick={() => onModeChange("edit")}>编辑</Button>
               <Button size="sm" variant="outline">
                 <History className="mr-1 h-4 w-4" />
                 版本记录
               </Button>
-              <Button size="sm" variant="outline" className="text-destructive">
-                <XCircle className="mr-1 h-4 w-4" />
-                停用
-              </Button>
+              {tag.status === "published" && (
+                <Button size="sm" variant="outline" className="text-destructive">
+                  <XCircle className="mr-1 h-4 w-4" />
+                  停用
+                </Button>
+              )}
             </>
-          )}
-          {tag.status === "draft" && (
+          ) : (
             <>
-              <Button size="sm">编辑</Button>
-              <Button size="sm" variant="secondary">
-                发布
-              </Button>
-              <Button size="sm" variant="outline" className="text-destructive">
-                停用
-              </Button>
+              <Button size="sm" onClick={() => onModeChange("view")}>取消</Button>
+              <Button size="sm" variant="default">保存</Button>
             </>
           )}
         </div>
@@ -187,7 +222,15 @@ export function BehaviorTagDrawer({
             </div>
             <div className="col-span-2">
               <span className="text-muted-foreground">别名：</span>
-              {tag.aliases.join("、")}
+              {isEditing ? (
+                <Input 
+                  value={editData.aliases.join("、")} 
+                  onChange={(e) => setEditData({...editData, aliases: e.target.value.split("、")})}
+                  className="mt-1"
+                />
+              ) : (
+                mockDetailData.aliases.join("、")
+              )}
             </div>
             <div className="col-span-2">
               <span className="text-muted-foreground">适用岗位：</span>
@@ -202,44 +245,62 @@ export function BehaviorTagDrawer({
           </div>
           <div>
             <span className="text-sm text-muted-foreground">行为定义：</span>
-            <p className="mt-1 text-sm">{tag.definition}</p>
+            {isEditing ? (
+              <Textarea 
+                value={editData.definition}
+                onChange={(e) => setEditData({...editData, definition: e.target.value})}
+                className="mt-1"
+                rows={3}
+              />
+            ) : (
+              <p className="mt-1 text-sm">{mockDetailData.definition}</p>
+            )}
           </div>
         </div>
 
         <Separator className="my-6" />
 
-        {/* Growth Path */}
+        {/* Growth Path - Dynamic based on tag's range */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold">成长路径 P1-P15</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {tag.growthPath.map((level) => (
+          <h3 className="text-sm font-semibold">
+            成长路径 {tag.growthPath.currentLevel}-{tag.growthPath.maxLevel}
+          </h3>
+          <div className="space-y-2">
+            {growthPath.map((level) => (
               <Collapsible
                 key={level.level}
                 open={expandedLevels.includes(level.level)}
                 onOpenChange={() => toggleLevel(level.level)}
               >
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-2 hover:bg-muted/50">
-                  <div className="flex items-center gap-1">
-                    <Badge variant="outline" className="text-xs">{level.level}</Badge>
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline">{level.level}</Badge>
+                    <span className="text-sm">{level.description}</span>
                   </div>
                   <ChevronDown
-                    className={`h-3 w-3 transition-transform ${
+                    className={`h-4 w-4 transition-transform ${
                       expandedLevels.includes(level.level) ? "rotate-180" : ""
                     }`}
                   />
                 </CollapsibleTrigger>
-                <CollapsibleContent className="px-2 pt-2">
-                  <p className="text-xs text-muted-foreground">{level.description}</p>
-                  <div className="mt-1">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      评估要点：
-                    </span>
-                    <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
-                      {level.keyPoints.map((point, idx) => (
-                        <li key={idx}>{point}</li>
-                      ))}
-                    </ul>
-                  </div>
+                <CollapsibleContent className="px-3 pt-2">
+                  {isEditing ? (
+                    <div className="space-y-2">
+                      <Input placeholder="描述" defaultValue={level.description} />
+                      <Input placeholder="评估要点" defaultValue={level.keyPoints.join("、")} />
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="text-xs font-medium text-muted-foreground">
+                        评估要点：
+                      </span>
+                      <ul className="mt-1 list-inside list-disc space-y-0.5 text-sm">
+                        {level.keyPoints.map((point, idx) => (
+                          <li key={idx}>{point}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             ))}
@@ -254,27 +315,54 @@ export function BehaviorTagDrawer({
           <div className="space-y-3">
             <div>
               <span className="text-xs font-medium text-success">正向信号</span>
-              <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
-                {tag.signals.positive.map((signal, idx) => (
-                  <li key={idx}>{signal}</li>
-                ))}
-              </ul>
+              {isEditing ? (
+                <Textarea 
+                  value={editData.positiveSignals.join("\n")}
+                  onChange={(e) => setEditData({...editData, positiveSignals: e.target.value.split("\n")})}
+                  className="mt-1"
+                  rows={3}
+                />
+              ) : (
+                <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
+                  {mockDetailData.signals.positive.map((signal, idx) => (
+                    <li key={idx}>{signal}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <span className="text-xs font-medium text-destructive">负向信号</span>
-              <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
-                {tag.signals.negative.map((signal, idx) => (
-                  <li key={idx}>{signal}</li>
-                ))}
-              </ul>
+              {isEditing ? (
+                <Textarea 
+                  value={editData.negativeSignals.join("\n")}
+                  onChange={(e) => setEditData({...editData, negativeSignals: e.target.value.split("\n")})}
+                  className="mt-1"
+                  rows={3}
+                />
+              ) : (
+                <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
+                  {mockDetailData.signals.negative.map((signal, idx) => (
+                    <li key={idx}>{signal}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div>
               <span className="text-xs font-medium text-muted-foreground">
                 证据提取提示
               </span>
-              <p className="mt-1 rounded-md bg-muted p-2 text-sm">
-                {tag.signals.evidencePrompt}
-              </p>
+              {isEditing ? (
+                <Textarea 
+                  value={editData.evidencePrompt}
+                  onChange={(e) => setEditData({...editData, evidencePrompt: e.target.value})}
+                  className="mt-1"
+                  rows={2}
+                />
+              ) : (
+                <p className="mt-1 rounded-md bg-muted p-2 text-sm">
+                  {mockDetailData.signals.evidencePrompt}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -294,7 +382,7 @@ export function BehaviorTagDrawer({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {tag.positionExamples.map((example, idx) => (
+              {mockDetailData.positionExamples.map((example, idx) => (
                 <TableRow key={idx}>
                   <TableCell className="font-medium">{example.position}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -317,15 +405,22 @@ export function BehaviorTagDrawer({
           <h3 className="text-sm font-semibold">关联统计</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="rounded-lg border p-3">
-              <div className="text-2xl font-bold">{tag.associatedStats.practiceScenarios}</div>
+              <div className="text-2xl font-bold">{mockDetailData.associatedStats.practiceScenarios}</div>
               <div className="text-sm text-muted-foreground">已绑定陪练场景</div>
             </div>
             <div className="rounded-lg border p-3">
-              <div className="text-2xl font-bold">{tag.associatedStats.learningMapAbilities}</div>
+              <div className="text-2xl font-bold">{mockDetailData.associatedStats.learningMapAbilities}</div>
               <div className="text-sm text-muted-foreground">关联学习地图能力</div>
             </div>
           </div>
         </div>
+
+        {isEditing && (
+          <SheetFooter className="mt-6">
+            <Button variant="outline" onClick={() => onModeChange("view")}>取消</Button>
+            <Button>保存更改</Button>
+          </SheetFooter>
+        )}
       </SheetContent>
     </Sheet>
   );
