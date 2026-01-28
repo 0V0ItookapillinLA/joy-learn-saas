@@ -10,6 +10,7 @@ import Auth from "./pages/Auth";
 import TrainingPlans from "./pages/training/TrainingPlans";
 import PracticePlanList from "./pages/practices/PracticePlanList";
 import CharacterConfig from "./pages/characters/CharacterConfig";
+import LearningMapLibrary from "./pages/learning-map/LearningMapLibrary";
 import GrowthMap from "./pages/trainees/GrowthMap";
 import TrainingAnalytics from "./pages/analytics/TrainingAnalytics";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
@@ -52,6 +53,11 @@ const App = () => (
             <Route path="/characters" element={
               <ProtectedRoute>
                 <CharacterConfig />
+              </ProtectedRoute>
+            } />
+            <Route path="/learning-map" element={
+              <ProtectedRoute>
+                <LearningMapLibrary />
               </ProtectedRoute>
             } />
             <Route path="/growth-map" element={
