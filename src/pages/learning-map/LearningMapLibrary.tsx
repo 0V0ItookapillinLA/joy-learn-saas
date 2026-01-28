@@ -237,33 +237,50 @@ export default function LearningMapLibrary() {
   };
 
   return (
-    <DashboardLayout>
-      <div className="flex h-[calc(100vh-4rem)]">
-        {/* Left: Map Tree */}
-        <div className="w-72 border-r border-border bg-muted/30 flex-shrink-0">
-          <LearningMapTree
-            positions={positions}
-            maps={maps}
-            selectedPosition={selectedPosition}
-            onSelectPosition={setSelectedPosition}
-            onCreateMap={handleCreateMap}
-            onCreateVersion={handleCreateVersion}
-            onDisableMap={handleDisableMap}
-          />
-        </div>
+    <DashboardLayout 
+      title="学习地图" 
+      description="配置岗位学习地图，实现学习→练→考→评→证据→成长的闭环"
+    >
+      <div className="flex h-[calc(100vh-180px)] flex-col">
+        <div className="flex h-full">
+          {/* Left: Map Tree */}
+          <div className="w-[280px] shrink-0">
+            <LearningMapTree
+              positions={positions}
+              maps={maps}
+              selectedPosition={selectedPosition}
+              onSelectPosition={setSelectedPosition}
+              onCreateMap={handleCreateMap}
+              onCreateVersion={handleCreateVersion}
+              onDisableMap={handleDisableMap}
+            />
+          </div>
 
-        {/* Right: Map List */}
-        <div className="flex-1 flex flex-col min-w-0">
-          {/* Header */}
-          <div className="p-6 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-semibold text-foreground">
-                  学习地图
-                </h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  配置岗位学习地图，实现学习→练→考→评→证据→成长的闭环
-                </p>
+          {/* Right: Map List */}
+          <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Toolbar */}
+            <div className="flex items-center justify-between border-b p-4">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="搜索地图名/岗位..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8 w-64"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-28">
+                    <SelectValue placeholder="状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">全部状态</SelectItem>
+                    <SelectItem value="draft">草稿</SelectItem>
+                    <SelectItem value="published">已发布</SelectItem>
+                    <SelectItem value="disabled">已停用</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm">
@@ -276,64 +293,22 @@ export default function LearningMapLibrary() {
                 </Button>
                 <Button size="sm" onClick={handleCreateMap}>
                   <Plus className="h-4 w-4 mr-1" />
-                  新建学习地图
+                  新建地图
                 </Button>
               </div>
             </div>
 
-            {/* Filters */}
-            <div className="flex items-center gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="搜索地图名/岗位/关键词"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select
-                value={selectedPosition || "all"}
-                onValueChange={(v) =>
-                  setSelectedPosition(v === "all" ? null : v)
-                }
-              >
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="筛选岗位" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部岗位</SelectItem>
-                  {positions.map((pos) => (
-                    <SelectItem key={pos.id} value={pos.id}>
-                      {pos.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="筛选状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="draft">草稿</SelectItem>
-                  <SelectItem value="published">已发布</SelectItem>
-                  <SelectItem value="disabled">已停用</SelectItem>
-                </SelectContent>
-              </Select>
+            {/* Table */}
+            <div className="flex-1 overflow-auto p-4">
+              <LearningMapTable
+                maps={filteredMaps}
+                onView={handleViewMap}
+                onEdit={handleEditMap}
+                onPublish={handlePublishMap}
+                onDisable={handleDisableMap}
+                onCreateVersion={handleCreateVersion}
+              />
             </div>
-          </div>
-
-          {/* Table */}
-          <div className="flex-1 overflow-auto p-6">
-            <LearningMapTable
-              maps={filteredMaps}
-              onView={handleViewMap}
-              onEdit={handleEditMap}
-              onPublish={handlePublishMap}
-              onDisable={handleDisableMap}
-              onCreateVersion={handleCreateVersion}
-            />
           </div>
         </div>
       </div>
