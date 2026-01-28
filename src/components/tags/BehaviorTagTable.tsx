@@ -23,7 +23,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Search, Plus, Download, Settings, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 
 // Mock data
 const behaviorTags = [
@@ -127,10 +127,10 @@ export function BehaviorTagTable({
           </div>
           <Select defaultValue="all">
             <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="行为域" />
+              <SelectValue placeholder="一级能力" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
-              <SelectItem value="all">全部域</SelectItem>
+              <SelectItem value="all">全部一级能力</SelectItem>
               <SelectItem value="communication">沟通能力</SelectItem>
               <SelectItem value="problem">问题解决</SelectItem>
               <SelectItem value="service">客户服务</SelectItem>
@@ -139,10 +139,10 @@ export function BehaviorTagTable({
           </Select>
           <Select defaultValue="all">
             <SelectTrigger className="w-[120px]">
-              <SelectValue placeholder="行为簇" />
+              <SelectValue placeholder="二级能力" />
             </SelectTrigger>
             <SelectContent className="bg-popover">
-              <SelectItem value="all">全部簇</SelectItem>
+              <SelectItem value="all">全部二级能力</SelectItem>
               <SelectItem value="express">表达清晰</SelectItem>
               <SelectItem value="listen">倾听理解</SelectItem>
             </SelectContent>
@@ -173,13 +173,7 @@ export function BehaviorTagTable({
         <div className="flex items-center gap-2">
           <Button onClick={onNewTag}>
             <Plus className="mr-1 h-4 w-4" />
-            新增行为标签
-          </Button>
-          <Button variant="outline" size="icon">
-            <Download className="h-4 w-4" />
-          </Button>
-          <Button variant="outline" size="icon">
-            <Settings className="h-4 w-4" />
+            新增技能标签
           </Button>
         </div>
       </div>
@@ -190,8 +184,8 @@ export function BehaviorTagTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-[200px]">标签名</TableHead>
-              <TableHead>行为域</TableHead>
-              <TableHead>行为簇</TableHead>
+              <TableHead>一级能力</TableHead>
+              <TableHead>二级能力</TableHead>
               <TableHead>适用岗位</TableHead>
               <TableHead>成长路径</TableHead>
               <TableHead>状态</TableHead>

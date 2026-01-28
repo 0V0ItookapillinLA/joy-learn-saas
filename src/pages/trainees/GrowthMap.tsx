@@ -31,16 +31,16 @@ export default function GrowthMap() {
 
   return (
     <DashboardLayout 
-      title="标签库" 
-      description="管理能力行为标签、专业任务标签与岗位术语映射"
+      title="成长地图标签库" 
+      description="管理通用技能标签、专业能力标签与岗位术语映射"
     >
       <div className="flex h-[calc(100vh-180px)] flex-col">
         {/* Top Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex h-full flex-col">
           <div className="border-b px-1">
             <TabsList className="h-10">
-              <TabsTrigger value="behavior">行为标签</TabsTrigger>
-              <TabsTrigger value="task">专业任务标签</TabsTrigger>
+              <TabsTrigger value="behavior">通用技能标签</TabsTrigger>
+              <TabsTrigger value="task">专业能力标签</TabsTrigger>
               <TabsTrigger value="alias">别名与映射</TabsTrigger>
             </TabsList>
           </div>

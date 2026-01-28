@@ -136,7 +136,7 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
   const handleSaveDraft = () => {
     toast({
       title: "草稿已保存",
-      description: "行为标签草稿已成功保存",
+      description: "技能标签草稿已成功保存",
     });
     onOpenChange(false);
   };
@@ -144,7 +144,7 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
   const handlePublish = () => {
     toast({
       title: "发布成功",
-      description: "行为标签已发布，评估口径已冻结",
+      description: "技能标签已发布，评估口径已冻结",
     });
     setShowPublishConfirm(false);
     onOpenChange(false);
@@ -155,9 +155,9 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="w-[700px] overflow-y-auto sm:max-w-[700px]">
           <SheetHeader>
-            <SheetTitle>新建行为标签</SheetTitle>
+            <SheetTitle>新建技能标签</SheetTitle>
             <SheetDescription>
-              创建公司通用能力行为标签，可用于 AI 评估
+              创建公司通用技能标签，可用于 AI 评估
             </SheetDescription>
           </SheetHeader>
 
@@ -174,10 +174,10 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="grid gap-2">
-                    <Label>行为域 *</Label>
+                    <Label>一级能力 *</Label>
                     <Select>
                       <SelectTrigger>
-                        <SelectValue placeholder="选择行为域" />
+                        <SelectValue placeholder="选择一级能力" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
                         <SelectItem value="communication">沟通能力</SelectItem>
@@ -188,10 +188,10 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
                     </Select>
                   </div>
                   <div className="grid gap-2">
-                    <Label>行为簇 *</Label>
+                    <Label>二级能力 *</Label>
                     <Select>
                       <SelectTrigger>
-                        <SelectValue placeholder="选择行为簇" />
+                        <SelectValue placeholder="选择二级能力" />
                       </SelectTrigger>
                       <SelectContent className="bg-popover">
                         <SelectItem value="express">表达清晰</SelectItem>

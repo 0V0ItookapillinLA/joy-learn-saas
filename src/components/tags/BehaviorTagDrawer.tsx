@@ -187,11 +187,11 @@ export function BehaviorTagDrawer({
           <h3 className="text-sm font-semibold">基本信息</h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div>
-              <span className="text-muted-foreground">行为域：</span>
+              <span className="text-muted-foreground">一级能力：</span>
               {tag.domain}
             </div>
             <div>
-              <span className="text-muted-foreground">行为簇：</span>
+              <span className="text-muted-foreground">二级能力：</span>
               {tag.cluster}
             </div>
             <div className="col-span-2">

@@ -124,7 +124,7 @@ export function TaskTagTree({
         <div className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="搜索岗位/域/簇..."
+            placeholder="搜索岗位/一级/二级能力..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-8"
