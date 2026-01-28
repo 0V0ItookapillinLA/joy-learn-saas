@@ -67,11 +67,24 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
   const [positionExamples, setPositionExamples] = useState<PositionExample[]>(defaultExamples);
   
-  // L1-L4 evaluation points
-  const [l1Points, setL1Points] = useState<string[]>([""]);
-  const [l2Points, setL2Points] = useState<string[]>([""]);
-  const [l3Points, setL3Points] = useState<string[]>([""]);
-  const [l4Points, setL4Points] = useState<string[]>([""]);
+  // P1-P15 growth path data
+  const [growthPathData, setGrowthPathData] = useState<{[key: string]: { description: string; keyPoints: string[] }}>({
+    P1: { description: "", keyPoints: [""] },
+    P2: { description: "", keyPoints: [""] },
+    P3: { description: "", keyPoints: [""] },
+    P4: { description: "", keyPoints: [""] },
+    P5: { description: "", keyPoints: [""] },
+    P6: { description: "", keyPoints: [""] },
+    P7: { description: "", keyPoints: [""] },
+    P8: { description: "", keyPoints: [""] },
+    P9: { description: "", keyPoints: [""] },
+    P10: { description: "", keyPoints: [""] },
+    P11: { description: "", keyPoints: [""] },
+    P12: { description: "", keyPoints: [""] },
+    P13: { description: "", keyPoints: [""] },
+    P14: { description: "", keyPoints: [""] },
+    P15: { description: "", keyPoints: [""] },
+  });
   
   // Signals
   const [positiveSignals, setPositiveSignals] = useState<string[]>([""]);
@@ -256,61 +269,40 @@ export function NewBehaviorTagSheet({ open, onOpenChange }: NewBehaviorTagSheetP
               </div>
             </div>
 
-            {/* Block 2: Growth Path L1-L4 */}
+            {/* Block 2: Growth Path P1-P15 */}
             <div className="space-y-4">
-              <h3 className="border-b pb-2 text-sm font-semibold">成长路径 L1-L4（全部必填）</h3>
+              <h3 className="border-b pb-2 text-sm font-semibold">成长路径 P1-P15</h3>
+              <p className="text-xs text-muted-foreground">定义从 P1（入门）到 P15（专家）的能力成长阶梯</p>
               
-              {[
-                { level: "L1", title: "基础级", points: l1Points, setPoints: setL1Points },
-                { level: "L2", title: "熟练级", points: l2Points, setPoints: setL2Points },
-                { level: "L3", title: "精通级", points: l3Points, setPoints: setL3Points },
-                { level: "L4", title: "专家级", points: l4Points, setPoints: setL4Points },
-              ].map(({ level, title, points, setPoints }) => (
-                <div key={level} className="rounded-lg border p-4">
-                  <div className="mb-3 flex items-center gap-2">
-                    <Badge variant="outline">{level}</Badge>
-                    <span className="font-medium">{title}</span>
-                  </div>
-                  <div className="grid gap-3">
-                    <div className="grid gap-2">
-                      <Label>{level} 描述 *</Label>
-                      <Textarea placeholder={`描述 ${level} 级别的能力表现...`} rows={2} />
+              <div className="grid grid-cols-3 gap-3">
+                {Array.from({ length: 15 }, (_, i) => `P${i + 1}`).map((level) => (
+                  <div key={level} className="rounded-lg border p-3">
+                    <div className="mb-2 flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">{level}</Badge>
                     </div>
                     <div className="grid gap-2">
-                      <Label>评估要点</Label>
-                      {points.map((point, idx) => (
-                        <div key={idx} className="flex gap-2">
-                          <Input
-                            value={point}
-                            onChange={(e) => handleUpdatePoint(idx, e.target.value, points, setPoints)}
-                            placeholder={`评估要点 ${idx + 1}`}
-                          />
-                          {points.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleRemovePoint(idx, points, setPoints)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        className="w-fit"
-                        onClick={() => handleAddPoint(points, setPoints)}
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        添加评估要点
-                      </Button>
+                      <Input
+                        value={growthPathData[level]?.description || ""}
+                        onChange={(e) => setGrowthPathData(prev => ({
+                          ...prev,
+                          [level]: { ...prev[level], description: e.target.value }
+                        }))}
+                        placeholder={`${level} 描述`}
+                        className="text-xs"
+                      />
+                      <Input
+                        value={growthPathData[level]?.keyPoints?.[0] || ""}
+                        onChange={(e) => setGrowthPathData(prev => ({
+                          ...prev,
+                          [level]: { ...prev[level], keyPoints: [e.target.value] }
+                        }))}
+                        placeholder="评估要点"
+                        className="text-xs"
+                      />
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
 
             {/* Block 3: Observable Signals */}
