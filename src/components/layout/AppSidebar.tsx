@@ -9,6 +9,7 @@ import {
   GraduationCap,
   LogOut,
   Shield,
+  Route,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,6 +48,11 @@ const menuItems = [
     title: "角色配置",
     icon: Bot,
     url: "/characters",
+  },
+  {
+    title: "学习地图",
+    icon: Route,
+    url: "/learning-map",
   },
   {
     title: "成长地图",
