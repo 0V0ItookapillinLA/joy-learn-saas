@@ -45,30 +45,21 @@ const mockTagDetail = {
   updatedBy: "张经理",
   updatedAt: "2024-01-15 14:30",
   growthPath: [
-    {
-      level: "L1",
-      title: "基础级",
-      description: "能够背诵并复述产品的基本功能和卖点",
-      keyPoints: ["熟悉产品基本功能", "能准确描述产品规格", "知道常见问题解答"],
-    },
-    {
-      level: "L2",
-      title: "熟练级",
-      description: "能够根据客户类型调整表达方式，突出相关价值点",
-      keyPoints: ["识别客户类型", "匹配相应话术", "处理简单异议"],
-    },
-    {
-      level: "L3",
-      title: "精通级",
-      description: "能够挖掘客户深层需求，用价值语言回应，引导成交",
-      keyPoints: ["深度需求挖掘", "价值场景化表达", "异议转化技巧"],
-    },
-    {
-      level: "L4",
-      title: "专家级",
-      description: "能够创造性地组合产品价值，形成个性化解决方案",
-      keyPoints: ["方案定制能力", "价值创新表达", "培训指导他人"],
-    },
+    { level: "P1", description: "了解产品基本信息", keyPoints: ["熟悉产品名称", "了解基本功能"] },
+    { level: "P2", description: "能够复述产品卖点", keyPoints: ["记住核心卖点", "基础话术运用"] },
+    { level: "P3", description: "能够准确描述产品规格", keyPoints: ["参数熟练", "规格对比"] },
+    { level: "P4", description: "掌握常见问题解答", keyPoints: ["FAQ熟练", "基础异议处理"] },
+    { level: "P5", description: "能够识别客户类型", keyPoints: ["客户分类", "需求初判"] },
+    { level: "P6", description: "能够匹配相应话术", keyPoints: ["话术匹配", "场景应用"] },
+    { level: "P7", description: "能够处理简单异议", keyPoints: ["异议识别", "基础应对"] },
+    { level: "P8", description: "能够突出客户相关价值点", keyPoints: ["价值提炼", "针对性表达"] },
+    { level: "P9", description: "能够挖掘客户深层需求", keyPoints: ["深度提问", "需求分析"] },
+    { level: "P10", description: "能够用价值语言回应", keyPoints: ["价值转化", "利益呈现"] },
+    { level: "P11", description: "能够引导客户成交", keyPoints: ["成交技巧", "临门一脚"] },
+    { level: "P12", description: "能够处理复杂异议", keyPoints: ["复杂异议", "多维应对"] },
+    { level: "P13", description: "能够创造性组合产品价值", keyPoints: ["价值组合", "创新表达"] },
+    { level: "P14", description: "能够形成个性化解决方案", keyPoints: ["方案定制", "个性服务"] },
+    { level: "P15", description: "能够培训指导他人", keyPoints: ["经验传承", "团队赋能"] },
   ],
   signals: {
     positive: [
@@ -219,39 +210,40 @@ export function BehaviorTagDrawer({
 
         {/* Growth Path */}
         <div className="space-y-3">
-          <h3 className="text-sm font-semibold">成长路径 L1-L4</h3>
-          {tag.growthPath.map((level) => (
-            <Collapsible
-              key={level.level}
-              open={expandedLevels.includes(level.level)}
-              onOpenChange={() => toggleLevel(level.level)}
-            >
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-3 hover:bg-muted/50">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{level.level}</Badge>
-                  <span className="font-medium">{level.title}</span>
-                </div>
-                <ChevronDown
-                  className={`h-4 w-4 transition-transform ${
-                    expandedLevels.includes(level.level) ? "rotate-180" : ""
-                  }`}
-                />
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-3 pt-2">
-                <p className="text-sm text-muted-foreground">{level.description}</p>
-                <div className="mt-2">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    评估要点：
-                  </span>
-                  <ul className="mt-1 list-inside list-disc space-y-1 text-sm">
-                    {level.keyPoints.map((point, idx) => (
-                      <li key={idx}>{point}</li>
-                    ))}
-                  </ul>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
+          <h3 className="text-sm font-semibold">成长路径 P1-P15</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {tag.growthPath.map((level) => (
+              <Collapsible
+                key={level.level}
+                open={expandedLevels.includes(level.level)}
+                onOpenChange={() => toggleLevel(level.level)}
+              >
+                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-lg border p-2 hover:bg-muted/50">
+                  <div className="flex items-center gap-1">
+                    <Badge variant="outline" className="text-xs">{level.level}</Badge>
+                  </div>
+                  <ChevronDown
+                    className={`h-3 w-3 transition-transform ${
+                      expandedLevels.includes(level.level) ? "rotate-180" : ""
+                    }`}
+                  />
+                </CollapsibleTrigger>
+                <CollapsibleContent className="px-2 pt-2">
+                  <p className="text-xs text-muted-foreground">{level.description}</p>
+                  <div className="mt-1">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      评估要点：
+                    </span>
+                    <ul className="mt-1 list-inside list-disc space-y-0.5 text-xs">
+                      {level.keyPoints.map((point, idx) => (
+                        <li key={idx}>{point}</li>
+                      ))}
+                    </ul>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ))}
+          </div>
         </div>
 
         <Separator className="my-6" />
