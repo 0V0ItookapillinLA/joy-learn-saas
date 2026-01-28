@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -21,13 +23,15 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
+  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Trash2, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
-// Mock data for task tags
+// Mock data for task tags - now includes more variety for different positions/domains
 const taskTags = [
   {
     id: "task-1",
@@ -83,6 +87,60 @@ const taskTags = [
     riskPoints: ["情绪升级", "问题复杂化", "承诺无法兑现"],
     relatedBehaviorTags: ["有效处理客户异议", "建立信任关系", "团队信息及时同步"],
   },
+  {
+    id: "task-4",
+    name: "需求分析",
+    position: "物流销售",
+    domain: "销售流程",
+    cluster: "需求分析",
+    behaviorTagCount: 3,
+    status: "published",
+    version: "v1",
+    updatedBy: "张经理",
+    updatedAt: "2024-01-12 11:00",
+    definition: "深入了解客户的物流需求，分析痛点并提供针对性解决方案。",
+    triggerConditions: ["客户表达需求", "首次拜访", "需求变更"],
+    successCriteria: ["需求清晰记录", "客户确认理解", "方案匹配度高"],
+    keySteps: ["需求收集", "痛点分析", "需求确认", "方案匹配"],
+    riskPoints: ["需求理解偏差", "遗漏关键需求"],
+    relatedBehaviorTags: ["主动挖掘客户需求", "清晰表达产品价值"],
+  },
+  {
+    id: "task-5",
+    name: "客户回访",
+    position: "物流销售",
+    domain: "客户维护",
+    cluster: "关系维护",
+    behaviorTagCount: 2,
+    status: "published",
+    version: "v1",
+    updatedBy: "李主管",
+    updatedAt: "2024-01-10 09:00",
+    definition: "定期回访老客户，维护客户关系，挖掘二次销售机会。",
+    triggerConditions: ["合同到期前", "定期回访计划", "客户反馈"],
+    successCriteria: ["客户满意度提升", "续约意向明确", "新需求挖掘"],
+    keySteps: ["回访准备", "满意度调查", "问题收集", "需求挖掘", "后续安排"],
+    riskPoints: ["客户流失", "竞争对手介入"],
+    relatedBehaviorTags: ["建立信任关系", "主动挖掘客户需求"],
+  },
+  {
+    id: "task-6",
+    name: "咨询解答",
+    position: "客服",
+    domain: "服务流程",
+    cluster: "咨询解答",
+    behaviorTagCount: 4,
+    status: "published",
+    version: "v1",
+    updatedBy: "王培训",
+    updatedAt: "2024-01-11 14:00",
+    definition: "快速准确地回答客户咨询，提供专业的服务信息。",
+    triggerConditions: ["客户来电", "在线咨询", "邮件咨询"],
+    successCriteria: ["问题解决", "客户满意", "一次性解决率"],
+    keySteps: ["问题确认", "信息查询", "解答说明", "确认理解"],
+    riskPoints: ["信息错误", "响应超时"],
+    relatedBehaviorTags: ["清晰表达产品价值", "有效处理客户异议"],
+  },
 ];
 
 const statusConfig = {
@@ -91,10 +149,56 @@ const statusConfig = {
   disabled: { label: "停用", variant: "outline" as const },
 };
 
+// Position to domain mapping for tree filtering
+const positionDomainMap: Record<string, string[]> = {
+  "pos-1": ["domain-1-1", "domain-1-2"], // 物流销售
+  "pos-2": ["domain-2-1"], // 客服
+  "pos-3": ["domain-3-1"], // 药房营业员
+};
+
+const domainNameMap: Record<string, string> = {
+  "domain-1-1": "销售流程",
+  "domain-1-2": "客户维护",
+  "domain-2-1": "服务流程",
+  "domain-3-1": "销售服务",
+};
+
+const clusterNameMap: Record<string, string> = {
+  "cluster-1-1-1": "客户获取",
+  "cluster-1-1-2": "需求分析",
+  "cluster-1-1-3": "成交转化",
+  "cluster-1-2-1": "关系维护",
+  "cluster-1-2-2": "续约管理",
+  "cluster-2-1-1": "咨询解答",
+  "cluster-2-1-2": "问题解决",
+  "cluster-2-1-3": "投诉处理",
+  "cluster-3-1-1": "用药咨询",
+  "cluster-3-1-2": "产品推荐",
+};
+
+const positionNameMap: Record<string, string> = {
+  "pos-1": "物流销售",
+  "pos-2": "客服",
+  "pos-3": "药房营业员",
+};
+
 interface TaskTagTableProps {
   selectedPosition: string;
   selectedDomain: string | null;
   selectedCluster: string | null;
+}
+
+interface TaskTagFormData {
+  name: string;
+  position: string;
+  domain: string;
+  cluster: string;
+  definition: string;
+  triggerConditions: string[];
+  successCriteria: string[];
+  keySteps: string[];
+  riskPoints: string[];
+  relatedBehaviorTags: string[];
 }
 
 export function TaskTagTable({
@@ -102,16 +206,146 @@ export function TaskTagTable({
   selectedDomain,
   selectedCluster,
 }: TaskTagTableProps) {
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewingTag, setViewingTag] = useState<typeof taskTags[0] | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [formData, setFormData] = useState<TaskTagFormData>({
+    name: "",
+    position: "物流销售",
+    domain: "",
+    cluster: "",
+    definition: "",
+    triggerConditions: [""],
+    successCriteria: [""],
+    keySteps: [""],
+    riskPoints: [""],
+    relatedBehaviorTags: [],
+  });
 
+  // Get position name from ID
+  const getPositionName = (posId: string): string => {
+    return positionNameMap[posId] || posId;
+  };
+
+  // Get domain name from ID
+  const getDomainName = (domainId: string): string => {
+    return domainNameMap[domainId] || "";
+  };
+
+  // Get cluster name from ID
+  const getClusterName = (clusterId: string): string => {
+    return clusterNameMap[clusterId] || "";
+  };
+
+  // Filter tags based on tree selection and other filters
   const filteredTags = taskTags.filter((tag) => {
     if (searchQuery && !tag.name.includes(searchQuery)) return false;
     if (statusFilter !== "all" && tag.status !== statusFilter) return false;
-    if (selectedPosition && tag.position !== selectedPosition) return false;
+    
+    // Filter by position
+    const positionName = getPositionName(selectedPosition);
+    if (positionName && tag.position !== positionName) return false;
+    
+    // Filter by domain if selected
+    if (selectedDomain) {
+      const domainName = getDomainName(selectedDomain);
+      if (domainName && tag.domain !== domainName) return false;
+    }
+    
+    // Filter by cluster if selected
+    if (selectedCluster) {
+      const clusterName = getClusterName(selectedCluster);
+      if (clusterName && tag.cluster !== clusterName) return false;
+    }
+    
     return true;
   });
+
+  const handleOpenNew = () => {
+    setFormData({
+      name: "",
+      position: getPositionName(selectedPosition) || "物流销售",
+      domain: selectedDomain ? getDomainName(selectedDomain) : "",
+      cluster: selectedCluster ? getClusterName(selectedCluster) : "",
+      definition: "",
+      triggerConditions: [""],
+      successCriteria: [""],
+      keySteps: [""],
+      riskPoints: [""],
+      relatedBehaviorTags: [],
+    });
+    setIsEditing(true);
+    setViewingTag(null);
+  };
+
+  const handleView = (tag: typeof taskTags[0]) => {
+    setViewingTag(tag);
+    setIsEditing(false);
+  };
+
+  const handleEdit = (tag: typeof taskTags[0]) => {
+    setFormData({
+      name: tag.name,
+      position: tag.position,
+      domain: tag.domain,
+      cluster: tag.cluster,
+      definition: tag.definition,
+      triggerConditions: tag.triggerConditions.length > 0 ? tag.triggerConditions : [""],
+      successCriteria: tag.successCriteria.length > 0 ? tag.successCriteria : [""],
+      keySteps: tag.keySteps.length > 0 ? tag.keySteps : [""],
+      riskPoints: tag.riskPoints.length > 0 ? tag.riskPoints : [""],
+      relatedBehaviorTags: tag.relatedBehaviorTags,
+    });
+    setViewingTag(tag);
+    setIsEditing(true);
+  };
+
+  const handleCloseSheet = () => {
+    setViewingTag(null);
+    setIsEditing(false);
+  };
+
+  const handleAddItem = (field: keyof TaskTagFormData) => {
+    if (Array.isArray(formData[field])) {
+      setFormData({
+        ...formData,
+        [field]: [...(formData[field] as string[]), ""],
+      });
+    }
+  };
+
+  const handleUpdateItem = (field: keyof TaskTagFormData, index: number, value: string) => {
+    if (Array.isArray(formData[field])) {
+      const newArray = [...(formData[field] as string[])];
+      newArray[index] = value;
+      setFormData({ ...formData, [field]: newArray });
+    }
+  };
+
+  const handleRemoveItem = (field: keyof TaskTagFormData, index: number) => {
+    if (Array.isArray(formData[field]) && (formData[field] as string[]).length > 1) {
+      const newArray = (formData[field] as string[]).filter((_, i) => i !== index);
+      setFormData({ ...formData, [field]: newArray });
+    }
+  };
+
+  const handleSaveDraft = () => {
+    toast({
+      title: "草稿已保存",
+      description: "能力标签草稿已成功保存",
+    });
+    handleCloseSheet();
+  };
+
+  const handlePublish = () => {
+    toast({
+      title: "发布成功",
+      description: "能力标签已发布",
+    });
+    handleCloseSheet();
+  };
 
   return (
     <>
@@ -119,36 +353,6 @@ export function TaskTagTable({
         {/* Toolbar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b p-4">
           <div className="flex flex-wrap items-center gap-3">
-            <Select defaultValue="物流销售">
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="适用岗位" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="物流销售">物流销售</SelectItem>
-                <SelectItem value="客服">客服</SelectItem>
-                <SelectItem value="药房营业员">药房营业员</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select defaultValue="all">
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="一级能力" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">全部一级能力</SelectItem>
-                <SelectItem value="sales">销售流程</SelectItem>
-                <SelectItem value="service">服务流程</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select defaultValue="all">
-              <SelectTrigger className="w-[120px]">
-                <SelectValue placeholder="二级能力" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover">
-                <SelectItem value="all">全部二级能力</SelectItem>
-                <SelectItem value="acquire">客户获取</SelectItem>
-                <SelectItem value="convert">成交转化</SelectItem>
-              </SelectContent>
-            </Select>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger className="w-[100px]">
                 <SelectValue placeholder="状态" />
@@ -171,24 +375,7 @@ export function TaskTagTable({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button onClick={() => setViewingTag({
-              id: "new",
-              name: "",
-              position: "物流销售",
-              domain: "",
-              cluster: "",
-              behaviorTagCount: 0,
-              status: "draft",
-              version: "v1",
-              updatedBy: "",
-              updatedAt: "",
-              definition: "",
-              triggerConditions: [],
-              successCriteria: [],
-              keySteps: [],
-              riskPoints: [],
-              relatedBehaviorTags: [],
-            })}>
+            <Button onClick={handleOpenNew}>
               <Plus className="mr-1 h-4 w-4" />
               新增能力标签
             </Button>
@@ -212,99 +399,355 @@ export function TaskTagTable({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTags.map((tag) => (
-                <TableRow key={tag.id}>
-                  <TableCell className="font-medium">{tag.name}</TableCell>
-                  <TableCell>{tag.position}</TableCell>
-                  <TableCell>{tag.domain}</TableCell>
-                  <TableCell>{tag.cluster}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{tag.behaviorTagCount}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={statusConfig[tag.status as keyof typeof statusConfig].variant}>
-                      {statusConfig[tag.status as keyof typeof statusConfig].label}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground">{tag.version}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{tag.updatedBy}</div>
-                      <div className="text-xs text-muted-foreground">{tag.updatedAt}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="link"
-                        size="sm"
-                        className="h-auto p-0"
-                        onClick={() => setViewingTag(tag)}
-                      >
-                        查看
-                      </Button>
-                      {tag.status === "draft" && (
-                        <>
-                          <Button variant="link" size="sm" className="h-auto p-0">
-                            编辑
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-destructive"
-                          >
-                            停用
-                          </Button>
-                        </>
-                      )}
-                      {tag.status === "published" && (
-                        <>
-                          <Button variant="link" size="sm" className="h-auto p-0">
-                            创建新版本
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-destructive"
-                          >
-                            停用
-                          </Button>
-                        </>
-                      )}
-                    </div>
+              {filteredTags.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    暂无数据，请选择其他分类或添加新标签
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredTags.map((tag) => (
+                  <TableRow key={tag.id}>
+                    <TableCell className="font-medium">{tag.name}</TableCell>
+                    <TableCell>{tag.position}</TableCell>
+                    <TableCell>{tag.domain}</TableCell>
+                    <TableCell>{tag.cluster}</TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{tag.behaviorTagCount}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusConfig[tag.status as keyof typeof statusConfig].variant}>
+                        {statusConfig[tag.status as keyof typeof statusConfig].label}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{tag.version}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{tag.updatedBy}</div>
+                        <div className="text-xs text-muted-foreground">{tag.updatedAt}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto p-0"
+                          onClick={() => handleView(tag)}
+                        >
+                          查看
+                        </Button>
+                        {tag.status === "draft" && (
+                          <>
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              className="h-auto p-0"
+                              onClick={() => handleEdit(tag)}
+                            >
+                              编辑
+                            </Button>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0 text-destructive"
+                              onClick={() => toast({ title: "已停用", description: "标签已停用" })}
+                            >
+                              停用
+                            </Button>
+                          </>
+                        )}
+                        {tag.status === "published" && (
+                          <>
+                            <Button 
+                              variant="link" 
+                              size="sm" 
+                              className="h-auto p-0"
+                              onClick={() => handleEdit(tag)}
+                            >
+                              创建新版本
+                            </Button>
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0 text-destructive"
+                              onClick={() => toast({ title: "已停用", description: "标签已停用" })}
+                            >
+                              停用
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
       </div>
 
-      {/* View Drawer */}
-      <Sheet open={!!viewingTag} onOpenChange={() => setViewingTag(null)}>
-        <SheetContent className="w-[500px] overflow-y-auto sm:max-w-[500px]">
-          {viewingTag && (
+      {/* View/Edit Sheet */}
+      <Sheet open={!!viewingTag || isEditing} onOpenChange={handleCloseSheet}>
+        <SheetContent className="w-[600px] overflow-y-auto sm:max-w-[600px]">
+          {isEditing ? (
+            // Edit Mode
+            <>
+              <SheetHeader>
+                <SheetTitle>{viewingTag ? "编辑能力标签" : "新建能力标签"}</SheetTitle>
+                <SheetDescription>
+                  {viewingTag ? "修改能力标签信息" : "创建新的专业能力标签"}
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-6 space-y-6">
+                {/* Basic Info */}
+                <div className="space-y-4">
+                  <h4 className="text-sm font-semibold border-b pb-2">基本信息</h4>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="name">标签名称 *</Label>
+                      <Input
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="输入能力标签名称"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="grid gap-2">
+                        <Label>适用岗位 *</Label>
+                        <Select 
+                          value={formData.position} 
+                          onValueChange={(value) => setFormData({ ...formData, position: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择岗位" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            <SelectItem value="物流销售">物流销售</SelectItem>
+                            <SelectItem value="客服">客服</SelectItem>
+                            <SelectItem value="药房营业员">药房营业员</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>一级能力 *</Label>
+                        <Select 
+                          value={formData.domain} 
+                          onValueChange={(value) => setFormData({ ...formData, domain: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择一级能力" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            <SelectItem value="销售流程">销售流程</SelectItem>
+                            <SelectItem value="客户维护">客户维护</SelectItem>
+                            <SelectItem value="服务流程">服务流程</SelectItem>
+                            <SelectItem value="销售服务">销售服务</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label>二级能力 *</Label>
+                        <Select 
+                          value={formData.cluster} 
+                          onValueChange={(value) => setFormData({ ...formData, cluster: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="选择二级能力" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-popover">
+                            <SelectItem value="客户获取">客户获取</SelectItem>
+                            <SelectItem value="需求分析">需求分析</SelectItem>
+                            <SelectItem value="成交转化">成交转化</SelectItem>
+                            <SelectItem value="关系维护">关系维护</SelectItem>
+                            <SelectItem value="咨询解答">咨询解答</SelectItem>
+                            <SelectItem value="问题解决">问题解决</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label>能力定义 *</Label>
+                      <Textarea
+                        value={formData.definition}
+                        onChange={(e) => setFormData({ ...formData, definition: e.target.value })}
+                        placeholder="描述该能力标签的定义..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator />
+
+                {/* Trigger Conditions */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold">触发条件</h4>
+                  {formData.triggerConditions.map((item, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={item}
+                        onChange={(e) => handleUpdateItem("triggerConditions", idx, e.target.value)}
+                        placeholder={`触发条件 ${idx + 1}`}
+                      />
+                      {formData.triggerConditions.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem("triggerConditions", idx)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddItem("triggerConditions")}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    添加触发条件
+                  </Button>
+                </div>
+
+                {/* Success Criteria */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold">成功标准</h4>
+                  {formData.successCriteria.map((item, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={item}
+                        onChange={(e) => handleUpdateItem("successCriteria", idx, e.target.value)}
+                        placeholder={`成功标准 ${idx + 1}`}
+                      />
+                      {formData.successCriteria.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem("successCriteria", idx)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddItem("successCriteria")}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    添加成功标准
+                  </Button>
+                </div>
+
+                {/* Key Steps */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold">关键步骤</h4>
+                  {formData.keySteps.map((item, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={item}
+                        onChange={(e) => handleUpdateItem("keySteps", idx, e.target.value)}
+                        placeholder={`步骤 ${idx + 1}`}
+                      />
+                      {formData.keySteps.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem("keySteps", idx)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddItem("keySteps")}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    添加关键步骤
+                  </Button>
+                </div>
+
+                {/* Risk Points */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-destructive">风险点</h4>
+                  {formData.riskPoints.map((item, idx) => (
+                    <div key={idx} className="flex gap-2">
+                      <Input
+                        value={item}
+                        onChange={(e) => handleUpdateItem("riskPoints", idx, e.target.value)}
+                        placeholder={`风险点 ${idx + 1}`}
+                      />
+                      {formData.riskPoints.length > 1 && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveItem("riskPoints", idx)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAddItem("riskPoints")}
+                  >
+                    <Plus className="mr-1 h-4 w-4" />
+                    添加风险点
+                  </Button>
+                </div>
+              </div>
+
+              <SheetFooter className="mt-6 flex gap-2">
+                <Button variant="outline" onClick={handleCloseSheet}>
+                  取消
+                </Button>
+                <Button variant="secondary" onClick={handleSaveDraft}>
+                  保存草稿
+                </Button>
+                <Button onClick={handlePublish}>
+                  发布
+                </Button>
+              </SheetFooter>
+            </>
+          ) : viewingTag ? (
+            // View Mode
             <>
               <SheetHeader>
                 <div className="flex items-center gap-3">
                   <SheetTitle className="text-xl">{viewingTag.name}</SheetTitle>
                   <Badge
-                    variant={
-                      statusConfig[viewingTag.status as keyof typeof statusConfig].variant
-                    }
+                    variant={statusConfig[viewingTag.status as keyof typeof statusConfig].variant}
                   >
                     {statusConfig[viewingTag.status as keyof typeof statusConfig].label}
                   </Badge>
                   <Badge variant="outline">{viewingTag.version}</Badge>
                 </div>
-              <SheetDescription>
+                <SheetDescription>
                   {viewingTag.position} · 一级能力: {viewingTag.domain} · 二级能力: {viewingTag.cluster}
                 </SheetDescription>
               </SheetHeader>
 
               <div className="mt-6 space-y-6">
                 <div>
-                  <h4 className="mb-2 text-sm font-semibold">任务定义</h4>
+                  <h4 className="mb-2 text-sm font-semibold">能力定义</h4>
                   <p className="text-sm text-muted-foreground">{viewingTag.definition}</p>
                 </div>
 
@@ -361,8 +804,17 @@ export function TaskTagTable({
                   </div>
                 </div>
               </div>
+
+              <SheetFooter className="mt-6">
+                <Button variant="outline" onClick={handleCloseSheet}>
+                  关闭
+                </Button>
+                <Button onClick={() => handleEdit(viewingTag)}>
+                  编辑
+                </Button>
+              </SheetFooter>
             </>
-          )}
+          ) : null}
         </SheetContent>
       </Sheet>
     </>
