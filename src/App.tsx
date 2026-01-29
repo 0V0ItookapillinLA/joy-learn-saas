@@ -1,13 +1,9 @@
-import { ConfigProvider } from "antd";
+import { ConfigProvider, App as AntApp } from "antd";
 import zhCN from "antd/locale/zh_CN";
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { antdTheme } from "@/lib/antdTheme";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import TrainingPlans from "./pages/training/TrainingPlans";
@@ -22,12 +18,10 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <ConfigProvider theme={antdTheme} locale={zhCN}>
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+  <ConfigProvider locale={zhCN}>
+    <AntApp>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
           <BrowserRouter>
             <Routes>
               {/* Public routes */}
@@ -84,9 +78,9 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </AntApp>
   </ConfigProvider>
 );
 

@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Form, Input, Button, Tabs, Card, Typography, message } from "antd";
-import { EyeInvisibleOutlined, EyeTwoTone, LoadingOutlined } from "@ant-design/icons";
-import { GraduationCap } from "lucide-react";
+import { Form, Input, Button, Tabs, Card, Typography, App } from "antd";
+import { EyeInvisibleOutlined, EyeTwoTone, UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
@@ -24,6 +23,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [loginForm] = Form.useForm<LoginFormValues>();
   const [signupForm] = Form.useForm<SignupFormValues>();
+  const { message } = App.useApp();
 
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
@@ -83,18 +83,16 @@ export default function Auth() {
           requiredMark={false}
         >
           <Form.Item
-            label="邮箱"
             name="email"
             rules={[
               { required: true, message: "请输入邮箱" },
               { type: "email", message: "请输入有效的邮箱地址" },
             ]}
           >
-            <Input placeholder="请输入邮箱" size="large" disabled={loading} />
+            <Input prefix={<MailOutlined />} placeholder="邮箱" size="large" disabled={loading} />
           </Form.Item>
 
           <Form.Item
-            label="密码"
             name="password"
             rules={[
               { required: true, message: "请输入密码" },
@@ -102,23 +100,16 @@ export default function Auth() {
             ]}
           >
             <Input.Password
-              placeholder="请输入密码"
+              prefix={<LockOutlined />}
+              placeholder="密码"
               size="large"
               disabled={loading}
-              iconRender={(visible) =>
-                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-              }
+              iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
             />
           </Form.Item>
 
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              size="large"
-              block
-              loading={loading}
-            >
+            <Button type="primary" htmlType="submit" size="large" block loading={loading}>
               登录
             </Button>
           </Form.Item>
@@ -137,30 +128,26 @@ export default function Auth() {
           requiredMark={false}
         >
           <Form.Item
-            label="姓名"
             name="fullName"
             rules={[
               { required: true, message: "请输入姓名" },
               { min: 2, message: "姓名至少需要2个字符" },
-              { max: 50, message: "姓名不能超过50个字符" },
             ]}
           >
-            <Input placeholder="请输入姓名" size="large" disabled={loading} />
+            <Input prefix={<UserOutlined />} placeholder="姓名" size="large" disabled={loading} />
           </Form.Item>
 
           <Form.Item
-            label="邮箱"
             name="email"
             rules={[
               { required: true, message: "请输入邮箱" },
               { type: "email", message: "请输入有效的邮箱地址" },
             ]}
           >
-            <Input placeholder="请输入邮箱" size="large" disabled={loading} />
+            <Input prefix={<MailOutlined />} placeholder="邮箱" size="large" disabled={loading} />
           </Form.Item>
 
           <Form.Item
-            label="密码"
             name="password"
             rules={[
               { required: true, message: "请输入密码" },
@@ -168,17 +155,15 @@ export default function Auth() {
             ]}
           >
             <Input.Password
-              placeholder="请输入密码（至少6位）"
+              prefix={<LockOutlined />}
+              placeholder="密码（至少6位）"
               size="large"
               disabled={loading}
-              iconRender={(visible) =>
-                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-              }
+              iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
             />
           </Form.Item>
 
           <Form.Item
-            label="确认密码"
             name="confirmPassword"
             dependencies={["password"]}
             rules={[
@@ -194,23 +179,16 @@ export default function Auth() {
             ]}
           >
             <Input.Password
-              placeholder="请再次输入密码"
+              prefix={<LockOutlined />}
+              placeholder="确认密码"
               size="large"
               disabled={loading}
-              iconRender={(visible) =>
-                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
-              }
+              iconRender={(visible) => (visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />)}
             />
           </Form.Item>
 
           <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              size="large"
-              block
-              loading={loading}
-            >
+            <Button type="primary" htmlType="submit" size="large" block loading={loading}>
               注册
             </Button>
           </Form.Item>
@@ -220,11 +198,34 @@ export default function Auth() {
   ];
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-lg">
-            <GraduationCap className="h-8 w-8 text-white" />
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#f5f5f5",
+        padding: 16,
+      }}
+    >
+      <div style={{ width: "100%", maxWidth: 400 }}>
+        <div style={{ textAlign: "center", marginBottom: 32 }}>
+          <div
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: 12,
+              background: "#1677ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              margin: "0 auto 16px",
+              color: "#fff",
+              fontSize: 24,
+              fontWeight: "bold",
+            }}
+          >
+            J
           </div>
           <Title level={3} style={{ marginBottom: 4 }}>
             JoyLearning
@@ -232,16 +233,11 @@ export default function Auth() {
           <Text type="secondary">AI智能培训管理平台</Text>
         </div>
 
-        <Card className="shadow-xl">
-          <Tabs
-            activeKey={activeTab}
-            onChange={setActiveTab}
-            items={tabItems}
-            centered
-          />
+        <Card>
+          <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} centered />
         </Card>
 
-        <Text type="secondary" className="mt-6 block text-center text-sm">
+        <Text type="secondary" style={{ display: "block", textAlign: "center", marginTop: 24, fontSize: 12 }}>
           登录即表示您同意我们的服务条款和隐私政策
         </Text>
       </div>

@@ -1,9 +1,23 @@
-import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "./AppSidebar";
-import { Separator } from "@/components/ui/separator";
+import { useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { Layout, Menu, Avatar, Dropdown, Typography } from "antd";
+import type { MenuProps } from "antd";
+import {
+  HomeOutlined,
+  BookOutlined,
+  MessageOutlined,
+  RobotOutlined,
+  NodeIndexOutlined,
+  AreaChartOutlined,
+  BarChartOutlined,
+  LogoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from "@ant-design/icons";
 import { useAuth } from "@/contexts/AuthContext";
-import { Navigate } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
+
+const { Header, Sider, Content } = Layout;
+const { Text } = Typography;
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -11,34 +25,181 @@ interface DashboardLayoutProps {
   description?: string;
 }
 
+const menuItems: MenuProps["items"] = [
+  {
+    key: "/",
+    icon: <HomeOutlined />,
+    label: "首页",
+  },
+  {
+    key: "/training/plans",
+    icon: <BookOutlined />,
+    label: "培训计划",
+  },
+  {
+    key: "/practices",
+    icon: <MessageOutlined />,
+    label: "练习计划",
+  },
+  {
+    key: "/characters",
+    icon: <RobotOutlined />,
+    label: "角色配置",
+  },
+  {
+    key: "/learning-map",
+    icon: <NodeIndexOutlined />,
+    label: "学习地图",
+  },
+  {
+    key: "/growth-map",
+    icon: <AreaChartOutlined />,
+    label: "成长地图",
+  },
+  {
+    key: "/analytics",
+    icon: <BarChartOutlined />,
+    label: "数据看板",
+  },
+];
+
 export function DashboardLayout({ children, title, description }: DashboardLayoutProps) {
-  // 开发模式：跳过认证检查，直接显示内容
-  // const { user, loading } = useAuth();
-  // if (loading) { ... }
-  // if (!user) { return <Navigate to="/auth" replace />; }
+  const [collapsed, setCollapsed] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "用户";
+  const initials = displayName.slice(0, 2).toUpperCase();
+
+  const handleMenuClick: MenuProps["onClick"] = (e) => {
+    navigate(e.key);
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const userMenuItems: MenuProps["items"] = [
+    {
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "退出登录",
+      danger: true,
+      onClick: handleSignOut,
+    },
+  ];
+
+  const getSelectedKey = () => {
+    if (location.pathname === "/" || location.pathname === "/dashboard") {
+      return "/";
+    }
+    return location.pathname;
+  };
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen w-full">
-        <AppSidebar />
-        <SidebarInset className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="h-6" />
+    <Layout style={{ minHeight: "100vh" }}>
+      <Sider
+        collapsible
+        collapsed={collapsed}
+        onCollapse={setCollapsed}
+        trigger={null}
+        theme="light"
+        style={{ borderRight: "1px solid #f0f0f0" }}
+      >
+        <div
+          style={{
+            height: 64,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: collapsed ? "center" : "flex-start",
+            padding: collapsed ? 0 : "0 16px",
+            borderBottom: "1px solid #f0f0f0",
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: "#1677ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: "bold",
+            }}
+          >
+            J
+          </div>
+          {!collapsed && (
+            <div style={{ marginLeft: 12 }}>
+              <Text strong style={{ fontSize: 14 }}>
+                JoyLearning
+              </Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                AI培训平台
+              </Text>
+            </div>
+          )}
+        </div>
+        <Menu
+          mode="inline"
+          selectedKeys={[getSelectedKey()]}
+          items={menuItems}
+          onClick={handleMenuClick}
+          style={{ borderRight: 0 }}
+        />
+      </Sider>
+      <Layout>
+        <Header
+          style={{
+            padding: "0 24px",
+            background: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            borderBottom: "1px solid #f0f0f0",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+            {collapsed ? (
+              <MenuUnfoldOutlined
+                style={{ fontSize: 18, cursor: "pointer" }}
+                onClick={() => setCollapsed(false)}
+              />
+            ) : (
+              <MenuFoldOutlined
+                style={{ fontSize: 18, cursor: "pointer" }}
+                onClick={() => setCollapsed(true)}
+              />
+            )}
             {title && (
-              <div className="flex flex-col">
-                <h1 className="text-lg font-semibold">{title}</h1>
+              <div>
+                <Text strong style={{ fontSize: 18 }}>
+                  {title}
+                </Text>
                 {description && (
-                  <p className="text-sm text-muted-foreground">{description}</p>
+                  <Text type="secondary" style={{ marginLeft: 12, fontSize: 14 }}>
+                    {description}
+                  </Text>
                 )}
               </div>
             )}
-          </header>
-          <main className="flex-1 p-6">
-            {children}
-          </main>
-        </SidebarInset>
-      </div>
-    </SidebarProvider>
+          </div>
+          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+            <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+              <Avatar style={{ backgroundColor: "#1677ff" }}>{initials}</Avatar>
+              <Text>{displayName}</Text>
+            </div>
+          </Dropdown>
+        </Header>
+        <Content style={{ margin: 24, background: "#fff", borderRadius: 8, padding: 24 }}>
+          {children}
+        </Content>
+      </Layout>
+    </Layout>
   );
 }

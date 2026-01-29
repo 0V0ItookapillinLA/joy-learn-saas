@@ -1,33 +1,15 @@
 import { useState, useEffect } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GripVertical, Plus, Trash2, Upload, X, Loader2, Check } from "lucide-react";
+import { Drawer, Button, Input, Form, Select, Tabs, Card, Typography, Upload, Space, App } from "antd";
+import { PlusOutlined, DeleteOutlined, UploadOutlined, HolderOutlined } from "@ant-design/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
 import type { TrainingPlan } from "./TrainingPlanTable";
 import { usePracticeSessions } from "@/hooks/usePracticeSessions";
 import { useLessonContents } from "@/hooks/useLessonContents";
 import { useExams } from "@/hooks/useExams";
+
+const { TextArea } = Input;
+const { Text } = Typography;
 
 interface Chapter {
   id: string;
@@ -55,36 +37,25 @@ export function TrainingPlanSheet({
   plan,
   onSave,
 }: TrainingPlanSheetProps) {
+  const { message } = App.useApp();
   const queryClient = useQueryClient();
   const { data: practiceSessions = [] } = usePracticeSessions();
   const { data: lessonContents = [] } = useLessonContents();
   const { data: exams = [] } = useExams();
+  const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState("basic");
-  const [title, setTitle] = useState("");
-  const [department, setDepartment] = useState("");
-  const [description, setDescription] = useState("");
-  const [sequentialLearning, setSequentialLearning] = useState(false);
-  const [chapters, setChapters] = useState<Chapter[]>([
-    {
-      id: "1",
-      title: "章节1",
-      items: [{ id: "1-1", type: "lesson" }],
-    },
-  ]);
+  const [chapters, setChapters] = useState<Chapter[]>([{ id: "1", title: "章节1", items: [{ id: "1-1", type: "lesson" }] }]);
   const [isSaving, setIsSaving] = useState(false);
-  const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
-  const [editingChapterTitle, setEditingChapterTitle] = useState("");
 
   const isEdit = !!plan;
-  const basicComplete = title && department && description;
-  const contentComplete = chapters.length > 0;
 
   useEffect(() => {
     if (plan) {
-      setTitle(plan.title || "");
-      setDescription(plan.description || "");
-      
-      // 加载已保存的章节内容
+      form.setFieldsValue({
+        title: plan.title || "",
+        description: plan.description || "",
+        department: "",
+      });
       if (plan.training_chapters && plan.training_chapters.length > 0) {
         const loadedChapters: Chapter[] = plan.training_chapters
           .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -94,91 +65,36 @@ export function TrainingPlanSheet({
             items: parseChapterItems(chapter),
           }));
         setChapters(loadedChapters);
-      } else {
-        setChapters([
-          {
-            id: "1",
-            title: "章节1",
-            items: [{ id: "1-1", type: "lesson" }],
-          },
-        ]);
       }
     } else {
-      setTitle("");
-      setDescription("");
-      setDepartment("");
-      setChapters([
-        {
-          id: "1",
-          title: "章节1",
-          items: [{ id: "1-1", type: "lesson" }],
-        },
-      ]);
+      form.resetFields();
+      setChapters([{ id: "1", title: "章节1", items: [{ id: "1-1", type: "lesson" }] }]);
     }
-  }, [plan, open]);
+  }, [plan, open, form]);
 
-  // 解析章节中的内容项 - 优先使用 content_items，否则从 description 解析
   const parseChapterItems = (chapter: { id: string; description: string | null; content_items?: string | null }): ChapterItem[] => {
     const chapterId = chapter.id;
-    
-    // 优先尝试从 content_items 解析（JSON格式）
     if (chapter.content_items) {
       try {
-        const items = typeof chapter.content_items === 'string' 
-          ? JSON.parse(chapter.content_items) 
-          : chapter.content_items;
-        
+        const items = typeof chapter.content_items === "string" ? JSON.parse(chapter.content_items) : chapter.content_items;
         if (Array.isArray(items) && items.length > 0) {
           return items.map((item: any, index: number) => ({
             id: item.id || `${chapterId}-${index + 1}`,
-            type: item.type === 'assessment' ? 'exam' : (item.type || 'lesson'),
+            type: item.type === "assessment" ? "exam" : item.type || "lesson",
             title: item.title,
             itemId: item.itemId,
           }));
         }
       } catch (e) {
-        console.error('Failed to parse content_items:', e);
+        console.error("Failed to parse content_items:", e);
       }
     }
-    
-    // 降级：从 description 解析
-    const description = chapter.description || '';
-    if (!description) {
-      return [{ id: `${chapterId}-1`, type: "lesson" }];
-    }
-    
-    const itemTitles = description.split(', ').filter(Boolean);
-    if (itemTitles.length === 0) {
-      return [{ id: `${chapterId}-1`, type: "lesson" }];
-    }
-    
-    return itemTitles.map((title, index) => {
-      // 根据标题关键词判断类型
-      let type: "lesson" | "practice" | "exam" = "lesson";
-      if (title.includes('模拟') || title.includes('演练') || title.includes('对练') || title.includes('练习')) {
-        type = "practice";
-      } else if (title.includes('测验') || title.includes('考核') || title.includes('评估') || title.includes('考评') || title.includes('案例分析')) {
-        type = "exam";
-      }
-      
-      return {
-        id: `${chapterId}-${index + 1}`,
-        type,
-        title,
-      };
-    });
+    return [{ id: `${chapterId}-1`, type: "lesson" }];
   };
 
   const addChapter = () => {
     const newId = String(chapters.length + 1);
-    setChapters([
-      ...chapters,
-      {
-        id: newId,
-        title: `章节${chapters.length + 1}`,
-        items: [{ id: `${newId}-1`, type: "lesson" }],
-      },
-    ]);
+    setChapters([...chapters, { id: newId, title: `章节${chapters.length + 1}`, items: [{ id: `${newId}-1`, type: "lesson" }] }]);
   };
 
   const removeChapter = (chapterId: string) => {
@@ -187,603 +103,217 @@ export function TrainingPlanSheet({
 
   const addChapterItem = (chapterId: string) => {
     setChapters(
-      chapters.map((chapter) => {
-        if (chapter.id === chapterId) {
-          return {
-            ...chapter,
-            items: [
-              ...chapter.items,
-              { id: `${chapterId}-${chapter.items.length + 1}`, type: "lesson" },
-            ],
-          };
-        }
-        return chapter;
-      })
+      chapters.map((chapter) =>
+        chapter.id === chapterId
+          ? { ...chapter, items: [...chapter.items, { id: `${chapterId}-${chapter.items.length + 1}`, type: "lesson" }] }
+          : chapter
+      )
     );
   };
 
   const removeChapterItem = (chapterId: string, itemId: string) => {
     setChapters(
-      chapters.map((chapter) => {
-        if (chapter.id === chapterId) {
-          return {
-            ...chapter,
-            items: chapter.items.filter((item) => item.id !== itemId),
-          };
-        }
-        return chapter;
-      })
+      chapters.map((chapter) =>
+        chapter.id === chapterId ? { ...chapter, items: chapter.items.filter((item) => item.id !== itemId) } : chapter
+      )
     );
   };
 
-  const updateChapterItemType = (
-    chapterId: string,
-    itemId: string,
-    type: "lesson" | "practice" | "exam"
-  ) => {
+  const updateChapterItemType = (chapterId: string, itemId: string, type: "lesson" | "practice" | "exam") => {
     setChapters(
-      chapters.map((chapter) => {
-        if (chapter.id === chapterId) {
-          return {
-            ...chapter,
-            items: chapter.items.map((item) =>
-              item.id === itemId ? { ...item, type, itemId: undefined, title: undefined } : item
-            ),
-          };
-        }
-        return chapter;
-      })
+      chapters.map((chapter) =>
+        chapter.id === chapterId
+          ? { ...chapter, items: chapter.items.map((item) => (item.id === itemId ? { ...item, type, itemId: undefined, title: undefined } : item)) }
+          : chapter
+      )
     );
   };
 
-  // 更新章节项的具体内容选择
-  const updateChapterItemSelection = (
-    chapterId: string,
-    itemId: string,
-    selectedItemId: string,
-    selectedTitle: string
-  ) => {
+  const updateChapterItemSelection = (chapterId: string, itemId: string, selectedItemId: string, selectedTitle: string) => {
     setChapters(
-      chapters.map((chapter) => {
-        if (chapter.id === chapterId) {
-          return {
-            ...chapter,
-            items: chapter.items.map((item) =>
-              item.id === itemId ? { ...item, itemId: selectedItemId, title: selectedTitle } : item
-            ),
-          };
-        }
-        return chapter;
-      })
+      chapters.map((chapter) =>
+        chapter.id === chapterId
+          ? { ...chapter, items: chapter.items.map((item) => (item.id === itemId ? { ...item, itemId: selectedItemId, title: selectedTitle } : item)) }
+          : chapter
+      )
     );
-  };
-
-  // 获取章节中已选择的练习ID列表
-  const getSelectedPracticeIds = (chapter: Chapter, currentItemId: string): string[] => {
-    return chapter.items
-      .filter((item) => item.type === "practice" && item.itemId && item.id !== currentItemId)
-      .map((item) => item.itemId as string);
-  };
-
-  // 获取章节中已选择的教学ID列表
-  const getSelectedLessonIds = (chapter: Chapter, currentItemId: string): string[] => {
-    return chapter.items
-      .filter((item) => item.type === "lesson" && item.itemId && item.id !== currentItemId)
-      .map((item) => item.itemId as string);
-  };
-
-  // 获取章节中已选择的考评ID列表
-  const getSelectedExamIds = (chapter: Chapter, currentItemId: string): string[] => {
-    return chapter.items
-      .filter((item) => item.type === "exam" && item.itemId && item.id !== currentItemId)
-      .map((item) => item.itemId as string);
-  };
-
-  const startEditChapter = (chapter: Chapter) => {
-    setEditingChapterId(chapter.id);
-    setEditingChapterTitle(chapter.title);
-  };
-
-  const saveChapterTitle = () => {
-    if (editingChapterId && editingChapterTitle.trim()) {
-      setChapters(
-        chapters.map((chapter) =>
-          chapter.id === editingChapterId
-            ? { ...chapter, title: editingChapterTitle.trim() }
-            : chapter
-        )
-      );
-    }
-    setEditingChapterId(null);
-    setEditingChapterTitle("");
-  };
-
-  const cancelEditChapter = () => {
-    setEditingChapterId(null);
-    setEditingChapterTitle("");
   };
 
   const handleSave = async () => {
-    if (!title.trim()) {
-      toast.error("请输入培训名称");
-      return;
-    }
-
-    setIsSaving(true);
     try {
+      const values = await form.validateFields();
+      setIsSaving(true);
+
       const { data: { user } } = await supabase.auth.getUser();
-      
       if (!user) {
-        toast.error("请先登录后再创建培训计划");
+        message.error("请先登录");
         return;
       }
-      
-      // 调用初始化函数确保用户有组织
-      const { data: orgId, error: initError } = await supabase.rpc('initialize_user_with_organization', {
+
+      const { data: orgId, error: initError } = await supabase.rpc("initialize_user_with_organization", {
         _user_id: user.id,
         _full_name: user.user_metadata?.full_name || null,
-        _org_name: '我的组织'
+        _org_name: "我的组织",
       });
-      
+
       if (initError) {
-        console.error('Init error:', initError);
-        toast.error("初始化用户组织失败");
+        message.error("初始化用户组织失败");
         return;
       }
 
       if (isEdit && plan) {
-        // Update existing plan
         const { error: planError } = await supabase
-          .from('training_plans')
-          .update({
-            title,
-            description,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', plan.id);
-
+          .from("training_plans")
+          .update({ title: values.title, description: values.description, updated_at: new Date().toISOString() })
+          .eq("id", plan.id);
         if (planError) throw planError;
-        toast.success("培训计划已更新");
+        message.success("培训计划已更新");
       } else {
-        // Create new plan
         const { data: trainingPlan, error: planError } = await supabase
-          .from('training_plans')
-          .insert({
-            title,
-            description,
-            organization_id: orgId,
-            created_by: user?.id || null,
-            status: 'draft',
-          })
+          .from("training_plans")
+          .insert({ title: values.title, description: values.description, organization_id: orgId, created_by: user.id, status: "draft" })
           .select()
           .single();
-
         if (planError) throw planError;
 
-        // Insert chapters
         if (trainingPlan && chapters.length > 0) {
           const chaptersToInsert = chapters.map((chapter, index) => ({
             training_plan_id: trainingPlan.id,
             title: chapter.title,
             sort_order: index,
-            chapter_type: 'mixed',
+            chapter_type: "mixed",
           }));
-
-          const { error: chaptersError } = await supabase
-            .from('training_chapters')
-            .insert(chaptersToInsert);
-
+          const { error: chaptersError } = await supabase.from("training_chapters").insert(chaptersToInsert);
           if (chaptersError) throw chaptersError;
         }
-
-        toast.success("培训计划已创建");
+        message.success("培训计划已创建");
       }
 
-      // Invalidate query to refresh the list
-      queryClient.invalidateQueries({ queryKey: ['training-plans'] });
-
-      onSave({ title, description });
+      queryClient.invalidateQueries({ queryKey: ["training-plans"] });
+      onSave({ title: values.title, description: values.description });
       onOpenChange(false);
     } catch (error) {
-      console.error('Save error:', error);
-      toast.error("保存失败: " + (error instanceof Error ? error.message : "未知错误"));
+      console.error("Save error:", error);
+      message.error("保存失败: " + (error instanceof Error ? error.message : "未知错误"));
     } finally {
       setIsSaving(false);
     }
   };
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="pb-4 border-b">
-          <SheetTitle>{isEdit ? "编辑计划" : "新建计划"}</SheetTitle>
-        </SheetHeader>
+  const tabItems = [
+    {
+      key: "basic",
+      label: "基本信息",
+      children: (
+        <Form form={form} layout="vertical">
+          <Form.Item label="培训名称" name="title" rules={[{ required: true, message: "请输入培训名称" }]}>
+            <Input placeholder="请输入培训名称" />
+          </Form.Item>
+          <Form.Item label="所属部门" name="department">
+            <Select placeholder="请选择部门">
+              <Select.Option value="sales">销售部</Select.Option>
+              <Select.Option value="marketing">市场部</Select.Option>
+              <Select.Option value="hr">人力资源部</Select.Option>
+              <Select.Option value="tech">技术部</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item label="培训描述" name="description">
+            <TextArea placeholder="请输入培训描述" rows={4} maxLength={500} showCount />
+          </Form.Item>
+        </Form>
+      ),
+    },
+    {
+      key: "content",
+      label: "培训内容",
+      children: (
+        <div>
+          <Card size="small" title="Banner配置" style={{ marginBottom: 16 }}>
+            <Upload.Dragger>
+              <p className="ant-upload-drag-icon">
+                <UploadOutlined />
+              </p>
+              <p className="ant-upload-text">点击上传Banner图片 或 拖拽文件到此处</p>
+              <p className="ant-upload-hint">支持JPG、PNG格式，建议尺寸343px*150px</p>
+            </Upload.Dragger>
+          </Card>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="mb-4">
-            <TabsTrigger value="basic" className="gap-2">
-              基本信息
-              {!basicComplete && (
-                <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-600">
-                  待完善
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="content" className="gap-2">
-              培训内容
-              {!contentComplete && (
-                <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-600">
-                  待完善
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="basic" className="space-y-6">
-            <Card>
-              <CardContent className="pt-6 space-y-4">
-                <h3 className="font-medium text-base">基本信息</h3>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>
-                      <span className="text-destructive">*</span> 培训名称
-                    </Label>
-                    <Input
-                      placeholder="请输入"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>
-                      <span className="text-destructive">*</span> 所属部门
-                    </Label>
-                    <Select value={department} onValueChange={setDepartment}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="请输入所属部门" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="sales">销售部</SelectItem>
-                        <SelectItem value="marketing">市场部</SelectItem>
-                        <SelectItem value="hr">人力资源部</SelectItem>
-                        <SelectItem value="tech">技术部</SelectItem>
-                      </SelectContent>
+          <Card size="small" title="章节管理">
+            {chapters.map((chapter, chapterIndex) => (
+              <Card
+                key={chapter.id}
+                size="small"
+                title={<Input value={chapter.title} onChange={(e) => setChapters(chapters.map((c) => (c.id === chapter.id ? { ...c, title: e.target.value } : c)))} bordered={false} />}
+                extra={<Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeChapter(chapter.id)} />}
+                style={{ marginBottom: 8 }}
+              >
+                {chapter.items.map((item, itemIndex) => (
+                  <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <HolderOutlined style={{ color: "#999" }} />
+                    <Select value={item.type} onChange={(value) => updateChapterItemType(chapter.id, item.id, value)} style={{ width: 100 }}>
+                      <Select.Option value="lesson">课程</Select.Option>
+                      <Select.Option value="practice">练习</Select.Option>
+                      <Select.Option value="exam">考评</Select.Option>
                     </Select>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label>
-                    <span className="text-destructive">*</span> 培训描述
-                  </Label>
-                  <Textarea
-                    placeholder="请输入"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    className="min-h-[100px]"
-                    maxLength={500}
-                  />
-                  <p className="text-xs text-muted-foreground text-right">
-                    {description.length} / 500
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="content" className="space-y-6">
-            <Card>
-              <CardContent className="pt-6 space-y-6">
-                <h3 className="font-medium text-base">培训内容</h3>
-
-                {/* Banner Upload */}
-                <div className="space-y-2">
-                  <div>
-                    <p className="font-medium text-sm">Banner配置</p>
-                    <p className="text-xs text-muted-foreground">
-                      培训Banner图片
-                    </p>
-                  </div>
-                  <div className="border-2 border-dashed rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                    <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm">
-                      <span className="text-primary">点击上传Banner图片</span>{" "}
-                      或者 拖拽文件到此处
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      支持JPG、PNG格式，建议尺寸343px*150px
-                    </p>
-                  </div>
-                </div>
-
-                {/* Chapter Management */}
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">章节管理</span>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="sequential"
-                        checked={sequentialLearning}
-                        onCheckedChange={(checked) =>
-                          setSequentialLearning(!!checked)
-                        }
-                      />
-                      <Label
-                        htmlFor="sequential"
-                        className="text-sm text-muted-foreground font-normal"
-                      >
-                        依次学习（需按顺序，前序不完成后续内容无法学习）
-                      </Label>
-                    </div>
-                  </div>
-
-                  {chapters.map((chapter) => (
-                    <Card key={chapter.id} className="bg-muted/30">
-                      <CardContent className="p-4 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 flex-1 min-w-0">
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-move shrink-0" />
-                            {editingChapterId === chapter.id ? (
-                              <Input
-                                value={editingChapterTitle}
-                                onChange={(e) => setEditingChapterTitle(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    saveChapterTitle();
-                                  } else if (e.key === 'Escape') {
-                                    cancelEditChapter();
-                                  }
-                                }}
-                                className="h-8 text-sm flex-1"
-                                autoFocus
-                              />
-                            ) : (
-                              <span className="font-medium text-sm truncate">
-                                {chapter.title}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {editingChapterId === chapter.id ? (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={saveChapterTitle}
-                                >
-                                  <Check className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={cancelEditChapter}
-                                >
-                                  <X className="h-4 w-4" />
-                                </Button>
-                              </>
-                            ) : (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => startEditChapter(chapter)}
-                                >
-                                  编辑
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => removeChapter(chapter.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </div>
-
-                        {chapter.items.map((item) => (
-                          <div
-                            key={item.id}
-                            className="flex items-center gap-2 pl-6"
-                          >
-                            <GripVertical className="h-4 w-4 text-muted-foreground cursor-move" />
-                            <Select
-                              value={item.type}
-                              onValueChange={(value) =>
-                                updateChapterItemType(
-                                  chapter.id,
-                                  item.id,
-                                  value as "lesson" | "practice" | "exam"
-                                )
-                              }
-                            >
-                              <SelectTrigger className="w-[100px]">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="lesson">教学</SelectItem>
-                                <SelectItem value="practice">练习</SelectItem>
-                                <SelectItem value="exam">考评</SelectItem>
-                              </SelectContent>
-                            </Select>
-                            {/* 显示内容项标题 - 根据类型显示不同的选择器 */}
-                            <div className="flex-1 min-w-0">
-                              {item.type === "practice" ? (
-                                // 练习类型：显示练习计划下拉框
-                                <Select
-                                  value={item.itemId || ""}
-                                  onValueChange={(value) => {
-                                    const selectedPractice = practiceSessions.find(p => p.id === value);
-                                    if (selectedPractice) {
-                                      updateChapterItemSelection(chapter.id, item.id, value, selectedPractice.title);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="请选择练习计划">
-                                      {item.title || "请选择练习计划"}
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {practiceSessions.length === 0 ? (
-                                      <SelectItem value="none" disabled>暂无练习计划</SelectItem>
-                                    ) : (
-                                      practiceSessions.map((practice) => {
-                                        const selectedIds = getSelectedPracticeIds(chapter, item.id);
-                                        const isDisabled = selectedIds.includes(practice.id);
-                                        return (
-                                          <SelectItem 
-                                            key={practice.id} 
-                                            value={practice.id}
-                                            disabled={isDisabled}
-                                          >
-                                            {practice.title}
-                                            {isDisabled && " (已选择)"}
-                                          </SelectItem>
-                                        );
-                                      })
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                              ) : item.type === "lesson" ? (
-                                // 教学类型：显示教学内容下拉框
-                                <Select
-                                  value={item.itemId || ""}
-                                  onValueChange={(value) => {
-                                    const selectedLesson = lessonContents.find(l => l.id === value);
-                                    if (selectedLesson) {
-                                      updateChapterItemSelection(chapter.id, item.id, value, selectedLesson.title);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="请选择教学内容">
-                                      {item.title || "请选择教学内容"}
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {lessonContents.length === 0 ? (
-                                      <SelectItem value="none" disabled>暂无教学内容</SelectItem>
-                                    ) : (
-                                      lessonContents.map((lesson) => {
-                                        const selectedIds = getSelectedLessonIds(chapter, item.id);
-                                        const isDisabled = selectedIds.includes(lesson.id);
-                                        return (
-                                          <SelectItem 
-                                            key={lesson.id} 
-                                            value={lesson.id}
-                                            disabled={isDisabled}
-                                          >
-                                            {lesson.title}
-                                            {isDisabled && " (已选择)"}
-                                          </SelectItem>
-                                        );
-                                      })
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                              ) : (
-                                // 考评类型：显示考评下拉框
-                                <Select
-                                  value={item.itemId || ""}
-                                  onValueChange={(value) => {
-                                    const selectedExam = exams.find(e => e.id === value);
-                                    if (selectedExam) {
-                                      updateChapterItemSelection(chapter.id, item.id, value, selectedExam.title);
-                                    }
-                                  }}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue placeholder="请选择考评">
-                                      {item.title || "请选择考评"}
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    {exams.length === 0 ? (
-                                      <SelectItem value="none" disabled>暂无考评</SelectItem>
-                                    ) : (
-                                      exams.map((exam) => {
-                                        const selectedIds = getSelectedExamIds(chapter, item.id);
-                                        const isDisabled = selectedIds.includes(exam.id);
-                                        return (
-                                          <SelectItem 
-                                            key={exam.id} 
-                                            value={exam.id}
-                                            disabled={isDisabled}
-                                          >
-                                            {exam.title}
-                                            {isDisabled && " (已选择)"}
-                                          </SelectItem>
-                                        );
-                                      })
-                                    )}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8 shrink-0"
-                              onClick={() =>
-                                removeChapterItem(chapter.id, item.id)
-                              }
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
+                    <Select
+                      value={item.itemId}
+                      onChange={(value, option: any) => updateChapterItemSelection(chapter.id, item.id, value, option?.label || "")}
+                      style={{ flex: 1 }}
+                      placeholder="选择内容"
+                    >
+                      {item.type === "lesson" &&
+                        lessonContents.map((c) => (
+                          <Select.Option key={c.id} value={c.id} label={c.title}>
+                            {c.title}
+                          </Select.Option>
                         ))}
+                      {item.type === "practice" &&
+                        practiceSessions.map((p) => (
+                          <Select.Option key={p.id} value={p.id} label={p.title}>
+                            {p.title}
+                          </Select.Option>
+                        ))}
+                      {item.type === "exam" &&
+                        exams.map((e) => (
+                          <Select.Option key={e.id} value={e.id} label={e.title}>
+                            {e.title}
+                          </Select.Option>
+                        ))}
+                    </Select>
+                    <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeChapterItem(chapter.id, item.id)} />
+                  </div>
+                ))}
+                <Button type="dashed" icon={<PlusOutlined />} onClick={() => addChapterItem(chapter.id)} block>
+                  添加内容
+                </Button>
+              </Card>
+            ))}
+            <Button type="dashed" icon={<PlusOutlined />} onClick={addChapter} block>
+              添加章节
+            </Button>
+          </Card>
+        </div>
+      ),
+    },
+  ];
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-primary ml-6"
-                          onClick={() => addChapterItem(chapter.id)}
-                        >
-                          <Plus className="h-4 w-4 mr-1" />
-                          添加项
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-primary"
-                    onClick={addChapter}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    新建章节
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* Footer */}
-        <div className="flex justify-end gap-3 pt-6 border-t mt-6">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            取消
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                保存中...
-              </>
-            ) : (
-              "确定"
-            )}
+  return (
+    <Drawer
+      title={isEdit ? "编辑计划" : "新建计划"}
+      placement="right"
+      width={640}
+      open={open}
+      onClose={() => onOpenChange(false)}
+      footer={
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Button onClick={() => onOpenChange(false)}>取消</Button>
+          <Button type="primary" onClick={handleSave} loading={isSaving}>
+            保存
           </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+      }
+    >
+      <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
+    </Drawer>
   );
 }

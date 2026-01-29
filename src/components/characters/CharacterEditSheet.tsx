@@ -1,24 +1,11 @@
 import { useState, useEffect } from "react";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-import { Plus, Trash2, Check, Loader2 } from "lucide-react";
+import { Drawer, Button, Input, Form, Tabs, Card, Avatar, Space, App, Tag } from "antd";
+import { PlusOutlined, DeleteOutlined, CheckOutlined } from "@ant-design/icons";
 import type { Database } from "@/integrations/supabase/types";
 
-type AICharacterRow = Database['public']['Tables']['ai_characters']['Row'];
+const { TextArea } = Input;
+
+type AICharacterRow = Database["public"]["Tables"]["ai_characters"]["Row"];
 
 interface CharacterEditSheetProps {
   open: boolean;
@@ -57,275 +44,186 @@ export function CharacterEditSheet({
   onSave,
   isSaving = false,
 }: CharacterEditSheetProps) {
-  const [formData, setFormData] = useState({
-    name: "",
-    personality: "",
-    voiceStyle: "",
-    systemPrompt: "",
-    avatarUrl: "",
-    selectedAgentId: "",
-  });
-
+  const { message } = App.useApp();
+  const [form] = Form.useForm();
   const [selectedAvatar, setSelectedAvatar] = useState(0);
+  const [selectedVoiceStyle, setSelectedVoiceStyle] = useState("");
 
   useEffect(() => {
     if (character) {
-      setFormData({
+      form.setFieldsValue({
         name: character.name,
         personality: character.personality || "",
-        voiceStyle: character.voice_style || "",
         systemPrompt: character.system_prompt || "",
-        avatarUrl: character.avatar_url || "",
-        selectedAgentId: "",
       });
+      setSelectedVoiceStyle(character.voice_style || "");
     } else {
-      setFormData({
-        name: "",
-        personality: "",
-        voiceStyle: "",
-        systemPrompt: "",
-        avatarUrl: "",
-        selectedAgentId: "",
-      });
+      form.resetFields();
+      setSelectedVoiceStyle("");
+      setSelectedAvatar(0);
     }
-  }, [character, open]);
+  }, [character, open, form]);
 
   const handleSave = async () => {
-    if (!formData.name) {
-      toast.error("请输入角色名称");
-      return;
+    try {
+      const values = await form.validateFields();
+      await onSave({
+        name: values.name,
+        personality: values.personality,
+        voiceStyle: selectedVoiceStyle,
+        systemPrompt: values.systemPrompt,
+        avatarUrl: mockAvatars[selectedAvatar],
+      });
+      onOpenChange(false);
+    } catch (error) {
+      message.error("请填写完整信息");
     }
-    await onSave({
-      name: formData.name,
-      personality: formData.personality,
-      voiceStyle: formData.voiceStyle,
-      systemPrompt: formData.systemPrompt,
-      avatarUrl: formData.avatarUrl,
-    });
   };
 
   const isEditing = !!character;
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
-        <SheetHeader className="flex flex-row items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={formData.avatarUrl} />
-              <AvatarFallback className="bg-primary/10 text-primary">
-                {formData.name?.slice(0, 2) || "AI"}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <SheetTitle>{isEditing ? formData.name : "新建AI角色"}</SheetTitle>
-              {isEditing && character?.updated_at && (
-                <p className="text-xs text-muted-foreground">
-                  数据保存于 {new Date(character.updated_at).toLocaleString()}
-                </p>
-              )}
-            </div>
-          </div>
-        </SheetHeader>
+  const tabItems = [
+    {
+      key: "config",
+      label: "配置",
+      children: (
+        <div>
+          <Card size="small" title="基本信息" style={{ marginBottom: 16 }}>
+            <Form form={form} layout="vertical">
+              <Form.Item label="角色名称" name="name" rules={[{ required: true, message: "请输入角色名称" }]}>
+                <Input placeholder="请输入角色名称" />
+              </Form.Item>
+              <Form.Item label="性格特点" name="personality">
+                <Input placeholder="如：专业、严谨、有耐心" />
+              </Form.Item>
+              <Form.Item label="系统提示词" name="systemPrompt">
+                <TextArea placeholder="请输入角色的系统提示词..." rows={4} />
+              </Form.Item>
+            </Form>
+          </Card>
 
-        <Tabs defaultValue="config" className="mt-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="config">配置</TabsTrigger>
-            <TabsTrigger value="preview">预览与调试</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="config" className="space-y-6 mt-4">
-            {/* Basic Info */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">基本信息</Label>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">角色名称 *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="请输入角色名称"
-                  />
+          <Card size="small" title="员工技能" style={{ marginBottom: 16 }}>
+            {mockAgents.map((agent) => (
+              <div key={agent.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 0", borderBottom: "1px solid #f0f0f0" }}>
+                <div>
+                  <div style={{ fontWeight: 500 }}>{agent.name}</div>
+                  <div style={{ color: "#999", fontSize: 12 }}>{agent.description}</div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="personality">性格特点</Label>
-                  <Input
-                    id="personality"
-                    value={formData.personality}
-                    onChange={(e) => setFormData({ ...formData, personality: e.target.value })}
-                    placeholder="如：专业、严谨、有耐心"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="systemPrompt">系统提示词</Label>
-                  <Textarea
-                    id="systemPrompt"
-                    value={formData.systemPrompt}
-                    onChange={(e) => setFormData({ ...formData, systemPrompt: e.target.value })}
-                    placeholder="请输入角色的系统提示词..."
-                    rows={4}
-                  />
-                </div>
+                <Button type="text" danger icon={<DeleteOutlined />} />
               </div>
-            </div>
+            ))}
+            <Button type="dashed" icon={<PlusOutlined />} block style={{ marginTop: 8 }}>
+              请添加智能体
+            </Button>
+          </Card>
 
-            {/* Agent Selection */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">员工技能</Label>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <span>▼</span>
-                  <span>智能体</span>
-                  <Button variant="ghost" size="sm" className="h-6 px-2">
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-                {mockAgents.map((agent) => (
-                  <div
-                    key={agent.id}
-                    className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
-                  >
-                    <div>
-                      <div className="font-medium">{agent.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {agent.description}
-                      </div>
-                    </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </div>
-                ))}
-                <Button variant="outline" className="w-full mt-2">
-                  <Plus className="mr-2 h-4 w-4" />
-                  请添加智能体
-                </Button>
-              </div>
-            </div>
-
-            {/* Digital Avatar */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">数字形象</Label>
-              <div className="grid grid-cols-6 gap-3">
-                {mockAvatars.map((avatar, index) => (
-                  <div
-                    key={index}
-                    className={cn(
-                      "relative aspect-square rounded-lg overflow-hidden cursor-pointer border-2 transition-all",
-                      selectedAvatar === index
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-transparent hover:border-primary/30"
-                    )}
-                    onClick={() => setSelectedAvatar(index)}
-                  >
-                    <img
-                      src={avatar}
-                      alt={`Avatar ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    {selectedAvatar === index && (
-                      <div className="absolute top-1 right-1 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="h-3 w-3 text-primary-foreground" />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                我的形象（添加时请上传5s左右的mp4格式视频，人物稳定居中避免大幅运动）
-              </p>
-              <Button variant="outline" className="w-full">
-                <Plus className="mr-2 h-4 w-4" />
-                点击添加数字形象
-              </Button>
-            </div>
-
-            {/* Voice Style */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">语言风格</Label>
-              <div className="space-y-2">
-                <div className="text-sm text-muted-foreground">风格</div>
-                <div className="flex flex-wrap gap-2">
-                  {voiceStyles.map((style) => (
-                    <Badge
-                      key={style}
-                      variant={formData.voiceStyle === style ? "default" : "outline"}
-                      className={cn(
-                        "cursor-pointer px-4 py-2",
-                        formData.voiceStyle === style && "bg-primary text-primary-foreground"
-                      )}
-                      onClick={() =>
-                        setFormData({ ...formData, voiceStyle: style })
-                      }
+          <Card size="small" title="数字形象" style={{ marginBottom: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
+              {mockAvatars.map((avatar, index) => (
+                <div
+                  key={index}
+                  style={{
+                    position: "relative",
+                    aspectRatio: "1",
+                    borderRadius: 8,
+                    overflow: "hidden",
+                    cursor: "pointer",
+                    border: selectedAvatar === index ? "2px solid #1677ff" : "2px solid transparent",
+                  }}
+                  onClick={() => setSelectedAvatar(index)}
+                >
+                  <img src={avatar} alt={`Avatar ${index + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  {selectedAvatar === index && (
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 4,
+                        right: 4,
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        background: "#1677ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
                     >
-                      {style}
-                    </Badge>
-                  ))}
+                      <CheckOutlined style={{ color: "#fff", fontSize: 12 }} />
+                    </div>
+                  )}
                 </div>
-              </div>
+              ))}
             </div>
+            <Button type="dashed" icon={<PlusOutlined />} block style={{ marginTop: 8 }}>
+              点击添加数字形象
+            </Button>
+          </Card>
 
-            {/* Friendly Reminder */}
-            <div className="space-y-3">
-              <Label className="text-base font-medium">友情提示</Label>
-              <Card className="border-destructive/30 bg-destructive/5">
-                <CardContent className="p-4 text-sm space-y-2">
-                  <p>1. 请引导用户，禁止输入违法信息、个人信息及其他敏感数据。</p>
-                  <p>2. 对于大模型输出内容，如需展示给C端，请经过脱敏审核后，再行展示。</p>
-                  <p className="text-destructive font-medium">
-                    特别提醒：输入如包含公司核心算法代码、内部高层领导等讲话、大促活动安排、财务和战略信息等高级别商业秘密，严禁使用外部大模型（京东集团言屋大模型）。可参考《京东集团商业秘密管理办法》
-                  </p>
-                </CardContent>
-              </Card>
+          <Card size="small" title="语言风格">
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {voiceStyles.map((style) => (
+                <Tag
+                  key={style}
+                  color={selectedVoiceStyle === style ? "blue" : undefined}
+                  style={{ cursor: "pointer", padding: "4px 12px" }}
+                  onClick={() => setSelectedVoiceStyle(style)}
+                >
+                  {style}
+                </Tag>
+              ))}
             </div>
-          </TabsContent>
+          </Card>
+        </div>
+      ),
+    },
+    {
+      key: "preview",
+      label: "预览与调试",
+      children: (
+        <Card>
+          <div style={{ textAlign: "center", padding: "48px 0" }}>
+            <Avatar size={96} style={{ backgroundColor: "#1677ff", marginBottom: 16 }}>
+              {form.getFieldValue("name")?.slice(0, 2) || "AI"}
+            </Avatar>
+            <h3>{form.getFieldValue("name") || "AI角色"}</h3>
+            <p style={{ color: "#999" }}>{form.getFieldValue("personality") || "请设置角色性格特点"}</p>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Input placeholder="请输入内容" style={{ flex: 1 }} />
+            <Button>发送</Button>
+          </div>
+        </Card>
+      ),
+    },
+  ];
 
-          <TabsContent value="preview" className="mt-4">
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center justify-center py-12">
-                  <Avatar className="h-24 w-24 mb-4">
-                    <AvatarImage src={formData.avatarUrl} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-2xl">
-                      {formData.name?.slice(0, 2) || "AI"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h3 className="font-medium text-lg">{formData.name || "AI角色"}</h3>
-                  <p className="text-sm text-muted-foreground mt-2 text-center max-w-md">
-                    {formData.personality || "请设置角色性格特点"}
-                  </p>
-                </div>
-
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      placeholder="请输入内容"
-                      className="flex-1"
-                    />
-                    <Button size="icon" variant="ghost">
-                      😊
-                    </Button>
-                    <Button size="icon">
-                      ▶
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        <div className="flex justify-end gap-3 pt-6 mt-6 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            取消
-          </Button>
-          <Button onClick={handleSave} disabled={isSaving}>
-            {isSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+  return (
+    <Drawer
+      title={
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Avatar style={{ backgroundColor: "#1677ff" }}>{form.getFieldValue("name")?.slice(0, 2) || "AI"}</Avatar>
+          <div>
+            <div>{isEditing ? form.getFieldValue("name") : "新建AI角色"}</div>
+            {isEditing && character?.updated_at && (
+              <div style={{ fontSize: 12, color: "#999" }}>数据保存于 {new Date(character.updated_at).toLocaleString()}</div>
+            )}
+          </div>
+        </div>
+      }
+      placement="right"
+      width={640}
+      open={open}
+      onClose={() => onOpenChange(false)}
+      footer={
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <Button onClick={() => onOpenChange(false)}>取消</Button>
+          <Button type="primary" onClick={handleSave} loading={isSaving}>
             保存
           </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+      }
+    >
+      <Tabs items={tabItems} />
+    </Drawer>
   );
 }
