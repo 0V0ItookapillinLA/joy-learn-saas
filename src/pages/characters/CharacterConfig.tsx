@@ -1,22 +1,11 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Search, Loader2 } from "lucide-react";
+import { Card, Input, Button, Table, Tag, Space, Avatar, Statistic, Row, Col, message } from "antd";
+import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
 import { CharacterEditSheet } from "@/components/characters/CharacterEditSheet";
 import { useAICharacters, useCreateAICharacter, useUpdateAICharacter, useDeleteAICharacter } from "@/hooks/useAICharacters";
 import type { Database } from "@/integrations/supabase/types";
+import type { ColumnsType } from "antd/es/table";
 
 type AICharacterRow = Database['public']['Tables']['ai_characters']['Row'];
 
@@ -97,132 +86,131 @@ export default function CharacterConfig() {
   const totalCharacters = characters.length;
   const activeCharacters = characters.filter((c) => c.is_active).length;
 
+  const columns: ColumnsType<AICharacterRow> = [
+    {
+      title: "角色名称",
+      dataIndex: "name",
+      key: "name",
+      render: (text, record) => (
+        <div className="flex items-center gap-3">
+          <Avatar
+            src={record.avatar_url || undefined}
+            style={{ backgroundColor: "#3b82f6" }}
+          >
+            {text.slice(0, 2)}
+          </Avatar>
+          <span className="font-medium">{text}</span>
+        </div>
+      ),
+    },
+    {
+      title: "性格特点",
+      dataIndex: "personality",
+      key: "personality",
+      render: (text) => <span className="text-gray-500">{text || "-"}</span>,
+    },
+    {
+      title: "语音风格",
+      dataIndex: "voice_style",
+      key: "voice_style",
+      render: (text) => <Tag>{text || "未设置"}</Tag>,
+    },
+    {
+      title: "状态",
+      dataIndex: "is_active",
+      key: "is_active",
+      align: "center",
+      render: (isActive, record) => (
+        <Tag
+          color={isActive ? "success" : "default"}
+          style={{ cursor: "pointer" }}
+          onClick={() => handleToggleActive(record)}
+        >
+          {isActive ? "启用" : "停用"}
+        </Tag>
+      ),
+    },
+    {
+      title: "更新时间",
+      dataIndex: "updated_at",
+      key: "updated_at",
+      align: "center",
+      render: (date) => date ? new Date(date).toLocaleDateString() : '-',
+    },
+    {
+      title: "操作",
+      key: "action",
+      align: "center",
+      render: (_, record) => (
+        <Space size="small">
+          <Button type="link" size="small" onClick={() => handleEdit(record)}>
+            编辑
+          </Button>
+          <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+            删除
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <DashboardLayout title="角色配置" description="管理AI对话角色">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalCharacters}</div>
-              <p className="text-sm text-muted-foreground">全部角色</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">{activeCharacters}</div>
-              <p className="text-sm text-muted-foreground">已启用</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-sm text-muted-foreground">总使用次数</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Row gutter={16}>
+          <Col xs={12} sm={8}>
+            <Card>
+              <Statistic title="全部角色" value={totalCharacters} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8}>
+            <Card>
+              <Statistic title="已启用" value={activeCharacters} valueStyle={{ color: "#3b82f6" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={8}>
+            <Card>
+              <Statistic title="总使用次数" value={0} />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Filters */}
         <div className="flex items-center justify-between">
-          <div className="relative w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="搜索角色名称..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Input
+            placeholder="搜索角色名称..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            prefix={<SearchOutlined className="text-gray-400" />}
+            style={{ width: 320 }}
+            allowClear
+          />
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建AI角色
           </Button>
         </div>
 
         {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredCharacters.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <p>暂无AI角色</p>
-                <p className="text-sm">点击"新建AI角色"创建第一个角色</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>角色名称</TableHead>
-                    <TableHead>性格特点</TableHead>
-                    <TableHead>语音风格</TableHead>
-                    <TableHead className="text-center">状态</TableHead>
-                    <TableHead className="text-center">更新时间</TableHead>
-                    <TableHead className="text-center">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredCharacters.map((character) => (
-                    <TableRow key={character.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={character.avatar_url || undefined} />
-                            <AvatarFallback className="bg-primary/10 text-primary">
-                              {character.name.slice(0, 2)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <span className="font-medium">{character.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm text-muted-foreground">
-                          {character.personality || "-"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{character.voice_style || "未设置"}</Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge
-                          variant={character.is_active ? "default" : "secondary"}
-                          className="cursor-pointer"
-                          onClick={() => handleToggleActive(character)}
-                        >
-                          {character.is_active ? "启用" : "停用"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center text-muted-foreground">
-                        {character.updated_at ? new Date(character.updated_at).toLocaleDateString() : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-primary"
-                            onClick={() => handleEdit(character)}
-                          >
-                            编辑
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-destructive"
-                            onClick={() => handleDelete(character)}
-                          >
-                            删除
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
+        <Card bodyStyle={{ padding: 0 }}>
+          <Table
+            columns={columns}
+            dataSource={filteredCharacters}
+            rowKey="id"
+            loading={isLoading}
+            locale={{
+              emptyText: (
+                <div className="py-8 text-gray-500">
+                  <p>暂无AI角色</p>
+                  <p className="text-sm">点击"新建AI角色"创建第一个角色</p>
+                </div>
+              ),
+            }}
+            pagination={{
+              showSizeChanger: true,
+              showTotal: (total) => `共 ${total} 条记录`,
+            }}
+          />
         </Card>
       </div>
 

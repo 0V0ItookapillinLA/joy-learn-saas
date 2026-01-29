@@ -1,49 +1,32 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { GraduationCap, Loader2, Eye, EyeOff } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
+import { Form, Input, Button, Tabs, Card, Typography, message } from "antd";
+import { EyeInvisibleOutlined, EyeTwoTone, LoadingOutlined } from "@ant-design/icons";
+import { GraduationCap } from "lucide-react";
 
-const loginSchema = z.object({
-  email: z.string().email("请输入有效的邮箱地址"),
-  password: z.string().min(6, "密码至少需要6个字符"),
-});
+const { Title, Text } = Typography;
 
-const signupSchema = z.object({
-  fullName: z.string().min(2, "姓名至少需要2个字符").max(50, "姓名不能超过50个字符"),
-  email: z.string().email("请输入有效的邮箱地址"),
-  password: z.string().min(6, "密码至少需要6个字符"),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "两次输入的密码不一致",
-  path: ["confirmPassword"],
-});
+interface LoginFormValues {
+  email: string;
+  password: string;
+}
+
+interface SignupFormValues {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
 export default function Auth() {
   const [activeTab, setActiveTab] = useState("login");
   const [loading, setLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  
-  // Login form
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  
-  // Signup form
-  const [signupFullName, setSignupFullName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
+  const [loginForm] = Form.useForm<LoginFormValues>();
+  const [signupForm] = Form.useForm<SignupFormValues>();
 
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   // Redirect if already logged in
   if (!authLoading && user) {
@@ -51,243 +34,216 @@ export default function Auth() {
     return null;
   }
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-    
-    try {
-      loginSchema.parse({ email: loginEmail, password: loginPassword });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const fieldErrors: Record<string, string> = {};
-        err.errors.forEach((error) => {
-          if (error.path[0]) {
-            fieldErrors[error.path[0] as string] = error.message;
-          }
-        });
-        setErrors(fieldErrors);
-        return;
-      }
-    }
-
+  const handleLogin = async (values: LoginFormValues) => {
     setLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    const { error } = await signIn(values.email, values.password);
     setLoading(false);
 
     if (error) {
-      let message = "登录失败，请重试";
+      let errorMessage = "登录失败，请重试";
       if (error.message.includes("Invalid login credentials")) {
-        message = "邮箱或密码错误";
+        errorMessage = "邮箱或密码错误";
       } else if (error.message.includes("Email not confirmed")) {
-        message = "请先验证您的邮箱";
+        errorMessage = "请先验证您的邮箱";
       }
-      toast({
-        variant: "destructive",
-        title: "登录失败",
-        description: message,
-      });
+      message.error(errorMessage);
     } else {
-      toast({
-        title: "登录成功",
-        description: "欢迎回来！",
-      });
+      message.success("登录成功，欢迎回来！");
       navigate("/dashboard");
     }
   };
 
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrors({});
-
-    try {
-      signupSchema.parse({
-        fullName: signupFullName,
-        email: signupEmail,
-        password: signupPassword,
-        confirmPassword: signupConfirmPassword,
-      });
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        const fieldErrors: Record<string, string> = {};
-        err.errors.forEach((error) => {
-          if (error.path[0]) {
-            fieldErrors[`signup_${error.path[0]}`] = error.message;
-          }
-        });
-        setErrors(fieldErrors);
-        return;
-      }
-    }
-
+  const handleSignup = async (values: SignupFormValues) => {
     setLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupFullName);
+    const { error } = await signUp(values.email, values.password, values.fullName);
     setLoading(false);
 
     if (error) {
-      let message = "注册失败，请重试";
+      let errorMessage = "注册失败，请重试";
       if (error.message.includes("User already registered")) {
-        message = "该邮箱已被注册";
+        errorMessage = "该邮箱已被注册";
       }
-      toast({
-        variant: "destructive",
-        title: "注册失败",
-        description: message,
-      });
+      message.error(errorMessage);
     } else {
-      toast({
-        title: "注册成功",
-        description: "欢迎加入 JoyLearning！",
-      });
+      message.success("注册成功，欢迎加入 JoyLearning！");
       navigate("/dashboard");
     }
   };
+
+  const tabItems = [
+    {
+      key: "login",
+      label: "登录",
+      children: (
+        <Form
+          form={loginForm}
+          layout="vertical"
+          onFinish={handleLogin}
+          autoComplete="off"
+          requiredMark={false}
+        >
+          <Form.Item
+            label="邮箱"
+            name="email"
+            rules={[
+              { required: true, message: "请输入邮箱" },
+              { type: "email", message: "请输入有效的邮箱地址" },
+            ]}
+          >
+            <Input placeholder="请输入邮箱" size="large" disabled={loading} />
+          </Form.Item>
+
+          <Form.Item
+            label="密码"
+            name="password"
+            rules={[
+              { required: true, message: "请输入密码" },
+              { min: 6, message: "密码至少需要6个字符" },
+            ]}
+          >
+            <Input.Password
+              placeholder="请输入密码"
+              size="large"
+              disabled={loading}
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+              }
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              block
+              loading={loading}
+            >
+              登录
+            </Button>
+          </Form.Item>
+        </Form>
+      ),
+    },
+    {
+      key: "signup",
+      label: "注册",
+      children: (
+        <Form
+          form={signupForm}
+          layout="vertical"
+          onFinish={handleSignup}
+          autoComplete="off"
+          requiredMark={false}
+        >
+          <Form.Item
+            label="姓名"
+            name="fullName"
+            rules={[
+              { required: true, message: "请输入姓名" },
+              { min: 2, message: "姓名至少需要2个字符" },
+              { max: 50, message: "姓名不能超过50个字符" },
+            ]}
+          >
+            <Input placeholder="请输入姓名" size="large" disabled={loading} />
+          </Form.Item>
+
+          <Form.Item
+            label="邮箱"
+            name="email"
+            rules={[
+              { required: true, message: "请输入邮箱" },
+              { type: "email", message: "请输入有效的邮箱地址" },
+            ]}
+          >
+            <Input placeholder="请输入邮箱" size="large" disabled={loading} />
+          </Form.Item>
+
+          <Form.Item
+            label="密码"
+            name="password"
+            rules={[
+              { required: true, message: "请输入密码" },
+              { min: 6, message: "密码至少需要6个字符" },
+            ]}
+          >
+            <Input.Password
+              placeholder="请输入密码（至少6位）"
+              size="large"
+              disabled={loading}
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+              }
+            />
+          </Form.Item>
+
+          <Form.Item
+            label="确认密码"
+            name="confirmPassword"
+            dependencies={["password"]}
+            rules={[
+              { required: true, message: "请再次输入密码" },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue("password") === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error("两次输入的密码不一致"));
+                },
+              }),
+            ]}
+          >
+            <Input.Password
+              placeholder="请再次输入密码"
+              size="large"
+              disabled={loading}
+              iconRender={(visible) =>
+                visible ? <EyeTwoTone /> : <EyeInvisibleOutlined />
+              }
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              size="large"
+              block
+              loading={loading}
+            >
+              注册
+            </Button>
+          </Form.Item>
+        </Form>
+      ),
+    },
+  ];
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary shadow-lg">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
+            <GraduationCap className="h-8 w-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold">JoyLearning</h1>
-          <p className="text-muted-foreground">AI智能培训管理平台</p>
+          <Title level={3} style={{ marginBottom: 4 }}>
+            JoyLearning
+          </Title>
+          <Text type="secondary">AI智能培训管理平台</Text>
         </div>
 
         <Card className="shadow-xl">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <CardHeader className="pb-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">登录</TabsTrigger>
-                <TabsTrigger value="signup">注册</TabsTrigger>
-              </TabsList>
-            </CardHeader>
-
-            <TabsContent value="login" className="mt-0">
-              <form onSubmit={handleLogin}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">邮箱</Label>
-                    <Input
-                      id="login-email"
-                      type="email"
-                      placeholder="请输入邮箱"
-                      value={loginEmail}
-                      onChange={(e) => setLoginEmail(e.target.value)}
-                      disabled={loading}
-                    />
-                    {errors.email && (
-                      <p className="text-sm text-destructive">{errors.email}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">密码</Label>
-                    <div className="relative">
-                      <Input
-                        id="login-password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="请输入密码"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        disabled={loading}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                    {errors.password && (
-                      <p className="text-sm text-destructive">{errors.password}</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    登录
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup" className="mt-0">
-              <form onSubmit={handleSignup}>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-name">姓名</Label>
-                    <Input
-                      id="signup-name"
-                      type="text"
-                      placeholder="请输入姓名"
-                      value={signupFullName}
-                      onChange={(e) => setSignupFullName(e.target.value)}
-                      disabled={loading}
-                    />
-                    {errors.signup_fullName && (
-                      <p className="text-sm text-destructive">{errors.signup_fullName}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">邮箱</Label>
-                    <Input
-                      id="signup-email"
-                      type="email"
-                      placeholder="请输入邮箱"
-                      value={signupEmail}
-                      onChange={(e) => setSignupEmail(e.target.value)}
-                      disabled={loading}
-                    />
-                    {errors.signup_email && (
-                      <p className="text-sm text-destructive">{errors.signup_email}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">密码</Label>
-                    <Input
-                      id="signup-password"
-                      type="password"
-                      placeholder="请输入密码（至少6位）"
-                      value={signupPassword}
-                      onChange={(e) => setSignupPassword(e.target.value)}
-                      disabled={loading}
-                    />
-                    {errors.signup_password && (
-                      <p className="text-sm text-destructive">{errors.signup_password}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-confirm">确认密码</Label>
-                    <Input
-                      id="signup-confirm"
-                      type="password"
-                      placeholder="请再次输入密码"
-                      value={signupConfirmPassword}
-                      onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                      disabled={loading}
-                    />
-                    {errors.signup_confirmPassword && (
-                      <p className="text-sm text-destructive">{errors.signup_confirmPassword}</p>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    注册
-                  </Button>
-                </CardFooter>
-              </form>
-            </TabsContent>
-          </Tabs>
+          <Tabs
+            activeKey={activeTab}
+            onChange={setActiveTab}
+            items={tabItems}
+            centered
+          />
         </Card>
 
-        <p className="mt-6 text-center text-sm text-muted-foreground">
+        <Text type="secondary" className="mt-6 block text-center text-sm">
           登录即表示您同意我们的服务条款和隐私政策
-        </p>
+        </Text>
       </div>
     </div>
   );
