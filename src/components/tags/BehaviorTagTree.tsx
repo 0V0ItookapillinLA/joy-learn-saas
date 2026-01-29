@@ -1,19 +1,8 @@
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { Search, MoreHorizontal, ChevronRight, Folder, Tag } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Input, Tree, Dropdown, Button } from "antd";
+import type { MenuProps } from "antd";
+import { SearchOutlined, FolderOutlined, TagOutlined, MoreOutlined, PlusOutlined, EditOutlined, StopOutlined } from "@ant-design/icons";
+import type { DataNode } from "antd/es/tree";
 
 // Mock data for behavior tag tree
 const behaviorDomains = [
@@ -73,148 +62,104 @@ export function BehaviorTagTree({
   onSelectCluster,
 }: BehaviorTagTreeProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedDomains, setExpandedDomains] = useState<string[]>(["domain-1"]);
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(["domain-1"]);
 
-  const filteredDomains = behaviorDomains.filter(
-    (domain) =>
-      domain.name.includes(searchQuery) ||
-      domain.clusters.some((cluster) => cluster.name.includes(searchQuery))
-  );
+  const domainMenuItems: MenuProps["items"] = [
+    { key: "add", icon: <PlusOutlined />, label: "新增二级能力" },
+    { key: "edit", icon: <EditOutlined />, label: "编辑" },
+    { key: "disable", icon: <StopOutlined />, label: "停用", danger: true },
+  ];
 
-  const toggleDomain = (domainId: string) => {
-    setExpandedDomains((prev) =>
-      prev.includes(domainId)
-        ? prev.filter((id) => id !== domainId)
-        : [...prev, domainId]
-    );
-  };
+  const clusterMenuItems: MenuProps["items"] = [
+    { key: "edit", icon: <EditOutlined />, label: "编辑" },
+    { key: "disable", icon: <StopOutlined />, label: "停用", danger: true },
+  ];
 
-  const handleDomainClick = (domainId: string) => {
-    onSelectDomain(domainId === selectedDomain ? null : domainId);
-    onSelectCluster(null);
-  };
+  const treeData: DataNode[] = behaviorDomains
+    .filter(
+      (domain) =>
+        domain.name.includes(searchQuery) ||
+        domain.clusters.some((cluster) => cluster.name.includes(searchQuery))
+    )
+    .map((domain) => ({
+      key: domain.id,
+      title: (
+        <Dropdown menu={{ items: domainMenuItems }} trigger={["contextMenu"]}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1 }}>
+            <span>
+              <FolderOutlined style={{ marginRight: 8, color: "#1677ff" }} />
+              {domain.name}
+            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ color: "#999", fontSize: 12 }}>{domain.tagCount}</span>
+              <Dropdown menu={{ items: domainMenuItems }} trigger={["click"]}>
+                <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
+              </Dropdown>
+            </div>
+          </div>
+        </Dropdown>
+      ),
+      children: domain.clusters.map((cluster) => ({
+        key: cluster.id,
+        title: (
+          <Dropdown menu={{ items: clusterMenuItems }} trigger={["contextMenu"]}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1 }}>
+              <span>
+                <TagOutlined style={{ marginRight: 8, color: "#999" }} />
+                {cluster.name}
+              </span>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <span style={{ color: "#999", fontSize: 12 }}>{cluster.tagCount}</span>
+                <Dropdown menu={{ items: clusterMenuItems }} trigger={["click"]}>
+                  <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
+                </Dropdown>
+              </div>
+            </div>
+          </Dropdown>
+        ),
+        isLeaf: true,
+      })),
+    }));
 
-  const handleClusterClick = (domainId: string, clusterId: string) => {
-    onSelectDomain(domainId);
-    onSelectCluster(clusterId === selectedCluster ? null : clusterId);
+  const onSelect = (selectedKeys: React.Key[]) => {
+    const key = selectedKeys[0] as string;
+    if (!key) {
+      onSelectDomain(null);
+      onSelectCluster(null);
+      return;
+    }
+
+    if (key.startsWith("cluster-")) {
+      const domainId = behaviorDomains.find((d) => d.clusters.some((c) => c.id === key))?.id || null;
+      onSelectDomain(domainId);
+      onSelectCluster(key);
+    } else {
+      onSelectDomain(key);
+      onSelectCluster(null);
+    }
   };
 
   return (
-    <div className="flex h-full flex-col border-r">
-      {/* Search */}
-      <div className="border-b p-3">
-        <div className="relative">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="搜索一级/二级能力..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+    <div style={{ height: "100%", display: "flex", flexDirection: "column", borderRight: "1px solid #f0f0f0" }}>
+      <div style={{ padding: 12, borderBottom: "1px solid #f0f0f0" }}>
+        <Input
+          placeholder="搜索一级/二级能力..."
+          prefix={<SearchOutlined />}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          allowClear
+        />
       </div>
-
-      {/* Tree */}
-      <div className="flex-1 overflow-auto p-2">
-        <div className="space-y-1">
-          {filteredDomains.map((domain) => (
-            <Collapsible
-              key={domain.id}
-              open={expandedDomains.includes(domain.id)}
-              onOpenChange={() => toggleDomain(domain.id)}
-            >
-              <div
-                className={cn(
-                  "group flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted",
-                  selectedDomain === domain.id && !selectedCluster && "bg-primary/10"
-                )}
-              >
-                <CollapsibleTrigger asChild>
-                  <button className="flex flex-1 items-center gap-2 text-left">
-                    <ChevronRight
-                      className={cn(
-                        "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-                        expandedDomains.includes(domain.id) && "rotate-90"
-                      )}
-                    />
-                    <Folder className="h-4 w-4 shrink-0 text-primary" />
-                    <span
-                      className="flex-1 truncate text-sm font-medium cursor-pointer"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDomainClick(domain.id);
-                      }}
-                    >
-                      {domain.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {domain.tagCount}
-                    </span>
-                  </button>
-                </CollapsibleTrigger>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                    >
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover">
-                    <DropdownMenuItem>新增二级能力</DropdownMenuItem>
-                    <DropdownMenuItem>编辑</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">
-                      停用
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <CollapsibleContent className="ml-4 space-y-0.5">
-                {domain.clusters.map((cluster) => (
-                  <div
-                    key={cluster.id}
-                    className={cn(
-                      "group flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-muted cursor-pointer",
-                      selectedCluster === cluster.id && "bg-primary/10"
-                    )}
-                    onClick={() => handleClusterClick(domain.id, cluster.id)}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Tag className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      <span className="text-sm">{cluster.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-xs text-muted-foreground">
-                        {cluster.tagCount}
-                      </span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-popover">
-                          <DropdownMenuItem>编辑</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
-                            停用
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                ))}
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
+      <div style={{ flex: 1, overflow: "auto", padding: 8 }}>
+        <Tree
+          treeData={treeData}
+          expandedKeys={expandedKeys}
+          onExpand={(keys) => setExpandedKeys(keys)}
+          selectedKeys={selectedCluster ? [selectedCluster] : selectedDomain ? [selectedDomain] : []}
+          onSelect={onSelect}
+          showIcon={false}
+          blockNode
+        />
       </div>
     </div>
   );
