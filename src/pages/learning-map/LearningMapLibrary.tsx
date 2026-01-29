@@ -3,16 +3,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { LearningMapTree } from "@/components/learning-map/LearningMapTree";
 import { LearningMapTable } from "@/components/learning-map/LearningMapTable";
 import { LearningMapDrawer } from "@/components/learning-map/LearningMapDrawer";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, Upload, Download, Search } from "lucide-react";
+import { Button, Input, Select } from "antd";
+import { PlusOutlined, UploadOutlined, DownloadOutlined, SearchOutlined } from "@ant-design/icons";
 
 export interface LearningMap {
   id: string;
@@ -261,38 +253,30 @@ export default function LearningMapLibrary() {
             {/* Toolbar */}
             <div className="flex items-center justify-between border-b p-4">
               <div className="flex items-center gap-3">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="搜索地图名/岗位..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8 w-64"
-                  />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-28">
-                    <SelectValue placeholder="状态" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">全部状态</SelectItem>
-                    <SelectItem value="draft">草稿</SelectItem>
-                    <SelectItem value="published">已发布</SelectItem>
-                    <SelectItem value="disabled">已停用</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  placeholder="搜索地图名/岗位..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  prefix={<SearchOutlined className="text-gray-400" />}
+                  style={{ width: 256 }}
+                  allowClear
+                />
+                <Select
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  style={{ width: 120 }}
+                  options={[
+                    { value: "all", label: "全部状态" },
+                    { value: "draft", label: "草稿" },
+                    { value: "published", label: "已发布" },
+                    { value: "disabled", label: "已停用" },
+                  ]}
+                />
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <Upload className="h-4 w-4 mr-1" />
-                  导入
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4 mr-1" />
-                  导出
-                </Button>
-                <Button size="sm" onClick={handleCreateMap}>
-                  <Plus className="h-4 w-4 mr-1" />
+                <Button icon={<UploadOutlined />}>导入</Button>
+                <Button icon={<DownloadOutlined />}>导出</Button>
+                <Button type="primary" icon={<PlusOutlined />} onClick={handleCreateMap}>
                   新建地图
                 </Button>
               </div>

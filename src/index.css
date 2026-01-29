@@ -2,7 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
-/* JoyLearning SaaS Design System - Professional B2B Style */
+/* Ant Design 5.0 Reset for compatibility with Tailwind */
+.ant-btn-link {
+  padding: 0 !important;
+  height: auto !important;
+}
+
+/* Fix antd table in Tailwind context */
+.ant-table-wrapper {
+  @apply w-full;
+}
+
+.ant-table-cell {
+  @apply !border-border;
+}
 
 @layer base {
   :root {

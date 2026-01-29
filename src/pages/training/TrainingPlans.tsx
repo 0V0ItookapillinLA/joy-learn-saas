@@ -1,22 +1,13 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Plus, RotateCcw, Search, Loader2 } from "lucide-react";
+import { Card, Input, Select, Button, Statistic, Row, Col, Spin } from "antd";
+import { PlusOutlined, ReloadOutlined, LoadingOutlined } from "@ant-design/icons";
 import {
   TrainingPlanTable,
   type TrainingPlan,
 } from "@/components/training/TrainingPlanTable";
 import { TrainingPlanSheet } from "@/components/training/TrainingPlanSheet";
-import { toast } from "sonner";
+import { message } from "antd";
 import { useTrainingPlans, useTogglePlanStatus } from "@/hooks/useTrainingPlans";
 
 // Map database status to display status
@@ -36,7 +27,7 @@ function transformToTableFormat(plans: ReturnType<typeof useTrainingPlans>['data
     title: plan.title,
     planId: `LTP${plan.id.slice(0, 20).replace(/-/g, '').toUpperCase()}`,
     description: plan.description || '',
-    trainees: [], // Will be populated from training_progress in future
+    trainees: [],
     invitedCount: 0,
     participantCount: 0,
     status: mapStatus(plan.status),
@@ -95,14 +86,14 @@ export default function TrainingPlans() {
   };
 
   const handleInvite = (plan: TrainingPlan) => {
-    toast.info(`邀请学员参加：${plan.title}`);
+    message.info(`邀请学员参加：${plan.title}`);
   };
 
   const handleCopyLink = (plan: TrainingPlan) => {
     navigator.clipboard.writeText(
       `https://training.example.com/join/${plan.planId}`
     );
-    toast.success("邀请链接已复制到剪贴板");
+    message.success("邀请链接已复制到剪贴板");
   };
 
   const handleToggleStatus = (plan: TrainingPlan & { dbStatus?: string | null }) => {
@@ -114,9 +105,9 @@ export default function TrainingPlans() {
 
   const handleSave = (data: Partial<TrainingPlan>) => {
     if (editingPlan) {
-      toast.success("培训计划已更新");
+      message.success("培训计划已更新");
     } else {
-      toast.success("培训计划已创建");
+      message.success("培训计划已创建");
     }
   };
 
@@ -132,7 +123,7 @@ export default function TrainingPlans() {
   if (error) {
     return (
       <DashboardLayout title="培训计划" description="管理和查看所有培训计划">
-        <div className="text-center py-12 text-destructive">
+        <div className="text-center py-12 text-red-500">
           加载失败: {error instanceof Error ? error.message : '未知错误'}
         </div>
       </DashboardLayout>
@@ -143,92 +134,87 @@ export default function TrainingPlans() {
     <DashboardLayout title="培训计划" description="管理和查看所有培训计划">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalPlans}</div>
-              <p className="text-sm text-muted-foreground">全部计划</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">
-                {activePlans}
-              </div>
-              <p className="text-sm text-muted-foreground">进行中</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalInvited}</div>
-              <p className="text-sm text-muted-foreground">总邀请人数</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalParticipants}</div>
-              <p className="text-sm text-muted-foreground">总参与人数</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Row gutter={16}>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="全部计划" value={totalPlans} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic
+                title="进行中"
+                value={activePlans}
+                valueStyle={{ color: "#3b82f6" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="总邀请人数" value={totalInvited} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="总参与人数" value={totalParticipants} />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Filters */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
+              <span className="text-sm text-gray-500 whitespace-nowrap">
                 关键词搜索：
               </span>
               <Input
                 placeholder="请输入关键词"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-[200px]"
+                style={{ width: 200 }}
+                allowClear
               />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground whitespace-nowrap">
+              <span className="text-sm text-gray-500 whitespace-nowrap">
                 状态：
               </span>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="请选择状态" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">全部状态</SelectItem>
-                  <SelectItem value="active">开启</SelectItem>
-                  <SelectItem value="inactive">停用</SelectItem>
-                </SelectContent>
-              </Select>
+              <Select
+                value={statusFilter}
+                onChange={setStatusFilter}
+                style={{ width: 140 }}
+                options={[
+                  { value: "all", label: "全部状态" },
+                  { value: "active", label: "开启" },
+                  { value: "inactive", label: "停用" },
+                ]}
+              />
             </div>
-            <Button variant="outline" size="sm" onClick={handleReset}>
-              <RotateCcw className="h-4 w-4 mr-1" />
+            <Button icon={<ReloadOutlined />} onClick={handleReset}>
               重置
             </Button>
           </div>
-          <Button onClick={handleCreate}>
-            <Plus className="h-4 w-4 mr-1" />
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建培训计划
           </Button>
         </div>
 
         {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (
-              <TrainingPlanTable
-                plans={filteredPlans}
-                onEdit={handleEdit}
-                onInvite={handleInvite}
-                onCopyLink={handleCopyLink}
-                onToggleStatus={handleToggleStatus}
-              />
-            )}
-          </CardContent>
+        <Card bodyStyle={{ padding: 0 }}>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Spin indicator={<LoadingOutlined style={{ fontSize: 32 }} spin />} />
+            </div>
+          ) : (
+            <TrainingPlanTable
+              plans={filteredPlans}
+              onEdit={handleEdit}
+              onInvite={handleInvite}
+              onCopyLink={handleCopyLink}
+              onToggleStatus={handleToggleStatus}
+            />
+          )}
         </Card>
       </div>
 

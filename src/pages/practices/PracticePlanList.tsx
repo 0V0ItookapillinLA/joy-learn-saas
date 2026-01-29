@@ -1,21 +1,10 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Plus, Search, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { Tabs, Card, Statistic, Row, Col, Input, Button, Table, Tag, Space, Avatar, Tooltip, message } from "antd";
+import { PlusOutlined, SearchOutlined, LoadingOutlined } from "@ant-design/icons";
 import { PracticeEditSheet } from "@/components/practices/PracticeEditSheet";
 import { usePracticeSessions, useCreatePracticeSession, useDeletePracticeSession } from "@/hooks/usePracticeSessions";
+import type { ColumnsType } from "antd/es/table";
 
 export default function PracticePlanList() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -70,7 +59,7 @@ export default function PracticePlanList() {
   };
 
   const handleCopy = (practice: any) => {
-    toast.success(`已复制练习：${practice.title}`);
+    message.success(`已复制练习：${practice.title}`);
   };
 
   const handleDelete = (practice: any) => {
@@ -78,160 +67,141 @@ export default function PracticePlanList() {
   };
 
   const handlePreview = (practice: any) => {
-    toast.info(`预览练习：${practice.title}`);
+    message.info(`预览练习：${practice.title}`);
   };
 
   const handleInvite = (practice: any) => {
-    toast.info(`邀请学员参加：${practice.title}`);
+    message.info(`邀请学员参加：${practice.title}`);
   };
 
   // Stats
   const totalPractices = filteredPractices.length;
   const activePractices = filteredPractices.length;
 
+  const columns: ColumnsType<any> = [
+    {
+      title: "练习名称",
+      dataIndex: "title",
+      key: "title",
+      render: (text, record) => (
+        <div>
+          <div className="font-medium">{text}</div>
+          <div className="text-sm text-gray-500 truncate max-w-[200px]">
+            {record.scenario_description || record.description}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "AI角色",
+      dataIndex: "ai_role",
+      key: "ai_role",
+      render: (text) => <Tag>{text?.slice(0, 20) || "未设置"}</Tag>,
+    },
+    {
+      title: "练习模式",
+      dataIndex: "practice_mode",
+      key: "practice_mode",
+      render: (mode) => (
+        <Tag color="blue">
+          {mode === 'free_dialogue' ? '自由对话' : '固定剧本'}
+        </Tag>
+      ),
+    },
+    {
+      title: "创建时间",
+      dataIndex: "created_at",
+      key: "created_at",
+      render: (date) => date ? new Date(date).toLocaleDateString() : '-',
+    },
+    {
+      title: "操作",
+      key: "action",
+      align: "center",
+      render: (_, record) => (
+        <Space size="small">
+          <Button type="link" size="small" onClick={() => handleInvite(record)}>
+            邀请
+          </Button>
+          <Button type="link" size="small" onClick={() => handlePreview(record)}>
+            预览
+          </Button>
+          <Button type="link" size="small" onClick={() => handleEdit(record)}>
+            编辑
+          </Button>
+          <Button type="link" size="small" onClick={() => handleCopy(record)}>
+            复制
+          </Button>
+          <Button type="link" size="small" danger onClick={() => handleDelete(record)}>
+            删除
+          </Button>
+        </Space>
+      ),
+    },
+  ];
+
   return (
     <DashboardLayout title="练习计划" description="管理AI对话练习场景">
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">{totalPractices}</div>
-              <p className="text-sm text-muted-foreground">练习场景</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">{activePractices}</div>
-              <p className="text-sm text-muted-foreground">已启用</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-sm text-muted-foreground">练习人数</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-sm text-muted-foreground">使用次数</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Row gutter={16}>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="练习场景" value={totalPractices} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="已启用" value={activePractices} valueStyle={{ color: "#3b82f6" }} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="练习人数" value={0} />
+            </Card>
+          </Col>
+          <Col xs={12} sm={6}>
+            <Card>
+              <Statistic title="使用次数" value={0} />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Filters */}
         <div className="flex items-center justify-between">
-          <div className="relative w-80">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="搜索练习名称、AI角色..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <Button onClick={handleCreate}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Input
+            placeholder="搜索练习名称、AI角色..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            prefix={<SearchOutlined className="text-gray-400" />}
+            style={{ width: 320 }}
+            allowClear
+          />
+          <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
             新建练习计划
           </Button>
         </div>
 
         {/* Table */}
-        <Card>
-          <CardContent className="p-0">
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredPractices.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                <p>暂无练习计划</p>
-                <p className="text-sm">点击"新建练习计划"创建第一个练习</p>
-              </div>
-            ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>练习名称</TableHead>
-                    <TableHead>AI角色</TableHead>
-                    <TableHead>练习模式</TableHead>
-                    <TableHead>创建时间</TableHead>
-                    <TableHead className="text-center">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredPractices.map((practice) => (
-                    <TableRow key={practice.id}>
-                      <TableCell>
-                        <div className="font-medium">{practice.title}</div>
-                        <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {practice.scenario_description || practice.description}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="outline">
-                          {practice.ai_role?.slice(0, 20) || "未设置"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="secondary">
-                          {practice.practice_mode === 'free_dialogue' ? '自由对话' : '固定剧本'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-muted-foreground">
-                        {practice.created_at ? new Date(practice.created_at).toLocaleDateString() : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center justify-center gap-2">
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-primary"
-                            onClick={() => handleInvite(practice)}
-                          >
-                            邀请
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-primary"
-                            onClick={() => handlePreview(practice)}
-                          >
-                            预览
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-primary"
-                            onClick={() => handleEdit(practice)}
-                          >
-                            编辑
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-primary"
-                            onClick={() => handleCopy(practice)}
-                          >
-                            复制
-                          </Button>
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-destructive"
-                            onClick={() => handleDelete(practice)}
-                          >
-                            删除
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-          </CardContent>
+        <Card bodyStyle={{ padding: 0 }}>
+          <Table
+            columns={columns}
+            dataSource={filteredPractices}
+            rowKey="id"
+            loading={isLoading}
+            locale={{
+              emptyText: (
+                <div className="py-8 text-gray-500">
+                  <p>暂无练习计划</p>
+                  <p className="text-sm">点击"新建练习计划"创建第一个练习</p>
+                </div>
+              ),
+            }}
+            pagination={{
+              showSizeChanger: true,
+              showTotal: (total, range) => `共 ${total} 条记录`,
+            }}
+          />
         </Card>
       </div>
 
