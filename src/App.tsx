@@ -21,64 +21,91 @@ const App = () => (
   <ConfigProvider locale={zhCN}>
     <AntApp>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* Public routes */}
-              <Route path="/auth" element={<Auth />} />
-              
-              {/* Protected routes */}
-              <Route path="/" element={
+        {/* <AuthProvider> */}
+        <BrowserRouter>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/auth" element={<Auth />} />
+
+            {/* Protected routes */}
+            <Route
+              path="/"
+              element={
                 <ProtectedRoute>
                   <Index />
                 </ProtectedRoute>
-              } />
-              <Route path="/dashboard" element={
+              }
+            />
+            <Route
+              path="/dashboard"
+              element={
                 <ProtectedRoute>
                   <Index />
                 </ProtectedRoute>
-              } />
-              <Route path="/training/plans" element={
+              }
+            />
+            <Route
+              path="/training/plans"
+              element={
                 <ProtectedRoute>
                   <TrainingPlans />
                 </ProtectedRoute>
-              } />
-              <Route path="/practices" element={
+              }
+            />
+            <Route
+              path="/practices"
+              element={
                 <ProtectedRoute>
                   <PracticePlanList />
                 </ProtectedRoute>
-              } />
-              <Route path="/characters" element={
+              }
+            />
+            <Route
+              path="/characters"
+              element={
                 <ProtectedRoute>
                   <CharacterConfig />
                 </ProtectedRoute>
-              } />
-              <Route path="/learning-map" element={
+              }
+            />
+            <Route
+              path="/learning-map"
+              element={
                 <ProtectedRoute>
                   <LearningMapLibrary />
                 </ProtectedRoute>
-              } />
-              <Route path="/growth-map" element={
+              }
+            />
+            <Route
+              path="/growth-map"
+              element={
                 <ProtectedRoute>
                   <GrowthMap />
                 </ProtectedRoute>
-              } />
-              <Route path="/analytics" element={
+              }
+            />
+            <Route
+              path="/analytics"
+              element={
                 <ProtectedRoute>
                   <TrainingAnalytics />
                 </ProtectedRoute>
-              } />
-              <Route path="/settings" element={
+              }
+            />
+            <Route
+              path="/settings"
+              element={
                 <ProtectedRoute>
                   <OrganizationSettings />
                 </ProtectedRoute>
-              } />
-              
-              {/* Fallback */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </AuthProvider>
+              }
+            />
+
+            {/* Fallback */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+        {/* </AuthProvider> */}
       </QueryClientProvider>
     </AntApp>
   </ConfigProvider>
