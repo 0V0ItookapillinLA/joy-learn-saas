@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Row, Col, Select, Button, Breadcrumb, Typography, Segmented } from "antd";
-import { DownloadOutlined, BellOutlined, HomeOutlined } from "@ant-design/icons";
+import { Row, Col, Select, Button } from "antd";
+import { DownloadOutlined, BellOutlined } from "@ant-design/icons";
 import { useState } from "react";
 
 // Import all analytics components
@@ -8,90 +8,22 @@ import { KPICards } from "@/components/analytics/KPICards";
 import { TrainingFunnel } from "@/components/analytics/TrainingFunnel";
 import { ProgressDistribution } from "@/components/analytics/ProgressDistribution";
 import { RiskMonitor } from "@/components/analytics/RiskMonitor";
-import { OrgComparison } from "@/components/analytics/OrgComparison";
-import { SkillHeatmap } from "@/components/analytics/SkillHeatmap";
-import { PassRateTrend } from "@/components/analytics/PassRateTrend";
 import { StudentListTable } from "@/components/analytics/StudentListTable";
-import { StudentProfile } from "@/components/analytics/StudentProfile";
-
-const { Text } = Typography;
-
-type ViewLevel = "global" | "org" | "students" | "profile";
-
-interface BreadcrumbItem {
-  title: string;
-  level: ViewLevel;
-  data?: any;
-}
+import { StudentProfileDrawer } from "@/components/analytics/StudentProfileDrawer";
 
 export default function TrainingAnalytics() {
-  const [currentLevel, setCurrentLevel] = useState<ViewLevel>("global");
-  const [selectedOrg, setSelectedOrg] = useState<string | null>(null);
+  const [selectedOrg, setSelectedOrg] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-  const [selectedSkill, setSelectedSkill] = useState<string | null>(null);
-  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbItem[]>([
-    { title: "全局总揽", level: "global" },
-  ]);
-
-  const navigateTo = (level: ViewLevel, data?: { orgId?: string; studentId?: string; skill?: string }) => {
-    setCurrentLevel(level);
-    
-    if (level === "global") {
-      setBreadcrumbs([{ title: "全局总揽", level: "global" }]);
-      setSelectedOrg(null);
-      setSelectedStudent(null);
-      setSelectedSkill(null);
-    } else if (level === "org") {
-      setSelectedOrg(data?.orgId || null);
-      setBreadcrumbs([
-        { title: "全局总揽", level: "global" },
-        { title: "组织效能透视", level: "org" },
-      ]);
-      setSelectedStudent(null);
-    } else if (level === "students") {
-      setSelectedOrg(data?.orgId || selectedOrg);
-      setSelectedSkill(data?.skill || null);
-      setBreadcrumbs([
-        { title: "全局总揽", level: "global" },
-        { title: "组织效能透视", level: "org" },
-        { title: "学员列表", level: "students" },
-      ]);
-      setSelectedStudent(null);
-    } else if (level === "profile") {
-      setSelectedStudent(data?.studentId || null);
-      setBreadcrumbs([
-        { title: "全局总揽", level: "global" },
-        { title: "组织效能透视", level: "org" },
-        { title: "学员列表", level: "students" },
-        { title: "学员档案", level: "profile" },
-      ]);
-    }
-  };
-
-  const handleBreadcrumbClick = (level: ViewLevel) => {
-    navigateTo(level);
-  };
-
-  const handleOrgClick = (orgId: string) => {
-    navigateTo("org", { orgId });
-  };
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleStudentClick = (studentId: string) => {
-    navigateTo("profile", { studentId });
+    setSelectedStudent(studentId);
+    setDrawerOpen(true);
   };
 
-  const handleHeatmapCellClick = (org: string, skill: string, score: number) => {
-    setSelectedOrg(org);
-    setSelectedSkill(skill);
-    navigateTo("students", { orgId: org, skill });
-  };
-
-  const handleViewStudentList = () => {
-    navigateTo("students");
-  };
-
-  const handleBackFromProfile = () => {
-    navigateTo("students");
+  const handleCloseDrawer = () => {
+    setDrawerOpen(false);
+    setSelectedStudent(null);
   };
 
   return (
@@ -99,18 +31,21 @@ export default function TrainingAnalytics() {
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          {/* Breadcrumb Navigation */}
-          <Breadcrumb
-            items={breadcrumbs.map((item, index) => ({
-              title: index === breadcrumbs.length - 1 ? (
-                <Text strong>{item.title}</Text>
-              ) : (
-                <a onClick={() => handleBreadcrumbClick(item.level)}>{item.title}</a>
-              ),
-            }))}
+          <Select 
+            value={selectedOrg} 
+            onChange={setSelectedOrg} 
+            style={{ width: 160 }}
+            options={[
+              { label: "全部组织", value: "all" },
+              { label: "华东销售部", value: "华东销售部" },
+              { label: "华北销售部", value: "华北销售部" },
+              { label: "研发一组", value: "研发一组" },
+              { label: "研发二组", value: "研发二组" },
+              { label: "客服一组", value: "客服一组" },
+              { label: "客服三组", value: "客服三组" },
+              { label: "市场部", value: "市场部" },
+            ]}
           />
-        </div>
-        <div className="flex items-center gap-3">
           <Select defaultValue="all" style={{ width: 140 }}>
             <Select.Option value="all">全部项目</Select.Option>
             <Select.Option value="sales">销售培训</Select.Option>
@@ -121,88 +56,50 @@ export default function TrainingAnalytics() {
             <Select.Option value="30">最近30天</Select.Option>
             <Select.Option value="90">最近90天</Select.Option>
           </Select>
+        </div>
+        <div className="flex items-center gap-3">
           <Button icon={<DownloadOutlined />}>导出</Button>
           <Button icon={<BellOutlined />}>订阅</Button>
         </div>
       </div>
 
-      {/* Level 1: Global Dashboard */}
-      {currentLevel === "global" && (
-        <>
-          {/* KPI Cards */}
-          <div className="mb-6">
-            <KPICards />
-          </div>
+      {/* KPI Cards */}
+      <div className="mb-6">
+        <KPICards />
+      </div>
 
-          {/* Main Content */}
-          <Row gutter={16}>
-            {/* Left Column: Funnel + Distribution */}
-            <Col span={14}>
-              <div className="mb-4">
-                <TrainingFunnel />
-              </div>
-              <ProgressDistribution />
-            </Col>
+      {/* Main Content - Balanced Layout */}
+      <Row gutter={16} className="mb-6">
+        {/* Left Column */}
+        <Col span={12}>
+          <TrainingFunnel />
+        </Col>
+        {/* Right Column */}
+        <Col span={12}>
+          <ProgressDistribution />
+        </Col>
+      </Row>
 
-            {/* Right Column: Risk Monitor */}
-            <Col span={10}>
-              <RiskMonitor
-                onOrgClick={handleOrgClick}
-                onStudentClick={handleStudentClick}
-              />
-            </Col>
-          </Row>
-
-          {/* Quick Action to Org View */}
-          <div className="mt-4 text-center">
-            <Button type="link" onClick={() => navigateTo("org")}>
-              查看组织效能详情 →
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Level 2: Organization Drill-down */}
-      {currentLevel === "org" && (
-        <>
-          {/* Org Comparison */}
-          <div className="mb-4">
-            <OrgComparison onOrgClick={handleOrgClick} />
-          </div>
-
-          {/* Skill Heatmap */}
-          <div className="mb-4">
-            <SkillHeatmap onCellClick={handleHeatmapCellClick} />
-          </div>
-
-          {/* Pass Rate Trend */}
-          <PassRateTrend />
-
-          {/* Quick Action to Student List */}
-          <div className="mt-4 text-center">
-            <Button type="link" onClick={handleViewStudentList}>
-              查看学员详情列表 →
-            </Button>
-          </div>
-        </>
-      )}
-
-      {/* Level 3: Student List */}
-      {currentLevel === "students" && (
-        <StudentListTable
-          onViewDetail={handleStudentClick}
-          departmentFilter={selectedOrg || undefined}
-          skillFilter={selectedSkill || undefined}
+      {/* Risk Monitor - Full Width */}
+      <div className="mb-6">
+        <RiskMonitor
+          onOrgClick={(orgId) => setSelectedOrg(orgId)}
+          onStudentClick={handleStudentClick}
         />
-      )}
+      </div>
 
-      {/* Level 4: Student Profile */}
-      {currentLevel === "profile" && selectedStudent && (
-        <StudentProfile
-          studentId={selectedStudent}
-          onBack={handleBackFromProfile}
-        />
-      )}
+      {/* Student List Table - Full Width at Bottom */}
+      <StudentListTable
+        onViewDetail={handleStudentClick}
+        departmentFilter={selectedOrg !== "all" ? selectedOrg : undefined}
+      />
+
+      {/* Student Profile Drawer */}
+      <StudentProfileDrawer
+        open={drawerOpen}
+        onClose={handleCloseDrawer}
+        studentId={selectedStudent}
+      />
     </DashboardLayout>
   );
 }
