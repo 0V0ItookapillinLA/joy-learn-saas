@@ -14,6 +14,7 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
+import logoImg from "@/assets/logo.png";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -115,21 +116,15 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             borderBottom: "1px solid #f0f0f0",
           }}
         >
-          <div
+          <img
+            src={logoImg}
+            alt="Logo"
             style={{
               width: 32,
               height: 32,
-              borderRadius: 8,
-              background: "#1677ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: "bold",
+              objectFit: "contain",
             }}
-          >
-            J
-          </div>
+          />
           {!collapsed && (
             <div style={{ marginLeft: 12 }}>
               <Text strong style={{ fontSize: 14 }}>
