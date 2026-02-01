@@ -70,17 +70,15 @@ export default function TrainingAnalytics() {
 
       {/* Main Content - Balanced Layout */}
       <Row gutter={16} className="mb-6">
-        {/* Left Column */}
         <Col span={12}>
           <TrainingFunnel />
         </Col>
-        {/* Right Column */}
         <Col span={12}>
           <ProgressDistribution />
         </Col>
       </Row>
 
-      {/* Risk Monitor - Full Width */}
+      {/* Risk Monitor */}
       <div className="mb-6">
         <RiskMonitor
           onOrgClick={(orgId) => setSelectedOrg(orgId)}

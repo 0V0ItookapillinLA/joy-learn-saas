@@ -38,6 +38,7 @@ export function ProgressDistribution() {
         </div>
       }
       size="small"
+      styles={{ body: { minHeight: 280 } }}
     >
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={progressData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -61,8 +62,8 @@ export function ProgressDistribution() {
             contentStyle={{
               background: "#fff",
               border: "1px solid #f0f0f0",
-              borderRadius: 6,
-              boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+              borderRadius: 4,
+              fontSize: 12,
             }}
           />
           <Bar dataKey="count" radius={[4, 4, 0, 0]}>
@@ -72,9 +73,9 @@ export function ProgressDistribution() {
           </Bar>
         </BarChart>
       </ResponsiveContainer>
-      <div style={{ marginTop: 12, padding: "12px 16px", background: "#fff7e6", borderRadius: 6, border: "1px solid #ffd591" }}>
+      <div style={{ marginTop: 12, padding: "10px 12px", background: "#fff7e6", borderRadius: 4, border: "1px solid #ffd591" }}>
         <Text style={{ fontSize: 12, color: "#d46b08" }}>
-          ⚠️ 警告：{lowProgressPercent}% 的学员（{lowProgressCount}人）进度低于40%，存在"僵尸学员"风险
+          ⚠️ 警告：{lowProgressPercent}% 的学员（{lowProgressCount}人）进度低于40%
         </Text>
       </div>
     </Card>
