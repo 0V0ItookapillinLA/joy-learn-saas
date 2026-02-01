@@ -336,6 +336,7 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
       width={720}
       open={open}
       onClose={() => onOpenChange(false)}
+      zIndex={1000}
       footer={
         step === 2 ? (
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>

@@ -352,6 +352,7 @@ export function StudentProfileDrawer({ open, onClose, studentId }: StudentProfil
         width={720}
         onClose={onClose}
         open={open}
+        zIndex={1000}
         styles={{ body: { padding: 0 } }}
       >
         {/* Header */}

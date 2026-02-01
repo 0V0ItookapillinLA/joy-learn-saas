@@ -75,6 +75,7 @@ export function RiskOrgsDrawer({ open, onClose, onOrgClick }: RiskOrgsDrawerProp
       width={560}
       onClose={onClose}
       open={open}
+      zIndex={1000}
     >
       <List
         dataSource={riskOrgsDetail}
