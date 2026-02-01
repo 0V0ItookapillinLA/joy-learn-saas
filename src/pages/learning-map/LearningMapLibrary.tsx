@@ -3,7 +3,8 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { LearningMapTree } from "@/components/learning-map/LearningMapTree";
 import { LearningMapTable } from "@/components/learning-map/LearningMapTable";
 import { LearningMapDrawer } from "@/components/learning-map/LearningMapDrawer";
-import { Button, Input, Select } from "antd";
+import { LearningMapEditor } from "@/components/learning-map/LearningMapEditor";
+import { Button, Input, Select, Modal } from "antd";
 import { PlusOutlined, UploadOutlined, DownloadOutlined, SearchOutlined } from "@ant-design/icons";
 
 export interface LearningMap {
@@ -135,6 +136,10 @@ export default function LearningMapLibrary() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [selectedMap, setSelectedMap] = useState<LearningMap | null>(null);
   const [drawerMode, setDrawerMode] = useState<"view" | "edit" | "create">("view");
+  
+  // New editor modal state
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingMapId, setEditingMapId] = useState<string | undefined>(undefined);
 
   // Filter maps based on search, position, and status
   const filteredMaps = maps.filter((map) => {
@@ -150,9 +155,8 @@ export default function LearningMapLibrary() {
   });
 
   const handleCreateMap = () => {
-    setSelectedMap(null);
-    setDrawerMode("create");
-    setDrawerOpen(true);
+    setEditingMapId(undefined);
+    setEditorOpen(true);
   };
 
   const handleViewMap = (map: LearningMap) => {
@@ -228,6 +232,30 @@ export default function LearningMapLibrary() {
     setDrawerOpen(false);
   };
 
+  const handleEditorSave = (data: any) => {
+    // Create new map from editor data
+    const newMap: LearningMap = {
+      id: data.id || `map-${Date.now()}`,
+      name: data.positionName + " 学习地图",
+      position: data.positionName,
+      positionId: `pos-${Date.now()}`,
+      behaviorTagCount: Object.values(data.levels as Record<string, { skills: any[] }>).reduce(
+        (sum, level) => sum + (level.skills?.length || 0),
+        0
+      ),
+      taskTagCount: 0,
+      stageCount: data.levelRange.end - data.levelRange.start + 1,
+      targetAudience: ["在岗"],
+      status: data.status,
+      version: data.version,
+      updatedBy: "当前用户",
+      updatedAt: new Date().toLocaleString("zh-CN"),
+      description: `P${data.levelRange.start} – P${data.levelRange.end} 职级学习路径`,
+    };
+    setMaps((prev) => [...prev, newMap]);
+    setEditorOpen(false);
+  };
+
   return (
     <DashboardLayout 
       title="学习地图" 
@@ -297,7 +325,7 @@ export default function LearningMapLibrary() {
         </div>
       </div>
 
-      {/* Drawer */}
+      {/* Drawer (for view/edit existing maps) */}
       <LearningMapDrawer
         open={drawerOpen}
         onOpenChange={setDrawerOpen}
@@ -309,6 +337,26 @@ export default function LearningMapLibrary() {
         onDisable={handleDisableMap}
         onCreateVersion={handleCreateVersion}
       />
+
+      {/* Full-screen Editor Modal (for new map creation) */}
+      <Modal
+        open={editorOpen}
+        onCancel={() => setEditorOpen(false)}
+        footer={null}
+        width="100vw"
+        style={{ top: 0, padding: 0, maxWidth: "100vw" }}
+        styles={{ 
+          body: { height: "100vh", padding: 0, overflow: "hidden" }
+        }}
+        closable={false}
+        destroyOnClose
+      >
+        <LearningMapEditor
+          mapId={editingMapId}
+          onClose={() => setEditorOpen(false)}
+          onSave={handleEditorSave}
+        />
+      </Modal>
     </DashboardLayout>
   );
 }
