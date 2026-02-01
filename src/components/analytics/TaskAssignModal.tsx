@@ -97,6 +97,8 @@ export function TaskAssignModal({
           taskTitle: values.taskTitle,
           taskMessage: values.taskMessage,
           deadline: values.deadline,
+          // Force simulation to bypass real JingME auth/API calls
+          simulateMode: true,
         }),
       });
 
