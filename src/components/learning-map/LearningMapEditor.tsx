@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Card,
+  Drawer,
   Typography,
   Tag,
   Button,
@@ -17,15 +17,16 @@ import {
   ArrowDownOutlined,
   PlusOutlined,
   DeleteOutlined,
-  HolderOutlined,
   BookOutlined,
   MessageOutlined,
   ProjectOutlined,
   CheckCircleOutlined,
-  EditOutlined,
   SaveOutlined,
   SendOutlined,
   CloseOutlined,
+  StopOutlined,
+  EyeOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 
 const { Title, Text, Paragraph } = Typography;
@@ -46,7 +47,7 @@ interface LearningMapData {
   positionName: string;
   levelRange: { start: number; end: number };
   version: string;
-  status: "draft" | "published";
+  status: "draft" | "published" | "disabled";
   levels: { [key: string]: LevelConfig };
 }
 
@@ -96,13 +97,30 @@ const mockCourses = [
   { id: "c7", name: "前端测试最佳实践" },
 ];
 
-interface LearningMapEditorProps {
+export interface LearningMapEditorProps {
+  open: boolean;
+  mode: "view" | "edit" | "create";
   mapId?: string;
+  initialData?: Partial<LearningMapData>;
   onClose: () => void;
   onSave: (data: LearningMapData) => void;
+  onPublish?: (data: LearningMapData) => void;
+  onDisable?: (data: LearningMapData) => void;
 }
 
-export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorProps) {
+export function LearningMapEditor({
+  open,
+  mode,
+  mapId,
+  initialData,
+  onClose,
+  onSave,
+  onPublish,
+  onDisable,
+}: LearningMapEditorProps) {
+  const isViewMode = mode === "view";
+  const isCreateMode = mode === "create";
+
   // Map data
   const [mapData, setMapData] = useState<LearningMapData>({
     id: mapId || `map-${Date.now()}`,
@@ -119,8 +137,43 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
     },
   });
 
+  // Reset data when opening with different mode/data
+  useEffect(() => {
+    if (open) {
+      if (initialData) {
+        setMapData({
+          id: initialData.id || `map-${Date.now()}`,
+          positionName: initialData.positionName || "新建学习地图",
+          levelRange: initialData.levelRange || { start: 5, end: 9 },
+          version: initialData.version || "v1.0",
+          status: initialData.status || "draft",
+          levels: initialData.levels || {
+            P5: { skills: mockAvailableSkills.P5.slice(0, 2) },
+            P6: { skills: mockAvailableSkills.P6.slice(0, 2) },
+            P7: { skills: mockAvailableSkills.P7.slice(0, 3) },
+            P8: { skills: mockAvailableSkills.P8.slice(0, 2) },
+            P9: { skills: mockAvailableSkills.P9.slice(0, 1) },
+          },
+        });
+      } else if (isCreateMode) {
+        // Reset to default for create mode
+        setMapData({
+          id: `map-${Date.now()}`,
+          positionName: "新建学习地图",
+          levelRange: { start: 5, end: 9 },
+          version: "v1.0",
+          status: "draft",
+          levels: {},
+        });
+      }
+      setSelectedLevel(5);
+      setSelectedSkillId(null);
+      setSkillConfigs({});
+    }
+  }, [open, mode, initialData, isCreateMode]);
+
   // Current selection state
-  const [selectedLevel, setSelectedLevel] = useState<number>(7);
+  const [selectedLevel, setSelectedLevel] = useState<number>(5);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
 
   // Skill configuration
@@ -147,6 +200,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
   };
 
   const updateSkillConfig = (skillId: string, updates: Partial<SkillConfig>) => {
+    if (isViewMode) return;
     setSkillConfigs((prev) => ({
       ...prev,
       [skillId]: { ...getSkillConfig(skillId), ...updates },
@@ -169,6 +223,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
 
   // Add skill to current level
   const handleAddSkill = () => {
+    if (isViewMode) return;
     const availableSkills = mockAvailableSkills[currentLevelKey] || [];
     const existingIds = currentSkills.map((s) => s.id);
     const newSkill = availableSkills.find((s) => !existingIds.includes(s.id));
@@ -190,6 +245,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
 
   // Remove skill from current level
   const handleRemoveSkill = (skillId: string) => {
+    if (isViewMode) return;
     setMapData((prev) => ({
       ...prev,
       levels: {
@@ -204,31 +260,6 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
     if (selectedSkillId === skillId) {
       setSelectedSkillId(null);
     }
-  };
-
-  // Move skill up/down
-  const handleMoveSkill = (skillId: string, direction: "up" | "down") => {
-    const index = currentSkills.findIndex((s) => s.id === skillId);
-    if (
-      (direction === "up" && index === 0) ||
-      (direction === "down" && index === currentSkills.length - 1)
-    ) {
-      return;
-    }
-
-    const newSkills = [...currentSkills];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    [newSkills[index], newSkills[targetIndex]] = [newSkills[targetIndex], newSkills[index]];
-
-    setMapData((prev) => ({
-      ...prev,
-      levels: {
-        ...prev.levels,
-        [currentLevelKey]: {
-          skills: newSkills.map((s, i) => ({ ...s, order: i })),
-        },
-      },
-    }));
   };
 
   // Validate before publish
@@ -276,8 +307,17 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
       return;
     }
 
-    setMapData((prev) => ({ ...prev, status: "published" }));
+    const updatedData = { ...mapData, status: "published" as const };
+    setMapData(updatedData);
+    onPublish?.(updatedData);
     message.success("学习地图发布成功");
+  };
+
+  const handleDisable = () => {
+    const updatedData = { ...mapData, status: "disabled" as const };
+    setMapData(updatedData);
+    onDisable?.(updatedData);
+    message.success("学习地图已停用");
   };
 
   const handleSave = () => {
@@ -290,28 +330,93 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
     ? currentSkills.findIndex((s) => s.id === selectedSkillId) + 1
     : 0;
 
+  // Get drawer title based on mode
+  const getDrawerTitle = () => {
+    switch (mode) {
+      case "view":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <EyeOutlined />
+            <span>查看学习地图</span>
+          </div>
+        );
+      case "edit":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <EditOutlined />
+            <span>编辑学习地图</span>
+          </div>
+        );
+      case "create":
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <PlusOutlined />
+            <span>新建学习地图</span>
+          </div>
+        );
+    }
+  };
+
+  // Render footer actions based on mode
+  const renderFooterActions = () => {
+    if (isViewMode) {
+      return (
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button onClick={onClose}>关闭</Button>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ display: "flex", gap: 8 }}>
+        <Button onClick={onClose}>取消</Button>
+        <Button icon={<SaveOutlined />} onClick={handleSave}>
+          保存草稿
+        </Button>
+        {mapData.status === "published" ? (
+          <Button danger icon={<StopOutlined />} onClick={handleDisable}>
+            停用
+          </Button>
+        ) : (
+          <Button
+            type="primary"
+            icon={<SendOutlined />}
+            onClick={handlePublish}
+          >
+            发布
+          </Button>
+        )}
+      </div>
+    );
+  };
+
   return (
-    <div
-      style={{
-        height: "100%",
-        display: "flex",
-        flexDirection: "column",
-        background: "#f5f5f5",
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={getDrawerTitle()}
+      width="90%"
+      placement="right"
+      zIndex={1000}
+      footer={renderFooterActions()}
+      styles={{
+        body: { padding: 0, display: "flex", flexDirection: "column" },
+        footer: { display: "flex", justifyContent: "flex-end", padding: "12px 24px" },
       }}
     >
       {/* Top: Global Info Bar */}
       <div
         style={{
-          background: "#fff",
+          background: "#fafafa",
           borderBottom: "1px solid #e8e8e8",
-          padding: "16px 24px",
+          padding: "12px 24px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-between",
+          gap: 16,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <Title level={4} style={{ margin: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <Title level={5} style={{ margin: 0 }}>
             {mapData.positionName}
           </Title>
           <Tag color="blue">
@@ -319,25 +424,21 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
           </Tag>
           <Tag>{mapData.version}</Tag>
           <Badge
-            status={mapData.status === "draft" ? "warning" : "success"}
-            text={mapData.status === "draft" ? "草稿" : "已发布"}
+            status={
+              mapData.status === "draft"
+                ? "warning"
+                : mapData.status === "published"
+                ? "success"
+                : "default"
+            }
+            text={
+              mapData.status === "draft"
+                ? "草稿"
+                : mapData.status === "published"
+                ? "已发布"
+                : "已停用"
+            }
           />
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <Button icon={<CloseOutlined />} onClick={onClose}>
-            关闭
-          </Button>
-          <Button icon={<SaveOutlined />} onClick={handleSave}>
-            保存草稿
-          </Button>
-          <Button
-            type="primary"
-            icon={<SendOutlined />}
-            onClick={handlePublish}
-            disabled={mapData.status === "published"}
-          >
-            发布
-          </Button>
         </div>
       </div>
 
@@ -468,14 +569,16 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                 共 {currentSkills.length} 个技能节点
               </Text>
             </div>
-            <Button
-              type="primary"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={handleAddSkill}
-            >
-              添加技能
-            </Button>
+            {!isViewMode && (
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlusOutlined />}
+                onClick={handleAddSkill}
+              >
+                添加技能
+              </Button>
+            )}
           </div>
 
           {/* Path Content */}
@@ -492,9 +595,11 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                   <span>
                     该职级暂无技能配置
                     <br />
-                    <Text type="secondary" style={{ fontSize: 12 }}>
-                      点击上方"添加技能"开始配置学习路径
-                    </Text>
+                    {!isViewMode && (
+                      <Text type="secondary" style={{ fontSize: 12 }}>
+                        点击上方"添加技能"开始配置学习路径
+                      </Text>
+                    )}
                   </span>
                 }
                 style={{ marginTop: 60 }}
@@ -568,19 +673,21 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                                   style={{ color: "#52c41a", fontSize: 14 }}
                                 />
                               )}
-                              <Tooltip title="删除">
-                                <DeleteOutlined
-                                  style={{
-                                    color: "#ff4d4f",
-                                    fontSize: 14,
-                                    cursor: "pointer",
-                                  }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleRemoveSkill(skill.id);
-                                  }}
-                                />
-                              </Tooltip>
+                              {!isViewMode && (
+                                <Tooltip title="删除">
+                                  <DeleteOutlined
+                                    style={{
+                                      color: "#ff4d4f",
+                                      fontSize: 14,
+                                      cursor: "pointer",
+                                    }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveSkill(skill.id);
+                                    }}
+                                  />
+                                </Tooltip>
+                              )}
                             </div>
                           </div>
                           <Text
@@ -708,6 +815,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                         learningMethods: values as string[],
                       })
                     }
+                    disabled={isViewMode}
                   >
                     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                       <Checkbox value="course">
@@ -749,6 +857,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                         value: c.id,
                         label: c.name,
                       }))}
+                      disabled={isViewMode}
                     />
                   </div>
                 )}
@@ -770,6 +879,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                       { value: true, label: "是（必修）" },
                       { value: false, label: "否（选修）" },
                     ]}
+                    disabled={isViewMode}
                   />
                 </div>
 
@@ -792,6 +902,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                       { value: "practice", label: "AI 陪练达标" },
                       { value: "project", label: "实战项目完成" },
                     ]}
+                    disabled={isViewMode}
                   />
                 </div>
               </div>
@@ -811,7 +922,7 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
                   <span>
                     点击左侧学习路径中的技能节点
                     <br />
-                    进行详细配置
+                    {isViewMode ? "查看详细配置" : "进行详细配置"}
                   </span>
                 }
               />
@@ -819,6 +930,6 @@ export function LearningMapEditor({ mapId, onClose, onSave }: LearningMapEditorP
           )}
         </div>
       </div>
-    </div>
+    </Drawer>
   );
 }

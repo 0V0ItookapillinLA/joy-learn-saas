@@ -2,9 +2,8 @@ import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { LearningMapTree } from "@/components/learning-map/LearningMapTree";
 import { LearningMapTable } from "@/components/learning-map/LearningMapTable";
-import { LearningMapDrawer } from "@/components/learning-map/LearningMapDrawer";
 import { LearningMapEditor } from "@/components/learning-map/LearningMapEditor";
-import { Button, Input, Select, Modal } from "antd";
+import { Button, Input, Select } from "antd";
 import { PlusOutlined, UploadOutlined, DownloadOutlined, SearchOutlined } from "@ant-design/icons";
 
 export interface LearningMap {
@@ -133,13 +132,11 @@ export default function LearningMapLibrary() {
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [selectedMap, setSelectedMap] = useState<LearningMap | null>(null);
-  const [drawerMode, setDrawerMode] = useState<"view" | "edit" | "create">("view");
   
-  // New editor modal state
+  // Editor drawer state
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingMapId, setEditingMapId] = useState<string | undefined>(undefined);
+  const [editorMode, setEditorMode] = useState<"view" | "edit" | "create">("create");
+  const [selectedMap, setSelectedMap] = useState<LearningMap | null>(null);
 
   // Filter maps based on search, position, and status
   const filteredMaps = maps.filter((map) => {
@@ -155,20 +152,21 @@ export default function LearningMapLibrary() {
   });
 
   const handleCreateMap = () => {
-    setEditingMapId(undefined);
+    setSelectedMap(null);
+    setEditorMode("create");
     setEditorOpen(true);
   };
 
   const handleViewMap = (map: LearningMap) => {
     setSelectedMap(map);
-    setDrawerMode("view");
-    setDrawerOpen(true);
+    setEditorMode("view");
+    setEditorOpen(true);
   };
 
   const handleEditMap = (map: LearningMap) => {
     setSelectedMap(map);
-    setDrawerMode("edit");
-    setDrawerOpen(true);
+    setEditorMode("edit");
+    setEditorOpen(true);
   };
 
   const handlePublishMap = (map: LearningMap) => {
@@ -187,73 +185,83 @@ export default function LearningMapLibrary() {
     );
   };
 
-  const handleCreateVersion = (map: LearningMap) => {
-    const newVersion = `v${parseFloat(map.version.slice(1)) + 0.1}`;
-    const newMap: LearningMap = {
-      ...map,
-      id: `${map.id}-${Date.now()}`,
-      version: newVersion,
-      status: "draft",
-      updatedAt: new Date().toLocaleString("zh-CN"),
-    };
-    setMaps((prev) => [...prev, newMap]);
-    setSelectedMap(newMap);
-    setDrawerMode("edit");
-    setDrawerOpen(true);
-  };
-
-  const handleSaveMap = (mapData: Partial<LearningMap>) => {
-    if (drawerMode === "create") {
+  const handleEditorSave = (data: any) => {
+    if (editorMode === "create") {
+      // Create new map from editor data
       const newMap: LearningMap = {
-        id: `map-${Date.now()}`,
-        name: mapData.name || "未命名地图",
-        position: mapData.position || "",
-        positionId: mapData.positionId || "",
-        behaviorTagCount: 0,
+        id: data.id || `map-${Date.now()}`,
+        name: data.positionName + " 学习地图",
+        position: data.positionName,
+        positionId: `pos-${Date.now()}`,
+        behaviorTagCount: Object.values(data.levels as Record<string, { skills: any[] }>).reduce(
+          (sum, level) => sum + (level.skills?.length || 0),
+          0
+        ),
         taskTagCount: 0,
-        stageCount: 0,
-        targetAudience: mapData.targetAudience || [],
-        status: "draft",
-        version: "v0.1",
+        stageCount: data.levelRange.end - data.levelRange.start + 1,
+        targetAudience: ["在岗"],
+        status: data.status,
+        version: data.version,
         updatedBy: "当前用户",
         updatedAt: new Date().toLocaleString("zh-CN"),
-        description: mapData.description,
+        description: `P${data.levelRange.start} – P${data.levelRange.end} 职级学习路径`,
       };
       setMaps((prev) => [...prev, newMap]);
     } else if (selectedMap) {
+      // Update existing map
+      const updatedMap: LearningMap = {
+        ...selectedMap,
+        name: data.positionName + " 学习地图",
+        position: data.positionName,
+        behaviorTagCount: Object.values(data.levels as Record<string, { skills: any[] }>).reduce(
+          (sum, level) => sum + (level.skills?.length || 0),
+          0
+        ),
+        stageCount: data.levelRange.end - data.levelRange.start + 1,
+        status: data.status,
+        version: data.version,
+        updatedBy: "当前用户",
+        updatedAt: new Date().toLocaleString("zh-CN"),
+        description: `P${data.levelRange.start} – P${data.levelRange.end} 职级学习路径`,
+      };
+      setMaps((prev) =>
+        prev.map((m) => (m.id === selectedMap.id ? updatedMap : m))
+      );
+    }
+    setEditorOpen(false);
+  };
+
+  const handleEditorPublish = (data: any) => {
+    if (selectedMap) {
       setMaps((prev) =>
         prev.map((m) =>
-          m.id === selectedMap.id
-            ? { ...m, ...mapData, updatedAt: new Date().toLocaleString("zh-CN") }
-            : m
+          m.id === selectedMap.id ? { ...m, status: "published" as const } : m
         )
       );
     }
-    setDrawerOpen(false);
   };
 
-  const handleEditorSave = (data: any) => {
-    // Create new map from editor data
-    const newMap: LearningMap = {
-      id: data.id || `map-${Date.now()}`,
-      name: data.positionName + " 学习地图",
-      position: data.positionName,
-      positionId: `pos-${Date.now()}`,
-      behaviorTagCount: Object.values(data.levels as Record<string, { skills: any[] }>).reduce(
-        (sum, level) => sum + (level.skills?.length || 0),
-        0
-      ),
-      taskTagCount: 0,
-      stageCount: data.levelRange.end - data.levelRange.start + 1,
-      targetAudience: ["在岗"],
-      status: data.status,
-      version: data.version,
-      updatedBy: "当前用户",
-      updatedAt: new Date().toLocaleString("zh-CN"),
-      description: `P${data.levelRange.start} – P${data.levelRange.end} 职级学习路径`,
+  const handleEditorDisable = (data: any) => {
+    if (selectedMap) {
+      setMaps((prev) =>
+        prev.map((m) =>
+          m.id === selectedMap.id ? { ...m, status: "disabled" as const } : m
+        )
+      );
+    }
+  };
+
+  // Convert LearningMap to editor initial data format
+  const getEditorInitialData = () => {
+    if (!selectedMap) return undefined;
+    return {
+      id: selectedMap.id,
+      positionName: selectedMap.position,
+      levelRange: { start: 5, end: 9 }, // Default, could be parsed from description
+      version: selectedMap.version,
+      status: selectedMap.status,
+      levels: {}, // Would need to be populated from actual data
     };
-    setMaps((prev) => [...prev, newMap]);
-    setEditorOpen(false);
   };
 
   return (
@@ -271,7 +279,7 @@ export default function LearningMapLibrary() {
               selectedPosition={selectedPosition}
               onSelectPosition={setSelectedPosition}
               onCreateMap={handleCreateMap}
-              onCreateVersion={handleCreateVersion}
+              onCreateVersion={() => {}}
               onDisableMap={handleDisableMap}
             />
           </div>
@@ -318,45 +326,23 @@ export default function LearningMapLibrary() {
                 onEdit={handleEditMap}
                 onPublish={handlePublishMap}
                 onDisable={handleDisableMap}
-                onCreateVersion={handleCreateVersion}
               />
             </div>
           </div>
         </div>
       </div>
 
-      {/* Drawer (for view/edit existing maps) */}
-      <LearningMapDrawer
-        open={drawerOpen}
-        onOpenChange={setDrawerOpen}
-        map={selectedMap}
-        mode={drawerMode}
-        positions={positions}
-        onSave={handleSaveMap}
-        onPublish={handlePublishMap}
-        onDisable={handleDisableMap}
-        onCreateVersion={handleCreateVersion}
-      />
-
-      {/* Full-screen Editor Modal (for new map creation) */}
-      <Modal
+      {/* Editor Drawer */}
+      <LearningMapEditor
         open={editorOpen}
-        onCancel={() => setEditorOpen(false)}
-        footer={null}
-        width="100vw"
-        style={{ top: 0, padding: 0, maxWidth: "100vw" }}
-        styles={{ 
-          body: { height: "100vh", padding: 0, overflow: "hidden" }
-        }}
-        closable={false}
-        destroyOnClose
-      >
-        <LearningMapEditor
-          mapId={editingMapId}
-          onClose={() => setEditorOpen(false)}
-          onSave={handleEditorSave}
-        />
-      </Modal>
+        mode={editorMode}
+        mapId={selectedMap?.id}
+        initialData={getEditorInitialData()}
+        onClose={() => setEditorOpen(false)}
+        onSave={handleEditorSave}
+        onPublish={handleEditorPublish}
+        onDisable={handleEditorDisable}
+      />
     </DashboardLayout>
   );
 }
