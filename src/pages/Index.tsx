@@ -1,10 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Send, Loader2, BookOpen, MessageSquare, ClipboardCheck, Lightbulb } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
-import { toast } from '@/hooks/use-toast';
+import { Card, Button, Input, App } from 'antd';
+import { SendOutlined } from '@ant-design/icons';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { GeneratedPlanEditor, type GeneratedPlanData, type Chapter, type ContentItem } from '@/components/training/GeneratedPlanEditor';
@@ -14,6 +12,8 @@ import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
 import { VoiceInputButton } from '@/components/input/VoiceInputButton';
 import { FileAttachment, type AttachedFile } from '@/components/input/FileAttachment';
 import { parseMultipleFiles } from '@/lib/fileParser';
+
+const { TextArea } = Input;
 
 const EXAMPLE_PROMPTS = [
   "为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景",
@@ -130,6 +130,7 @@ function transformToEditorFormat(apiPlan: any): GeneratedPlanData {
 type GenerationPhase = 'input' | 'searching' | 'confirming' | 'generating' | 'results';
 
 const Index = () => {
+  const { message } = App.useApp();
   const [prompt, setPrompt] = useState('');
   const [phase, setPhase] = useState<GenerationPhase>('input');
   const [searchProgress, setSearchProgress] = useState(0);
@@ -137,7 +138,7 @@ const Index = () => {
   const [discoveredContext, setDiscoveredContext] = useState<DiscoveredContext | null>(null);
   const [generatedPlan, setGeneratedPlan] = useState<GeneratedPlanData | null>(null);
   const [attachedFiles, setAttachedFiles] = useState<AttachedFile[]>([]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = useRef<any>(null);
   const navigate = useNavigate();
 
   // Voice recognition hook
@@ -152,11 +153,7 @@ const Index = () => {
       setPrompt(prev => prev ? `${prev} ${text}` : text);
     },
     onError: (error) => {
-      toast({
-        title: '语音识别错误',
-        description: error,
-        variant: 'destructive',
-      });
+      message.error(`语音识别错误: ${error}`);
     },
   });
 
@@ -283,11 +280,7 @@ const Index = () => {
 
   const handleStartSearch = async () => {
     if (!prompt.trim()) {
-      toast({
-        title: "请输入培训需求",
-        description: "描述您想要创建的培训计划",
-        variant: "destructive"
-      });
+      message.error('请输入培训需求');
       return;
     }
 
@@ -305,11 +298,7 @@ const Index = () => {
       setPhase('confirming');
     } catch (error) {
       console.error('Search error:', error);
-      toast({
-        title: "搜索失败",
-        description: "请稍后重试",
-        variant: "destructive"
-      });
+      message.error('搜索失败，请稍后重试');
       setPhase('input');
     }
   };
@@ -359,18 +348,11 @@ const Index = () => {
         const transformedPlan = transformToEditorFormat(response.data.plan);
         setGeneratedPlan(transformedPlan);
         setPhase('results');
-        toast({
-          title: "培训计划生成成功",
-          description: `已生成「${response.data.plan.title}」培训计划`
-        });
+        message.success(`培训计划生成成功：已生成「${response.data.plan.title}」`);
       }
     } catch (error) {
       console.error('Generation error:', error);
-      toast({
-        title: "生成失败",
-        description: error instanceof Error ? error.message : "请稍后重试",
-        variant: "destructive"
-      });
+      message.error(error instanceof Error ? error.message : '生成失败，请稍后重试');
       setPhase('confirming');
     }
   };
@@ -396,17 +378,11 @@ const Index = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // 必须有认证用户才能保存（RLS要求）
       if (!user) {
-        toast({
-          title: "请先登录",
-          description: "保存培训计划需要登录账户",
-          variant: "destructive"
-        });
+        message.error('请先登录');
         return;
       }
       
-      // 获取或创建用户的组织
       const { data: orgId, error: orgError } = await supabase.rpc('initialize_user_with_organization', {
         _user_id: user.id,
         _full_name: user.user_metadata?.full_name || null,
@@ -418,7 +394,6 @@ const Index = () => {
         throw new Error('无法初始化用户组织');
       }
 
-      // Insert training plan as draft
       const { data: trainingPlan, error: planError } = await supabase
         .from('training_plans')
         .insert({
@@ -434,7 +409,6 @@ const Index = () => {
 
       if (planError) throw planError;
 
-      // Insert chapters with content_items
       if (trainingPlan && plan.chapters.length > 0) {
         const chaptersToInsert = plan.chapters.map((chapter, index) => ({
           training_plan_id: trainingPlan.id,
@@ -460,18 +434,11 @@ const Index = () => {
         if (chaptersError) throw chaptersError;
       }
 
-      toast({
-        title: "已保存为草稿",
-        description: `「${plan.title}」已保存到草稿箱`
-      });
+      message.success(`已保存为草稿：「${plan.title}」`);
       navigate('/training/plans');
     } catch (error) {
       console.error('Save draft error:', error);
-      toast({
-        title: "保存失败",
-        description: error instanceof Error ? error.message : "请稍后重试",
-        variant: "destructive"
-      });
+      message.error(error instanceof Error ? error.message : '保存失败，请稍后重试');
     }
   };
 
@@ -479,17 +446,11 @@ const Index = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
-      // 必须有认证用户才能创建计划（RLS要求）
       if (!user) {
-        toast({
-          title: "请先登录",
-          description: "创建培训计划需要登录账户",
-          variant: "destructive"
-        });
+        message.error('请先登录');
         return;
       }
       
-      // 获取或创建用户的组织
       const { data: orgId, error: orgError } = await supabase.rpc('initialize_user_with_organization', {
         _user_id: user.id,
         _full_name: user.user_metadata?.full_name || null,
@@ -501,7 +462,6 @@ const Index = () => {
         throw new Error('无法初始化用户组织');
       }
 
-      // Insert training plan with pending status
       const { data: trainingPlan, error: planError } = await supabase
         .from('training_plans')
         .insert({
@@ -517,7 +477,6 @@ const Index = () => {
 
       if (planError) throw planError;
 
-      // Insert chapters and collect practice items with their configs
       interface PracticeItemWithConfig {
         title: string;
         description: string;
@@ -551,7 +510,6 @@ const Index = () => {
 
         if (chaptersError) throw chaptersError;
 
-        // Collect practice items from the plan with their AI-generated configs
         plan.chapters.forEach((chapter, chapterIndex) => {
           chapter.items.forEach((item) => {
             if (item.type === 'practice') {
@@ -565,7 +523,6 @@ const Index = () => {
           });
         });
 
-        // Create practice_sessions for each practice item with AI-generated config
         if (practiceItems.length > 0) {
           const practiceSessionsToInsert = practiceItems.map((item) => ({
             title: item.title,
@@ -593,18 +550,11 @@ const Index = () => {
         }
       }
 
-      toast({
-        title: "培训计划已创建",
-        description: `「${plan.title}」已正式入库${practiceItems.length > 0 ? `，同步创建了 ${practiceItems.length} 个练习计划` : ''}`
-      });
+      message.success(`培训计划已创建：「${plan.title}」${practiceItems.length > 0 ? `，同步创建了 ${practiceItems.length} 个练习计划` : ''}`);
       navigate('/training/plans');
     } catch (error) {
       console.error('Create plan error:', error);
-      toast({
-        title: "创建失败",
-        description: error instanceof Error ? error.message : "请稍后重试",
-        variant: "destructive"
-      });
+      message.error(error instanceof Error ? error.message : '创建失败，请稍后重试');
     }
   };
 
@@ -616,107 +566,107 @@ const Index = () => {
           <div className="max-w-3xl mx-auto">
             {/* Hero Section */}
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-600 text-sm font-medium mb-6">
                 <Sparkles className="h-4 w-4" />
                 AI 智能培训计划生成
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
+              <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
                 一句话生成<br />
-                <span className="text-primary">学练考</span>完整培训计划
+                <span className="text-blue-600">学练考</span>完整培训计划
               </h1>
-              <p className="text-lg text-muted-foreground max-w-xl mx-auto">
+              <p className="text-lg text-gray-500 max-w-xl mx-auto">
                 输入培训对象和目标，AI 将自动设计课程内容、练习场景和考核方案
               </p>
             </div>
 
             {/* Input Section */}
             <div className="relative">
-              <Card className="shadow-xl border-0 bg-card">
-                <CardContent className="p-6">
-                  <div className="relative">
-                    <Textarea
-                      ref={textareaRef}
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                      onKeyDown={handleKeyDown}
-                      placeholder="描述您的培训需求，例如：为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景..."
-                      className="min-h-[120px] text-base border-0 focus-visible:ring-0 resize-none p-0 pr-12"
-                    />
-                    {/* Voice indicator badge */}
-                    {isListening && (
-                      <div className="absolute top-0 right-0 flex items-center gap-2 text-xs text-destructive font-medium">
-                        <span className="flex items-center gap-1">
-                          <span className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
-                          录音中
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Real-time voice transcript display */}
-                  {isListening && transcript && (
-                    <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-dashed border-primary/30">
-                      <div className="flex items-start gap-2">
-                        <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center">
-                          <span className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs text-muted-foreground mb-1">实时转写：</p>
-                          <p className="text-sm text-foreground">{transcript}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Attached files display */}
-                  {attachedFiles.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-dashed">
-                      <FileAttachment 
-                        files={attachedFiles} 
-                        onFilesChange={setAttachedFiles}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="flex items-center justify-between mt-4 pt-4 border-t">
-                    <div className="flex items-center gap-1">
-                      {/* Voice Input Button */}
-                      <VoiceInputButton
-                        isListening={isListening}
-                        isSupported={isVoiceSupported}
-                        onStart={startListening}
-                        onStop={stopListening}
-                      />
-                      
-                      {/* File Attachment Button */}
-                      <FileAttachment
-                        files={attachedFiles}
-                        onFilesChange={setAttachedFiles}
-                        maxFiles={5}
-                        maxSizeMB={10}
-                      />
-                      
-                      <span className="text-xs text-muted-foreground ml-2">
-                        ⌘ + Enter 快速生成
+              <Card className="shadow-xl">
+                <div className="relative">
+                  <TextArea
+                    ref={textareaRef}
+                    value={prompt}
+                    onChange={(e) => setPrompt(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="描述您的培训需求，例如：为新入职销售人员设计一套客户沟通技巧培训，包含电话销售和面对面拜访场景..."
+                    autoSize={{ minRows: 4, maxRows: 8 }}
+                    variant="borderless"
+                    className="text-base"
+                  />
+                  {/* Voice indicator badge */}
+                  {isListening && (
+                    <div className="absolute top-0 right-0 flex items-center gap-2 text-xs text-red-500 font-medium">
+                      <span className="flex items-center gap-1">
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                        录音中
                       </span>
                     </div>
-                    <Button 
-                      onClick={handleStartSearch} 
-                      disabled={!prompt.trim() || isListening}
-                      size="lg"
-                      className="gap-2"
-                    >
-                      <Send className="h-4 w-4" />
-                      一键生成培训计划
-                    </Button>
+                  )}
+                </div>
+                
+                {/* Real-time voice transcript display */}
+                {isListening && transcript && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-dashed border-blue-300">
+                    <div className="flex items-start gap-2">
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-xs text-gray-500 mb-1">实时转写：</p>
+                        <p className="text-sm text-gray-900">{transcript}</p>
+                      </div>
+                    </div>
                   </div>
-                </CardContent>
+                )}
+                
+                {/* Attached files display */}
+                {attachedFiles.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-dashed">
+                    <FileAttachment 
+                      files={attachedFiles} 
+                      onFilesChange={setAttachedFiles}
+                    />
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between mt-4 pt-4 border-t">
+                  <div className="flex items-center gap-1">
+                    {/* Voice Input Button */}
+                    <VoiceInputButton
+                      isListening={isListening}
+                      isSupported={isVoiceSupported}
+                      onStart={startListening}
+                      onStop={stopListening}
+                    />
+                    
+                    {/* File Attachment Button */}
+                    <FileAttachment
+                      files={attachedFiles}
+                      onFilesChange={setAttachedFiles}
+                      maxFiles={5}
+                      maxSizeMB={10}
+                    />
+                    
+                    <span className="text-xs text-gray-400 ml-2">
+                      ⌘ + Enter 快速生成
+                    </span>
+                  </div>
+                  <Button 
+                    type="primary"
+                    size="large"
+                    icon={<SendOutlined />}
+                    onClick={handleStartSearch} 
+                    disabled={!prompt.trim() || isListening}
+                  >
+                    一键生成培训计划
+                  </Button>
+                </div>
               </Card>
             </div>
 
             {/* Example Prompts */}
             <div className="mt-8">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-3">
                 <Lightbulb className="h-4 w-4" />
                 试试这些示例
               </div>
@@ -725,7 +675,7 @@ const Index = () => {
                   <button
                     key={index}
                     onClick={() => handleExampleClick(example)}
-                    className="text-left p-3 rounded-lg border bg-card hover:bg-muted hover:border-primary/30 transition-colors text-sm text-muted-foreground"
+                    className="text-left p-3 rounded-lg border bg-white hover:bg-gray-50 hover:border-blue-300 transition-colors text-sm text-gray-600"
                   >
                     {example}
                   </button>
@@ -736,25 +686,25 @@ const Index = () => {
             {/* Features */}
             <div className="grid grid-cols-3 gap-6 mt-16">
               <div className="text-center">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <BookOpen className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-blue-50 flex items-center justify-center mx-auto mb-3">
+                  <BookOpen className="h-6 w-6 text-blue-600" />
                 </div>
                 <h3 className="font-medium mb-1">智能课程设计</h3>
-                <p className="text-sm text-muted-foreground">自动规划课程大纲和知识点</p>
+                <p className="text-sm text-gray-500">自动规划课程大纲和知识点</p>
               </div>
               <div className="text-center">
-                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center mx-auto mb-3">
-                  <MessageSquare className="h-6 w-6 text-secondary-foreground" />
+                <div className="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-3">
+                  <MessageSquare className="h-6 w-6 text-green-600" />
                 </div>
                 <h3 className="font-medium mb-1">场景化练习</h3>
-                <p className="text-sm text-muted-foreground">生成贴近实战的AI对话练习</p>
+                <p className="text-sm text-gray-500">生成贴近实战的AI对话练习</p>
               </div>
               <div className="text-center">
-                <div className="h-12 w-12 rounded-full bg-accent flex items-center justify-center mx-auto mb-3">
-                  <ClipboardCheck className="h-6 w-6 text-accent-foreground" />
+                <div className="h-12 w-12 rounded-full bg-orange-50 flex items-center justify-center mx-auto mb-3">
+                  <ClipboardCheck className="h-6 w-6 text-orange-600" />
                 </div>
                 <h3 className="font-medium mb-1">自动考核方案</h3>
-                <p className="text-sm text-muted-foreground">智能出题并设置评分标准</p>
+                <p className="text-sm text-gray-500">智能出题并设置评分标准</p>
               </div>
             </div>
           </div>

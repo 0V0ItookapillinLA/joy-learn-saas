@@ -1,37 +1,45 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  Card,
   Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+  Input,
+  Button,
+  Tag,
+  Avatar,
+  Dropdown,
+  Row,
+  Col,
+  Statistic,
+  Space,
+} from "antd";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Search,
-  Filter,
-  MoreHorizontal,
-  UserPlus,
-  Eye,
-  Mail,
-  TrendingUp,
-  Download,
-} from "lucide-react";
+  SearchOutlined,
+  FilterOutlined,
+  DownloadOutlined,
+  UserAddOutlined,
+  EyeOutlined,
+  LineChartOutlined,
+  MailOutlined,
+  MoreOutlined,
+} from "@ant-design/icons";
+import type { ColumnsType } from "antd/es/table";
+
+interface Trainee {
+  id: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  department: string;
+  status: "active" | "inactive" | "pending";
+  enrolledPlans: number;
+  completedPlans: number;
+  avgScore: number;
+  lastActive: string | null;
+}
 
 // Mock trainees data
-const mockTrainees = [
+const mockTrainees: Trainee[] = [
   {
     id: "1",
     name: "张三",
@@ -94,10 +102,10 @@ const mockTrainees = [
   },
 ];
 
-const statusMap: Record<string, { label: string; variant: "default" | "secondary" | "outline" }> = {
-  active: { label: "活跃", variant: "default" },
-  inactive: { label: "不活跃", variant: "secondary" },
-  pending: { label: "待激活", variant: "outline" },
+const statusConfig = {
+  active: { label: "活跃", color: "success" },
+  inactive: { label: "不活跃", color: "default" },
+  pending: { label: "待激活", color: "warning" },
 };
 
 export default function TraineeList() {
@@ -110,169 +118,161 @@ export default function TraineeList() {
       trainee.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const columns: ColumnsType<Trainee> = [
+    {
+      title: "学员",
+      key: "trainee",
+      render: (_, record) => (
+        <div className="flex items-center gap-3">
+          <Avatar style={{ backgroundColor: "#1677ff" }}>
+            {record.name.slice(0, 2)}
+          </Avatar>
+          <div>
+            <div className="font-medium">{record.name}</div>
+            <div className="text-sm text-gray-500">{record.email}</div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: "部门",
+      dataIndex: "department",
+      key: "department",
+    },
+    {
+      title: "状态",
+      dataIndex: "status",
+      key: "status",
+      render: (status: keyof typeof statusConfig) => (
+        <Tag color={statusConfig[status].color}>
+          {statusConfig[status].label}
+        </Tag>
+      ),
+    },
+    {
+      title: "参与培训",
+      key: "training",
+      render: (_, record) => (
+        <span>
+          <span className="font-medium">{record.completedPlans}</span>
+          <span className="text-gray-500">/{record.enrolledPlans} 完成</span>
+        </span>
+      ),
+    },
+    {
+      title: "平均得分",
+      dataIndex: "avgScore",
+      key: "avgScore",
+      render: (score: number) =>
+        score > 0 ? (
+          <span style={{ color: score >= 80 ? "#52c41a" : "#faad14", fontWeight: 500 }}>
+            {score}
+          </span>
+        ) : (
+          <span className="text-gray-400">--</span>
+        ),
+    },
+    {
+      title: "最近活跃",
+      dataIndex: "lastActive",
+      key: "lastActive",
+      render: (date: string | null) => (
+        <span className="text-gray-500">{date || "从未登录"}</span>
+      ),
+    },
+    {
+      title: "",
+      key: "action",
+      width: 50,
+      render: () => (
+        <Dropdown
+          menu={{
+            items: [
+              { key: "view", icon: <EyeOutlined />, label: "查看详情" },
+              { key: "growth", icon: <LineChartOutlined />, label: "成长地图" },
+              { key: "mail", icon: <MailOutlined />, label: "发送提醒" },
+            ],
+          }}
+          trigger={["click"]}
+        >
+          <Button type="text" icon={<MoreOutlined />} />
+        </Dropdown>
+      ),
+    },
+  ];
+
   return (
     <DashboardLayout title="学员列表" description="查看和管理所有学员">
       <div className="space-y-6">
         {/* Header Actions */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-1 gap-2">
-            <div className="relative flex-1 sm:max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="搜索学员姓名、邮箱或部门..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-            <Button variant="outline" size="icon">
-              <Filter className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex gap-2">
-            <Button variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              导出
-            </Button>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
+          <Space>
+            <Input
+              placeholder="搜索学员姓名、邮箱或部门..."
+              prefix={<SearchOutlined />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ width: 280 }}
+              allowClear
+            />
+            <Button icon={<FilterOutlined />}>筛选</Button>
+          </Space>
+          <Space>
+            <Button icon={<DownloadOutlined />}>导出</Button>
+            <Button type="primary" icon={<UserAddOutlined />}>
               邀请学员
             </Button>
-          </div>
+          </Space>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold">248</div>
-              <p className="text-sm text-muted-foreground">总学员数</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-success">186</div>
-              <p className="text-sm text-muted-foreground">活跃学员</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-warning">42</div>
-              <p className="text-sm text-muted-foreground">待激活</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="text-2xl font-bold text-primary">85.2</div>
-              <p className="text-sm text-muted-foreground">平均得分</p>
-            </CardContent>
-          </Card>
-        </div>
+        <Row gutter={16}>
+          <Col span={6}>
+            <Card>
+              <Statistic title="总学员数" value={248} />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="活跃学员"
+                value={186}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="待激活"
+                value={42}
+                valueStyle={{ color: "#faad14" }}
+              />
+            </Card>
+          </Col>
+          <Col span={6}>
+            <Card>
+              <Statistic
+                title="平均得分"
+                value={85.2}
+                valueStyle={{ color: "#1677ff" }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Trainees Table */}
-        <Card>
-          <CardHeader>
-            <CardTitle>学员列表</CardTitle>
-            <CardDescription>
-              共 {filteredTrainees.length} 名学员
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>学员</TableHead>
-                  <TableHead>部门</TableHead>
-                  <TableHead>状态</TableHead>
-                  <TableHead>参与培训</TableHead>
-                  <TableHead>平均得分</TableHead>
-                  <TableHead>最近活跃</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTrainees.map((trainee) => (
-                  <TableRow key={trainee.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage src={trainee.avatar || undefined} />
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {trainee.name.slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="font-medium">{trainee.name}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {trainee.email}
-                          </div>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{trainee.department}</TableCell>
-                    <TableCell>
-                      <Badge variant={statusMap[trainee.status].variant}>
-                        {statusMap[trainee.status].label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        <span className="font-medium">{trainee.completedPlans}</span>
-                        <span className="text-muted-foreground">
-                          /{trainee.enrolledPlans} 完成
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {trainee.avgScore > 0 ? (
-                        <span
-                          className={`font-medium ${
-                            trainee.avgScore >= 80 ? "text-success" : "text-warning"
-                          }`}
-                        >
-                          {trainee.avgScore}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">--</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {trainee.lastActive ? (
-                        <span className="text-sm text-muted-foreground">
-                          {trainee.lastActive}
-                        </span>
-                      ) : (
-                        <span className="text-sm text-muted-foreground">从未登录</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem>
-                            <Eye className="mr-2 h-4 w-4" />
-                            查看详情
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <TrendingUp className="mr-2 h-4 w-4" />
-                            成长地图
-                          </DropdownMenuItem>
-                          <DropdownMenuItem>
-                            <Mail className="mr-2 h-4 w-4" />
-                            发送提醒
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
+        <Card title={`学员列表（共 ${filteredTrainees.length} 名学员）`}>
+          <Table
+            columns={columns}
+            dataSource={filteredTrainees}
+            rowKey="id"
+            pagination={{
+              showSizeChanger: true,
+              showQuickJumper: true,
+              showTotal: (total) => `共 ${total} 条`,
+            }}
+          />
         </Card>
       </div>
     </DashboardLayout>
