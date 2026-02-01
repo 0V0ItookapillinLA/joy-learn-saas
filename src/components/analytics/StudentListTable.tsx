@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useState } from "react";
+import { TaskAssignModal } from "./TaskAssignModal";
 
 const { Text } = Typography;
 
@@ -59,6 +60,9 @@ export function StudentListTable({ onViewDetail, departmentFilter, skillFilter }
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [gradeFilter, setGradeFilter] = useState<string>("all");
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [assignModalOpen, setAssignModalOpen] = useState(false);
+  const [assignTargets, setAssignTargets] = useState<{ id: string; name: string; employeeId: string; department: string }[]>([]);
+  const [targetWeakSkills, setTargetWeakSkills] = useState<string[]>([]);
 
   const filteredData = studentsData.filter((student) => {
     const matchesSearch = student.name.includes(searchText) || student.employeeId.includes(searchText);
@@ -78,7 +82,26 @@ export function StudentListTable({ onViewDetail, departmentFilter, skillFilter }
   };
 
   const handleAssign = (studentIds: string[]) => {
-    message.info("指派任务功能开发中");
+    const targets = studentsData
+      .filter(s => studentIds.includes(s.id))
+      .map(s => ({ id: s.id, name: s.name, employeeId: s.employeeId, department: s.department }));
+    
+    // Collect weak skills from AI evaluations that indicate issues
+    const weakSkillsSet = new Set<string>();
+    targets.forEach(t => {
+      const student = studentsData.find(s => s.id === t.id);
+      if (student) {
+        student.aiEvaluation.forEach(evalItem => {
+          if (evalItem.includes("弱") || evalItem.includes("差") || evalItem.includes("缺乏") || evalItem.includes("待提升")) {
+            weakSkillsSet.add(evalItem);
+          }
+        });
+      }
+    });
+    
+    setAssignTargets(targets);
+    setTargetWeakSkills(Array.from(weakSkillsSet));
+    setAssignModalOpen(true);
   };
 
   const columns: ColumnsType<Student> = [
@@ -254,6 +277,16 @@ export function StudentListTable({ onViewDetail, departmentFilter, skillFilter }
           showQuickJumper: true,
           showTotal: (total) => `共 ${total} 条`,
         }}
+      />
+
+      <TaskAssignModal
+        open={assignModalOpen}
+        onClose={() => {
+          setAssignModalOpen(false);
+          setSelectedRowKeys([]);
+        }}
+        selectedStudents={assignTargets}
+        weakSkills={targetWeakSkills}
       />
     </Card>
   );
