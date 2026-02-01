@@ -1,4 +1,4 @@
-import { Card, List, Typography, Tag, Button, Avatar, Progress, Tooltip } from "antd";
+import { Card, Row, Col, List, Typography, Tag, Button, Avatar, Progress, Tooltip } from "antd";
 import { RightOutlined, WarningOutlined, UserOutlined, InfoCircleOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
@@ -43,8 +43,8 @@ interface RiskMonitorProps {
 
 export function RiskMonitor({ onOrgClick, onStudentClick }: RiskMonitorProps) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* 需关注的组织 */}
+    <Row gutter={16}>
+      <Col span={12}>
       <Card
         title={
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -82,7 +82,9 @@ export function RiskMonitor({ onOrgClick, onStudentClick }: RiskMonitorProps) {
           )}
         />
       </Card>
+      </Col>
 
+      <Col span={12}>
       {/* 滞后人员名单 */}
       <Card
         title={
@@ -128,6 +130,7 @@ export function RiskMonitor({ onOrgClick, onStudentClick }: RiskMonitorProps) {
           )}
         />
       </Card>
-    </div>
+      </Col>
+    </Row>
   );
 }
