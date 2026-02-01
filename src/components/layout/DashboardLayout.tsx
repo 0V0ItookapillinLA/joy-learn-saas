@@ -15,6 +15,7 @@ import {
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/contexts/AuthContext";
+import logoImage from "@/assets/logo.png";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -118,21 +119,14 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             borderBottom: "1px solid #f0f0f0",
           }}
         >
-          <div
+          <img
+            src={logoImage}
+            alt="JoyLearning Logo"
             style={{
               width: 32,
               height: 32,
-              borderRadius: 8,
-              background: "#1677ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#fff",
-              fontWeight: "bold",
             }}
-          >
-            J
-          </div>
+          />
           {!collapsed && (
             <div style={{ marginLeft: 12 }}>
               <Text strong style={{ fontSize: 14 }}>
