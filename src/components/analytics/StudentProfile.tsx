@@ -1,4 +1,4 @@
-import { Card, Row, Col, Typography, Tag, Button, Avatar, Timeline, Tooltip, Divider, Space, Progress, Empty } from "antd";
+import { Card, Row, Col, Typography, Tag, Button, Avatar, Divider, Space } from "antd";
 import {
   ArrowLeftOutlined,
   UserOutlined,
@@ -7,7 +7,6 @@ import {
   PlayCircleOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
-  StarOutlined,
 } from "@ant-design/icons";
 import {
   RadarChart,
@@ -192,55 +191,53 @@ export function StudentProfile({ studentId, onBack }: StudentProfileProps) {
 
           {/* Practice History */}
           <Card title="练习历史记录" size="small">
-            <Timeline
-              items={practiceHistory.map((item) => ({
-                color: item.score >= 80 ? "green" : item.score >= 60 ? "blue" : "red",
-                children: (
-                  <div
-                    style={{
-                      padding: "12px 16px",
-                      background: "#fafafa",
-                      borderRadius: 8,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-                      <div>
-                        <Text strong>{item.title}</Text>
-                        <Text type="secondary" style={{ fontSize: 12, marginLeft: 12 }}>{item.date}</Text>
-                      </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ fontSize: 18, fontWeight: 600, color: item.score >= 80 ? "#52c41a" : item.score >= 60 ? "#1677ff" : "#ff4d4f" }}>
-                          {item.score}分
-                        </span>
-                        <Button type="link" size="small" icon={<PlayCircleOutlined />}>回放</Button>
-                      </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {practiceHistory.map((item) => (
+                <div
+                  key={item.id}
+                  style={{
+                    padding: "12px 16px",
+                    background: "#fafafa",
+                    borderRadius: 8,
+                    borderLeft: `3px solid ${item.score >= 80 ? "#52c41a" : item.score >= 60 ? "#1677ff" : "#ff4d4f"}`,
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+                    <div>
+                      <Text strong>{item.title}</Text>
+                      <Text type="secondary" style={{ fontSize: 12, marginLeft: 12 }}>{item.date}</Text>
                     </div>
-                    <div style={{ marginBottom: 8 }}>
-                      <Text type="secondary" style={{ fontSize: 12 }}>AI点评: {item.aiComment}</Text>
-                    </div>
-                    <div style={{ display: "flex", gap: 16 }}>
-                      {item.highlights.length > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 12 }} />
-                          {item.highlights.map((h) => (
-                            <Tag key={h} color="green" style={{ fontSize: 11 }}>{h}</Tag>
-                          ))}
-                        </div>
-                      )}
-                      {item.lowlights.length > 0 && (
-                        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 12 }} />
-                          {item.lowlights.map((l) => (
-                            <Tag key={l} color="red" style={{ fontSize: 11 }}>{l}</Tag>
-                          ))}
-                        </div>
-                      )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 18, fontWeight: 600, color: item.score >= 80 ? "#52c41a" : item.score >= 60 ? "#1677ff" : "#ff4d4f" }}>
+                        {item.score}分
+                      </span>
+                      <Button type="link" size="small" icon={<PlayCircleOutlined />}>回放</Button>
                     </div>
                   </div>
-                ),
-              }))}
-            />
+                  <div style={{ marginBottom: 8 }}>
+                    <Text type="secondary" style={{ fontSize: 12 }}>AI点评：{item.aiComment}</Text>
+                  </div>
+                  <div style={{ display: "flex", gap: 16 }}>
+                    {item.highlights.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <CheckCircleOutlined style={{ color: "#52c41a", fontSize: 12 }} />
+                        {item.highlights.map((h) => (
+                          <Tag key={h} color="green" style={{ fontSize: 11 }}>{h}</Tag>
+                        ))}
+                      </div>
+                    )}
+                    {item.lowlights.length > 0 && (
+                      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                        <CloseCircleOutlined style={{ color: "#ff4d4f", fontSize: 12 }} />
+                        {item.lowlights.map((l) => (
+                          <Tag key={l} color="red" style={{ fontSize: 11 }}>{l}</Tag>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </Card>
         </Col>
       </Row>
