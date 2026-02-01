@@ -107,7 +107,15 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
         onCollapse={setCollapsed}
         trigger={null}
         theme="light"
-        style={{ borderRight: "1px solid #f0f0f0" }}
+        style={{ 
+          borderRight: "1px solid #f0f0f0",
+          position: "fixed",
+          left: 0,
+          top: 0,
+          bottom: 0,
+          zIndex: 100,
+          overflow: "auto",
+        }}
       >
         <div
           style={{
@@ -147,7 +155,7 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
           style={{ borderRight: 0 }}
         />
       </Sider>
-      <Layout>
+      <Layout style={{ marginLeft: collapsed ? 80 : 200, transition: "margin-left 0.2s" }}>
         <Header
           style={{
             padding: "0 24px",
@@ -156,6 +164,9 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             alignItems: "center",
             justifyContent: "space-between",
             borderBottom: "1px solid #f0f0f0",
+            position: "sticky",
+            top: 0,
+            zIndex: 99,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
@@ -190,7 +201,7 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             </div>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 24, background: "#fff", borderRadius: 8, padding: 24 }}>
+        <Content style={{ margin: 24, background: "#fff", borderRadius: 8, padding: 24, minHeight: "calc(100vh - 64px - 48px)" }}>
           {children}
         </Content>
       </Layout>
