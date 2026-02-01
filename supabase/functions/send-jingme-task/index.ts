@@ -26,6 +26,17 @@ interface TaskRequest {
   taskTitle: string;
   taskMessage?: string;
   deadline?: string;
+  simulateMode?: boolean;
+}
+
+function getTypeLabel(type: string): string {
+  const labels: Record<string, string> = {
+    video: "视频",
+    document: "文档",
+    article: "文章",
+    practice: "练习",
+  };
+  return labels[type] || type;
 }
 
 serve(async (req) => {
@@ -38,12 +49,8 @@ serve(async (req) => {
     const JINGME_APP_KEY = Deno.env.get("JINGME_APP_KEY");
     const JINGME_APP_SECRET = Deno.env.get("JINGME_APP_SECRET");
 
-    if (!JINGME_APP_KEY || !JINGME_APP_SECRET) {
-      throw new Error("京ME API credentials not configured");
-    }
-
     const body: TaskRequest = await req.json();
-    const { students, knowledgeItems, taskTitle, taskMessage } = body;
+    const { students, knowledgeItems, taskTitle, taskMessage, simulateMode } = body;
 
     if (!students || students.length === 0) {
       throw new Error("No students specified");
@@ -66,35 +73,80 @@ ${taskMessage ? `💬 ${taskMessage}\n` : ""}
 ${knowledgeList}
 
 点击查看详情并开始学习 👇
-`;
+`.trim();
 
-    // Get access token from JingME
-    const tokenResponse = await fetch("https://api.jd.com/oauth/token", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: JINGME_APP_KEY,
-        client_secret: JINGME_APP_SECRET,
-      }),
-    });
+    // If credentials not configured or simulate mode, return simulated success
+    if (!JINGME_APP_KEY || !JINGME_APP_SECRET || simulateMode) {
+      console.log("Running in simulation mode - no actual messages sent");
+      console.log("Message content:", messageContent);
+      console.log("Target students:", students.map(s => s.name).join(", "));
 
-    if (!tokenResponse.ok) {
-      const tokenError = await tokenResponse.text();
-      console.error("JingME token error:", tokenError);
-      throw new Error(`Failed to get JingME access token: ${tokenResponse.status}`);
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      return new Response(
+        JSON.stringify({
+          success: true,
+          simulated: true,
+          message: `模拟发送成功：已向 ${students.length} 位学员发送任务`,
+          messagePreview: messageContent,
+          results: students.map(s => ({ studentId: s.id, studentName: s.name, success: true })),
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const tokenData = await tokenResponse.json();
-    const accessToken = tokenData.access_token;
+    // Real JingME API integration
+    let accessToken: string;
+    
+    try {
+      // Get access token from JingME
+      const tokenResponse = await fetch("https://api.jd.com/oauth/token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: new URLSearchParams({
+          grant_type: "client_credentials",
+          client_id: JINGME_APP_KEY,
+          client_secret: JINGME_APP_SECRET,
+        }),
+      });
+
+      const tokenText = await tokenResponse.text();
+      
+      // Check if response is HTML (error page)
+      if (tokenText.trim().startsWith("<!DOCTYPE") || tokenText.trim().startsWith("<html")) {
+        console.error("JingME OAuth returned HTML instead of JSON:", tokenText.substring(0, 200));
+        throw new Error("京ME认证服务返回异常，请检查API配置");
+      }
+
+      let tokenData;
+      try {
+        tokenData = JSON.parse(tokenText);
+      } catch {
+        console.error("Failed to parse token response:", tokenText.substring(0, 200));
+        throw new Error("京ME认证响应格式错误");
+      }
+
+      if (!tokenData.access_token) {
+        console.error("No access_token in response:", tokenData);
+        throw new Error(tokenData.error_description || tokenData.error || "获取访问令牌失败");
+      }
+
+      accessToken = tokenData.access_token;
+    } catch (error) {
+      console.error("JingME token error:", error);
+      throw new Error(`京ME认证失败: ${error instanceof Error ? error.message : "未知错误"}`);
+    }
 
     // Send message to each student
     const results = [];
     for (const student of students) {
       try {
-        // JingME message API (example endpoint - adjust based on actual API docs)
         const sendResponse = await fetch("https://api.jd.com/jingme/message/send", {
           method: "POST",
           headers: {
@@ -102,27 +154,39 @@ ${knowledgeList}
             "Authorization": `Bearer ${accessToken}`,
           },
           body: JSON.stringify({
-            touser: student.employeeId, // Use employee ID as JingME user identifier
+            touser: student.employeeId,
             msgtype: "text",
             text: {
-              content: messageContent.trim(),
-            },
-            // Optional: include link card for better UX
-            link: {
-              title: taskTitle,
-              description: `包含 ${knowledgeItems.length} 项学习内容`,
-              url: `${Deno.env.get("SUPABASE_URL")?.replace(".supabase.co", ".lovable.app")}/trainees/growth-map`,
-              picurl: "",
+              content: messageContent,
             },
           }),
         });
 
-        if (sendResponse.ok) {
+        const sendText = await sendResponse.text();
+        
+        // Check for HTML response
+        if (sendText.trim().startsWith("<!DOCTYPE") || sendText.trim().startsWith("<html")) {
+          console.error(`Send to ${student.employeeId} returned HTML:`, sendText.substring(0, 200));
+          results.push({ studentId: student.id, success: false, error: "API返回异常" });
+          continue;
+        }
+
+        let sendData;
+        try {
+          sendData = JSON.parse(sendText);
+        } catch {
+          results.push({ studentId: student.id, success: false, error: "响应格式错误" });
+          continue;
+        }
+
+        if (sendResponse.ok && sendData.errcode === 0) {
           results.push({ studentId: student.id, success: true });
         } else {
-          const errorText = await sendResponse.text();
-          console.error(`Failed to send to ${student.employeeId}:`, errorText);
-          results.push({ studentId: student.id, success: false, error: errorText });
+          results.push({ 
+            studentId: student.id, 
+            success: false, 
+            error: sendData.errmsg || sendData.error || "发送失败" 
+          });
         }
       } catch (err) {
         console.error(`Error sending to ${student.employeeId}:`, err);
@@ -148,22 +212,12 @@ ${knowledgeList}
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error occurred",
+        error: error instanceof Error ? error.message : "发送任务失败",
       }),
       {
-        status: 500,
+        status: 200, // Return 200 with error in body for better client handling
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
 });
-
-function getTypeLabel(type: string): string {
-  const labels: Record<string, string> = {
-    video: "视频",
-    document: "文档",
-    article: "文章",
-    practice: "练习",
-  };
-  return labels[type] || type;
-}
