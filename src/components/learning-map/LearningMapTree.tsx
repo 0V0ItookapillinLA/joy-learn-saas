@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Input, Tree, Badge } from "antd";
+import { Input, Tree, Button } from "antd";
 import {
   SearchOutlined,
   ApartmentOutlined,
   NodeIndexOutlined,
+  PlusOutlined,
 } from "@ant-design/icons";
 import type { DataNode } from "antd/es/tree";
 
@@ -11,21 +12,20 @@ interface Position {
   id: string;
   name: string;
   parentId?: string;
-  hasMap: boolean;
-  mapStatus?: "published" | "disabled";
-  skillCount?: number;
 }
 
 interface LearningMapTreeProps {
   positions: Position[];
   selectedPosition: string | null;
   onSelectPosition: (positionId: string | null) => void;
+  onAddPosition?: () => void;
 }
 
 export function LearningMapTree({
   positions,
   selectedPosition,
   onSelectPosition,
+  onAddPosition,
 }: LearningMapTreeProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [expandedKeys, setExpandedKeys] = useState<React.Key[]>(
@@ -43,30 +43,13 @@ export function LearningMapTree({
       return {
         key: position.id,
         title: (
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flex: 1, paddingRight: 8 }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              {isLeaf ? (
-                <NodeIndexOutlined style={{ color: position.hasMap ? "#1677ff" : "#999" }} />
-              ) : (
-                <ApartmentOutlined style={{ color: "#1677ff" }} />
-              )}
-              <span>{position.name}</span>
-            </span>
-            {isLeaf && position.hasMap && (
-              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                {position.mapStatus === "published" ? (
-                  <Badge status="success" text="已发布" />
-                ) : (
-                  <Badge status="default" text="停用" />
-                )}
-                {position.skillCount !== undefined && (
-                  <span style={{ color: "#999", fontSize: 12 }}>{position.skillCount}个技能</span>
-                )}
-              </span>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, paddingRight: 8 }}>
+            {isLeaf ? (
+              <NodeIndexOutlined style={{ color: "#1677ff" }} />
+            ) : (
+              <ApartmentOutlined style={{ color: "#1677ff" }} />
             )}
-            {isLeaf && !position.hasMap && (
-              <span style={{ color: "#999", fontSize: 12 }}>未配置</span>
-            )}
+            <span>{position.name}</span>
           </div>
         ),
         children: children.length > 0 ? children.map(buildNode) : undefined,
@@ -114,7 +97,19 @@ export function LearningMapTree({
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column", borderRight: "1px solid #f0f0f0" }}>
       <div style={{ padding: "16px 12px", borderBottom: "1px solid #f0f0f0" }}>
-        <div style={{ fontWeight: 600, marginBottom: 12, color: "#1f1f1f" }}>岗位列表</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span style={{ fontWeight: 600, color: "#1f1f1f" }}>岗位列表</span>
+          {onAddPosition && (
+            <Button 
+              type="primary" 
+              size="small" 
+              icon={<PlusOutlined />}
+              onClick={onAddPosition}
+            >
+              新增
+            </Button>
+          )}
+        </div>
         <Input
           placeholder="搜索岗位..."
           prefix={<SearchOutlined />}

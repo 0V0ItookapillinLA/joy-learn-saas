@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { LearningMapTree } from "@/components/learning-map/LearningMapTree";
 import { LearningMapTable } from "@/components/learning-map/LearningMapTable";
 import { LearningMapEditor, LearningMapEditorData } from "@/components/learning-map/LearningMapEditor";
+import { AddPositionModal } from "@/components/learning-map/AddPositionModal";
 import { Button, Input, Select } from "antd";
 import { PlusOutlined, UploadOutlined, DownloadOutlined, SearchOutlined } from "@ant-design/icons";
 
@@ -59,8 +60,14 @@ export interface ContentItem {
   required: boolean;
 }
 
+interface PositionHierarchyItem {
+  id: string;
+  name: string;
+  parentId?: string;
+}
+
 // Position hierarchy: 销售-客户销售, 客服-客服顾问, 药品销售-药房药师
-const positionHierarchy = [
+const initialPositionHierarchy: PositionHierarchyItem[] = [
   { id: "cat-sales", name: "销售", parentId: undefined },
   { id: "pos-customer-sales", name: "客户销售", parentId: "cat-sales" },
   { id: "cat-service", name: "客服", parentId: undefined },
@@ -361,6 +368,7 @@ const mockMaps: LearningMap[] = [
 
 export default function LearningMapLibrary() {
   const [maps, setMaps] = useState<LearningMap[]>(mockMaps);
+  const [positionHierarchy, setPositionHierarchy] = useState<PositionHierarchyItem[]>(initialPositionHierarchy);
   const [selectedPosition, setSelectedPosition] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -369,6 +377,9 @@ export default function LearningMapLibrary() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorMode, setEditorMode] = useState<"view" | "edit" | "create">("create");
   const [selectedMap, setSelectedMap] = useState<LearningMap | null>(null);
+  
+  // Add position modal state
+  const [addPositionModalOpen, setAddPositionModalOpen] = useState(false);
 
   // Filter maps based on search, position, and status
   const filteredMaps = maps.filter((map) => {
@@ -497,17 +508,10 @@ export default function LearningMapLibrary() {
           {/* Left: Map Tree */}
           <div className="w-[280px] shrink-0">
             <LearningMapTree
-              positions={positionHierarchy.map((p) => {
-                const map = maps.find((m) => m.positionId === p.id);
-                return {
-                  ...p,
-                  hasMap: !!map,
-                  mapStatus: map?.status === "disabled" ? "disabled" : map?.status === "published" ? "published" : undefined,
-                  skillCount: map?.behaviorTagCount,
-                };
-              })}
+              positions={positionHierarchy}
               selectedPosition={selectedPosition}
               onSelectPosition={setSelectedPosition}
+              onAddPosition={() => setAddPositionModalOpen(true)}
             />
           </div>
 
@@ -569,6 +573,16 @@ export default function LearningMapLibrary() {
         onSave={handleEditorSave}
         onPublish={handleEditorPublish}
         onDisable={handleEditorDisable}
+      />
+
+      {/* Add Position Modal */}
+      <AddPositionModal
+        open={addPositionModalOpen}
+        positions={positionHierarchy}
+        onClose={() => setAddPositionModalOpen(false)}
+        onAdd={(newPosition) => {
+          setPositionHierarchy((prev) => [...prev, newPosition]);
+        }}
       />
     </DashboardLayout>
   );
