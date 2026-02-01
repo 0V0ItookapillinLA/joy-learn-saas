@@ -1,11 +1,9 @@
 import { Card, Table, Tag, Button, Input, Select, Space, Avatar, Progress, Tooltip, Typography, Dropdown, message } from "antd";
 import {
   SearchOutlined,
-  EyeOutlined,
   BellOutlined,
   PlusOutlined,
   UserOutlined,
-  MoreOutlined,
   ExportOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -187,26 +185,18 @@ export function StudentListTable({ onViewDetail, departmentFilter, skillFilter }
       title: "操作",
       key: "action",
       fixed: "right",
-      width: 140,
+      width: 180,
       render: (_, record) => (
-        <Space>
-          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => onViewDetail(record.id)}>
+        <Space split={<span style={{ color: "#d9d9d9" }}>|</span>}>
+          <Button type="link" size="small" style={{ padding: 0 }} onClick={() => onViewDetail(record.id)}>
             详情
           </Button>
-          <Dropdown
-            menu={{
-              items: [
-                { key: "remind", label: "催办", icon: <BellOutlined /> },
-                { key: "assign", label: "指派任务", icon: <PlusOutlined /> },
-              ],
-              onClick: ({ key }) => {
-                if (key === "remind") handleRemind([record.id]);
-                if (key === "assign") handleAssign([record.id]);
-              },
-            }}
-          >
-            <Button type="text" size="small" icon={<MoreOutlined />} />
-          </Dropdown>
+          <Button type="link" size="small" style={{ padding: 0 }} onClick={() => handleRemind([record.id])}>
+            催办
+          </Button>
+          <Button type="link" size="small" style={{ padding: 0 }} onClick={() => handleAssign([record.id])}>
+            指派
+          </Button>
         </Space>
       ),
     },
