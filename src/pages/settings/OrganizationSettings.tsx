@@ -1,34 +1,29 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Card,
+  Button,
+  Input,
+  Tree,
+  Modal,
+  Form,
+  Dropdown,
+  Row,
+  Col,
+  Statistic,
+  Tag,
+} from "antd";
 import {
-  Plus,
-  Building2,
-  Users,
-  ChevronRight,
-  ChevronDown,
-  Edit,
-  Trash2,
-  MoreHorizontal,
-} from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  MoreOutlined,
+  TeamOutlined,
+  ApartmentOutlined,
+  UserOutlined,
+} from "@ant-design/icons";
+import type { DataNode, TreeProps } from "antd/es/tree";
+import type { MenuProps } from "antd";
 
 // Mock organization structure
 const mockDepartments = [
@@ -75,234 +70,191 @@ const mockDepartments = [
   },
 ];
 
-interface DepartmentNodeProps {
-  department: {
-    id: string;
-    name: string;
-    memberCount: number;
-    children?: { id: string; name: string; memberCount: number }[];
-  };
-  level?: number;
-}
-
-function DepartmentNode({ department, level = 0 }: DepartmentNodeProps) {
-  const [expanded, setExpanded] = useState(true);
-  const hasChildren = department.children && department.children.length > 0;
-
-  return (
-    <div>
-      <div
-        className="flex items-center justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
-        style={{ marginLeft: level * 24 }}
-      >
-        <div className="flex items-center gap-3">
-          {hasChildren ? (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </Button>
-          ) : (
-            <div className="w-6" />
-          )}
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-            <Building2 className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <h4 className="font-medium">{department.name}</h4>
-            <p className="text-sm text-muted-foreground">
-              {department.memberCount} 名成员
-            </p>
-          </div>
+// Transform to Antd Tree data
+const transformToTreeData = (departments: typeof mockDepartments): DataNode[] => {
+  return departments.map((dept) => ({
+    key: dept.id,
+    title: (
+      <div className="flex items-center justify-between w-full pr-4">
+        <div className="flex items-center gap-2">
+          <ApartmentOutlined />
+          <span className="font-medium">{dept.name}</span>
+          <Tag color="blue">{dept.memberCount} 人</Tag>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <Plus className="mr-2 h-4 w-4" />
-              添加子部门
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Edit className="mr-2 h-4 w-4" />
-              编辑
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive">
-              <Trash2 className="mr-2 h-4 w-4" />
-              删除
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <Dropdown
+          menu={{
+            items: [
+              { key: "add", icon: <PlusOutlined />, label: "添加子部门" },
+              { key: "edit", icon: <EditOutlined />, label: "编辑" },
+              { key: "delete", icon: <DeleteOutlined />, label: "删除", danger: true },
+            ],
+          }}
+          trigger={["click"]}
+        >
+          <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
+        </Dropdown>
       </div>
-      {hasChildren && expanded && (
-        <div className="mt-2 space-y-2">
-          {department.children!.map((child) => (
-            <DepartmentNode key={child.id} department={child} level={level + 1} />
-          ))}
+    ),
+    children: dept.children?.map((child) => ({
+      key: child.id,
+      title: (
+        <div className="flex items-center justify-between w-full pr-4">
+          <div className="flex items-center gap-2">
+            <ApartmentOutlined />
+            <span>{child.name}</span>
+            <Tag>{child.memberCount} 人</Tag>
+          </div>
+          <Dropdown
+            menu={{
+              items: [
+                { key: "edit", icon: <EditOutlined />, label: "编辑" },
+                { key: "delete", icon: <DeleteOutlined />, label: "删除", danger: true },
+              ],
+            }}
+            trigger={["click"]}
+          >
+            <Button type="text" size="small" icon={<MoreOutlined />} onClick={(e) => e.stopPropagation()} />
+          </Dropdown>
         </div>
-      )}
-    </div>
-  );
-}
+      ),
+    })),
+  }));
+};
 
 export default function OrganizationSettings() {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [form] = Form.useForm();
+
+  const treeData = transformToTreeData(mockDepartments);
+
+  const handleCreateDepartment = () => {
+    form.validateFields().then((values) => {
+      console.log("Create department:", values);
+      setIsCreateModalOpen(false);
+      form.resetFields();
+    });
+  };
 
   return (
     <DashboardLayout title="组织架构" description="管理企业部门与团队结构">
       <div className="space-y-6">
         {/* Organization Info */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
+        <Card
+          title="企业信息"
+          extra={<Button>编辑信息</Button>}
+        >
+          <Row gutter={[24, 16]}>
+            <Col span={12}>
+              <div className="mb-4">
+                <div className="text-gray-500 text-sm mb-1">企业名称</div>
+                <div className="font-medium">深圳市科技有限公司</div>
+              </div>
               <div>
-                <CardTitle>企业信息</CardTitle>
-                <CardDescription>管理您的企业基本信息</CardDescription>
-              </div>
-              <Button variant="outline">编辑信息</Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-muted-foreground">企业名称</Label>
-                  <p className="mt-1 font-medium">深圳市科技有限公司</p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">套餐类型</Label>
-                  <div className="mt-1 flex items-center gap-2">
-                    <Badge>专业版</Badge>
-                    <span className="text-sm text-muted-foreground">有效期至 2024-12-31</span>
-                  </div>
+                <div className="text-gray-500 text-sm mb-1">套餐类型</div>
+                <div className="flex items-center gap-2">
+                  <Tag color="blue">专业版</Tag>
+                  <span className="text-sm text-gray-500">有效期至 2024-12-31</span>
                 </div>
               </div>
-              <div className="space-y-4">
+            </Col>
+            <Col span={12}>
+              <div className="mb-4">
+                <div className="text-gray-500 text-sm mb-1">学员配额</div>
                 <div>
-                  <Label className="text-muted-foreground">学员配额</Label>
-                  <p className="mt-1">
-                    <span className="font-medium">159</span>
-                    <span className="text-muted-foreground"> / 200 人</span>
-                  </p>
-                </div>
-                <div>
-                  <Label className="text-muted-foreground">存储空间</Label>
-                  <p className="mt-1">
-                    <span className="font-medium">2.5</span>
-                    <span className="text-muted-foreground"> / 10 GB</span>
-                  </p>
+                  <span className="font-medium">159</span>
+                  <span className="text-gray-500"> / 200 人</span>
                 </div>
               </div>
-            </div>
-          </CardContent>
+              <div>
+                <div className="text-gray-500 text-sm mb-1">存储空间</div>
+                <div>
+                  <span className="font-medium">2.5</span>
+                  <span className="text-gray-500"> / 10 GB</span>
+                </div>
+              </div>
+            </Col>
+          </Row>
         </Card>
 
         {/* Stats Cards */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                  <Building2 className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">12</div>
-                  <p className="text-sm text-muted-foreground">部门总数</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-success/10">
-                  <Users className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">159</div>
-                  <p className="text-sm text-muted-foreground">总成员数</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-warning/10">
-                  <Users className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <div className="text-2xl font-bold">5</div>
-                  <p className="text-sm text-muted-foreground">管理员数</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Row gutter={16}>
+          <Col span={8}>
+            <Card>
+              <Statistic
+                title="部门总数"
+                value={12}
+                prefix={<ApartmentOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card>
+              <Statistic
+                title="总成员数"
+                value={159}
+                prefix={<TeamOutlined />}
+                valueStyle={{ color: "#52c41a" }}
+              />
+            </Card>
+          </Col>
+          <Col span={8}>
+            <Card>
+              <Statistic
+                title="管理员数"
+                value={5}
+                prefix={<UserOutlined />}
+                valueStyle={{ color: "#faad14" }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
         {/* Department Tree */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>部门结构</CardTitle>
-                <CardDescription>管理企业部门层级关系</CardDescription>
-              </div>
-              <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    新建部门
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>新建部门</DialogTitle>
-                    <DialogDescription>创建新的部门或团队</DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="dept-name">部门名称</Label>
-                      <Input id="dept-name" placeholder="请输入部门名称" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="parent-dept">上级部门</Label>
-                      <Input id="parent-dept" placeholder="选择上级部门（可选）" />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="dept-desc">部门描述</Label>
-                      <Input id="dept-desc" placeholder="简要描述部门职责（可选）" />
-                    </div>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-                      取消
-                    </Button>
-                    <Button onClick={() => setIsCreateDialogOpen(false)}>创建</Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {mockDepartments.map((dept) => (
-                <DepartmentNode key={dept.id} department={dept} />
-              ))}
-            </div>
-          </CardContent>
+        <Card
+          title="部门结构"
+          extra={
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setIsCreateModalOpen(true)}>
+              新建部门
+            </Button>
+          }
+        >
+          <Tree
+            showLine
+            defaultExpandAll
+            treeData={treeData}
+            blockNode
+          />
         </Card>
       </div>
+
+      {/* Create Department Modal */}
+      <Modal
+        title="新建部门"
+        open={isCreateModalOpen}
+        onOk={handleCreateDepartment}
+        onCancel={() => {
+          setIsCreateModalOpen(false);
+          form.resetFields();
+        }}
+        okText="创建"
+        cancelText="取消"
+      >
+        <Form form={form} layout="vertical" className="mt-4">
+          <Form.Item
+            name="name"
+            label="部门名称"
+            rules={[{ required: true, message: "请输入部门名称" }]}
+          >
+            <Input placeholder="请输入部门名称" />
+          </Form.Item>
+          <Form.Item name="parentId" label="上级部门">
+            <Input placeholder="选择上级部门（可选）" />
+          </Form.Item>
+          <Form.Item name="description" label="部门描述">
+            <Input.TextArea placeholder="简要描述部门职责（可选）" rows={3} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </DashboardLayout>
   );
 }
