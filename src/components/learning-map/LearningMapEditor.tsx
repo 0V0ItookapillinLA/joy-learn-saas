@@ -26,6 +26,7 @@ import {
   EyeOutlined,
   EditOutlined,
 } from "@ant-design/icons";
+import { SkillSelectModal } from "./SkillSelectModal";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -56,38 +57,6 @@ export interface LearningMapEditorData {
   levels: { [key: string]: LevelConfig };
   skillConfigs?: { [skillId: string]: SkillConfig };
 }
-
-// Mock available skills for adding new skills
-const mockAvailableSkills: { [key: string]: Skill[] } = {
-  P1: [
-    { id: "new1", name: "基础技能 A", description: "P1 级别基础技能", order: 0 },
-    { id: "new2", name: "基础技能 B", description: "P1 级别基础技能", order: 1 },
-  ],
-  P2: [
-    { id: "new3", name: "进阶技能 A", description: "P2 级别进阶技能", order: 0 },
-    { id: "new4", name: "进阶技能 B", description: "P2 级别进阶技能", order: 1 },
-  ],
-  P3: [
-    { id: "new5", name: "专业技能 A", description: "P3 级别专业技能", order: 0 },
-    { id: "new6", name: "专业技能 B", description: "P3 级别专业技能", order: 1 },
-  ],
-  P4: [
-    { id: "new7", name: "高级技能 A", description: "P4 级别高级技能", order: 0 },
-    { id: "new8", name: "高级技能 B", description: "P4 级别高级技能", order: 1 },
-  ],
-  P5: [
-    { id: "new9", name: "专家技能 A", description: "P5 级别专家技能", order: 0 },
-    { id: "new10", name: "专家技能 B", description: "P5 级别专家技能", order: 1 },
-  ],
-  P6: [
-    { id: "new11", name: "资深技能 A", description: "P6 级别资深技能", order: 0 },
-    { id: "new12", name: "资深技能 B", description: "P6 级别资深技能", order: 1 },
-  ],
-  P7: [
-    { id: "new13", name: "领导技能 A", description: "P7 级别领导技能", order: 0 },
-    { id: "new14", name: "领导技能 B", description: "P7 级别领导技能", order: 1 },
-  ],
-};
 
 // Mock courses
 const mockCourses = [
@@ -141,6 +110,9 @@ export function LearningMapEditor({
   // Current selection state
   const [selectedLevel, setSelectedLevel] = useState<number>(1);
   const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
+  
+  // Skill selection modal state
+  const [skillSelectModalOpen, setSkillSelectModalOpen] = useState(false);
 
   // Reset data when opening with different mode/data
   useEffect(() => {
@@ -154,7 +126,7 @@ export function LearningMapEditor({
         setMapData({
           id: `map-${Date.now()}`,
           positionName: "新建学习地图",
-          levelRange: { start: 1, end: 4 },
+          levelRange: { start: 1, end: 10 },
           version: "v1.0",
           status: "draft",
           levels: {},
@@ -208,26 +180,31 @@ export function LearningMapEditor({
     return "configured";
   };
 
-  // Add skill to current level
+  // Open skill selection modal
   const handleAddSkill = () => {
     if (isViewMode) return;
-    const availableSkills = mockAvailableSkills[currentLevelKey] || [];
-    const existingIds = currentSkills.map((s) => s.id);
-    const newSkill = availableSkills.find((s) => !existingIds.includes(s.id));
+    setSkillSelectModalOpen(true);
+  };
 
-    if (newSkill) {
-      setMapData((prev) => ({
-        ...prev,
-        levels: {
-          ...prev.levels,
-          [currentLevelKey]: {
-            skills: [...currentSkills, { ...newSkill, order: currentSkills.length }],
-          },
+  // Handle skills selected from modal
+  const handleSkillsSelected = (skills: { id: string; name: string; description: string }[]) => {
+    setMapData((prev) => ({
+      ...prev,
+      levels: {
+        ...prev.levels,
+        [currentLevelKey]: {
+          skills: [
+            ...currentSkills,
+            ...skills.map((s, i) => ({
+              id: s.id,
+              name: s.name,
+              description: s.description,
+              order: currentSkills.length + i,
+            })),
+          ],
         },
-      }));
-    } else {
-      message.warning("该职级下没有更多可添加的技能");
-    }
+      },
+    }));
   };
 
   // Remove skill from current level
@@ -918,6 +895,16 @@ export function LearningMapEditor({
           )}
         </div>
       </div>
+
+      {/* Skill Selection Modal */}
+      <SkillSelectModal
+        open={skillSelectModalOpen}
+        positionName={mapData.positionName}
+        currentLevel={currentLevelKey}
+        existingSkillIds={currentSkills.map((s) => s.id)}
+        onClose={() => setSkillSelectModalOpen(false)}
+        onSelect={handleSkillsSelected}
+      />
     </Drawer>
   );
 }
