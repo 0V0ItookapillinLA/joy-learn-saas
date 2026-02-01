@@ -115,16 +115,23 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             borderBottom: "1px solid #f0f0f0",
           }}
         >
-          <img
-            src="/src/assets/logo.png"
-            alt="JoyLearning"
+          <div
             style={{
-              height: collapsed ? 32 : 28,
-              width: "auto",
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: "#1677ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: "bold",
             }}
-          />
+          >
+            J
+          </div>
           {!collapsed && (
-            <div style={{ marginLeft: 8 }}>
+            <div style={{ marginLeft: 12 }}>
               <Text strong style={{ fontSize: 14 }}>
                 JoyLearning
               </Text>
