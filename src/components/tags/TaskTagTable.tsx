@@ -2,8 +2,6 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -19,17 +17,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
-import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Trash2, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { TaskTagDrawer } from "./TaskTagDrawer";
 
 // Mock data for task tags - now includes more variety for different positions/domains
 const taskTags = [
@@ -338,17 +328,18 @@ interface TaskTagTableProps {
   selectedCluster: string | null;
 }
 
-interface TaskTagFormData {
+// Task tag data type for the drawer
+interface TaskTagForDrawer {
+  id: string;
   name: string;
   position: string;
   domain: string;
   cluster: string;
-  definition: string;
-  triggerConditions: string[];
-  successCriteria: string[];
-  keySteps: string[];
-  riskPoints: string[];
-  relatedBehaviorTags: string[];
+  growthPath: { complete: boolean; currentLevel: string; maxLevel: string };
+  status: string;
+  version: string;
+  updatedBy: string;
+  updatedAt: string;
 }
 
 export function TaskTagTable({
@@ -359,20 +350,9 @@ export function TaskTagTable({
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [viewingTag, setViewingTag] = useState<typeof taskTags[0] | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [formData, setFormData] = useState<TaskTagFormData>({
-    name: "",
-    position: "物流销售",
-    domain: "",
-    cluster: "",
-    definition: "",
-    triggerConditions: [""],
-    successCriteria: [""],
-    keySteps: [""],
-    riskPoints: [""],
-    relatedBehaviorTags: [],
-  });
+  const [viewingTag, setViewingTag] = useState<TaskTagForDrawer | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<"view" | "edit">("view");
 
   // Get position name from ID
   const getPositionName = (posId: string): string => {
@@ -414,87 +394,45 @@ export function TaskTagTable({
   });
 
   const handleOpenNew = () => {
-    setFormData({
-      name: "",
-      position: getPositionName(selectedPosition) || "物流销售",
-      domain: selectedDomain ? getDomainName(selectedDomain) : "",
-      cluster: selectedCluster ? getClusterName(selectedCluster) : "",
-      definition: "",
-      triggerConditions: [""],
-      successCriteria: [""],
-      keySteps: [""],
-      riskPoints: [""],
-      relatedBehaviorTags: [],
+    // For new tag, we'd need a different flow - for now just show toast
+    toast({
+      title: "新增能力标签",
+      description: "请在弹窗中填写标签信息",
     });
-    setIsEditing(true);
-    setViewingTag(null);
   };
 
   const handleView = (tag: typeof taskTags[0]) => {
-    setViewingTag(tag);
-    setIsEditing(false);
-  };
-
-  const handleEdit = (tag: typeof taskTags[0]) => {
-    setFormData({
+    setViewingTag({
+      id: tag.id,
       name: tag.name,
       position: tag.position,
       domain: tag.domain,
       cluster: tag.cluster,
-      definition: tag.definition,
-      triggerConditions: tag.triggerConditions.length > 0 ? tag.triggerConditions : [""],
-      successCriteria: tag.successCriteria.length > 0 ? tag.successCriteria : [""],
-      keySteps: tag.keySteps.length > 0 ? tag.keySteps : [""],
-      riskPoints: tag.riskPoints.length > 0 ? tag.riskPoints : [""],
-      relatedBehaviorTags: tag.relatedBehaviorTags,
+      growthPath: tag.growthPath,
+      status: tag.status,
+      version: tag.version,
+      updatedBy: tag.updatedBy,
+      updatedAt: tag.updatedAt,
     });
-    setViewingTag(tag);
-    setIsEditing(true);
+    setDrawerMode("view");
+    setDrawerOpen(true);
   };
 
-  const handleCloseSheet = () => {
-    setViewingTag(null);
-    setIsEditing(false);
-  };
-
-  const handleAddItem = (field: keyof TaskTagFormData) => {
-    if (Array.isArray(formData[field])) {
-      setFormData({
-        ...formData,
-        [field]: [...(formData[field] as string[]), ""],
-      });
-    }
-  };
-
-  const handleUpdateItem = (field: keyof TaskTagFormData, index: number, value: string) => {
-    if (Array.isArray(formData[field])) {
-      const newArray = [...(formData[field] as string[])];
-      newArray[index] = value;
-      setFormData({ ...formData, [field]: newArray });
-    }
-  };
-
-  const handleRemoveItem = (field: keyof TaskTagFormData, index: number) => {
-    if (Array.isArray(formData[field]) && (formData[field] as string[]).length > 1) {
-      const newArray = (formData[field] as string[]).filter((_, i) => i !== index);
-      setFormData({ ...formData, [field]: newArray });
-    }
-  };
-
-  const handleSaveDraft = () => {
-    toast({
-      title: "草稿已保存",
-      description: "能力标签草稿已成功保存",
+  const handleEdit = (tag: typeof taskTags[0]) => {
+    setViewingTag({
+      id: tag.id,
+      name: tag.name,
+      position: tag.position,
+      domain: tag.domain,
+      cluster: tag.cluster,
+      growthPath: tag.growthPath,
+      status: tag.status,
+      version: tag.version,
+      updatedBy: tag.updatedBy,
+      updatedAt: tag.updatedAt,
     });
-    handleCloseSheet();
-  };
-
-  const handlePublish = () => {
-    toast({
-      title: "发布成功",
-      description: "能力标签已发布",
-    });
-    handleCloseSheet();
+    setDrawerMode("edit");
+    setDrawerOpen(true);
   };
 
   return (
@@ -622,336 +560,14 @@ export function TaskTagTable({
         </div>
       </div>
 
-      {/* View/Edit Sheet */}
-      <Sheet open={!!viewingTag || isEditing} onOpenChange={handleCloseSheet}>
-        <SheetContent className="w-[600px] overflow-y-auto sm:max-w-[600px]">
-          {isEditing ? (
-            // Edit Mode
-            <>
-              <SheetHeader>
-                <SheetTitle>{viewingTag ? "编辑能力标签" : "新建能力标签"}</SheetTitle>
-                <SheetDescription>
-                  {viewingTag ? "修改能力标签信息" : "创建新的专业能力标签"}
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="mt-6 space-y-6">
-                {/* Basic Info */}
-                <div className="space-y-4">
-                  <h4 className="text-sm font-semibold border-b pb-2">基本信息</h4>
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="name">标签名称 *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="输入能力标签名称"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="grid gap-2">
-                        <Label>适用岗位 *</Label>
-                        <Select 
-                          value={formData.position} 
-                          onValueChange={(value) => setFormData({ ...formData, position: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="选择岗位" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover">
-                            <SelectItem value="物流销售">物流销售</SelectItem>
-                            <SelectItem value="客服">客服</SelectItem>
-                            <SelectItem value="药房营业员">药房营业员</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>一级能力 *</Label>
-                        <Select 
-                          value={formData.domain} 
-                          onValueChange={(value) => setFormData({ ...formData, domain: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="选择一级能力" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover">
-                            <SelectItem value="销售流程">销售流程</SelectItem>
-                            <SelectItem value="客户维护">客户维护</SelectItem>
-                            <SelectItem value="服务流程">服务流程</SelectItem>
-                            <SelectItem value="销售服务">销售服务</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label>二级能力 *</Label>
-                        <Select 
-                          value={formData.cluster} 
-                          onValueChange={(value) => setFormData({ ...formData, cluster: value })}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="选择二级能力" />
-                          </SelectTrigger>
-                          <SelectContent className="bg-popover">
-                            <SelectItem value="客户获取">客户获取</SelectItem>
-                            <SelectItem value="需求分析">需求分析</SelectItem>
-                            <SelectItem value="成交转化">成交转化</SelectItem>
-                            <SelectItem value="关系维护">关系维护</SelectItem>
-                            <SelectItem value="咨询解答">咨询解答</SelectItem>
-                            <SelectItem value="问题解决">问题解决</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label>能力定义 *</Label>
-                      <Textarea
-                        value={formData.definition}
-                        onChange={(e) => setFormData({ ...formData, definition: e.target.value })}
-                        placeholder="描述该能力标签的定义..."
-                        rows={3}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Separator />
-
-                {/* Trigger Conditions */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold">触发条件</h4>
-                  {formData.triggerConditions.map((item, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <Input
-                        value={item}
-                        onChange={(e) => handleUpdateItem("triggerConditions", idx, e.target.value)}
-                        placeholder={`触发条件 ${idx + 1}`}
-                      />
-                      {formData.triggerConditions.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem("triggerConditions", idx)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddItem("triggerConditions")}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    添加触发条件
-                  </Button>
-                </div>
-
-                {/* Success Criteria */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold">成功标准</h4>
-                  {formData.successCriteria.map((item, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <Input
-                        value={item}
-                        onChange={(e) => handleUpdateItem("successCriteria", idx, e.target.value)}
-                        placeholder={`成功标准 ${idx + 1}`}
-                      />
-                      {formData.successCriteria.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem("successCriteria", idx)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddItem("successCriteria")}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    添加成功标准
-                  </Button>
-                </div>
-
-                {/* Key Steps */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold">关键步骤</h4>
-                  {formData.keySteps.map((item, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <Input
-                        value={item}
-                        onChange={(e) => handleUpdateItem("keySteps", idx, e.target.value)}
-                        placeholder={`步骤 ${idx + 1}`}
-                      />
-                      {formData.keySteps.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem("keySteps", idx)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddItem("keySteps")}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    添加关键步骤
-                  </Button>
-                </div>
-
-                {/* Risk Points */}
-                <div className="space-y-3">
-                  <h4 className="text-sm font-semibold text-destructive">风险点</h4>
-                  {formData.riskPoints.map((item, idx) => (
-                    <div key={idx} className="flex gap-2">
-                      <Input
-                        value={item}
-                        onChange={(e) => handleUpdateItem("riskPoints", idx, e.target.value)}
-                        placeholder={`风险点 ${idx + 1}`}
-                      />
-                      {formData.riskPoints.length > 1 && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleRemoveItem("riskPoints", idx)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
-                  ))}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAddItem("riskPoints")}
-                  >
-                    <Plus className="mr-1 h-4 w-4" />
-                    添加风险点
-                  </Button>
-                </div>
-              </div>
-
-              <SheetFooter className="mt-6 flex gap-2">
-                <Button variant="outline" onClick={handleCloseSheet}>
-                  取消
-                </Button>
-                <Button variant="secondary" onClick={handleSaveDraft}>
-                  保存草稿
-                </Button>
-                <Button onClick={handlePublish}>
-                  发布
-                </Button>
-              </SheetFooter>
-            </>
-          ) : viewingTag ? (
-            // View Mode
-            <>
-              <SheetHeader>
-                <div className="flex items-center gap-3">
-                  <SheetTitle className="text-xl">{viewingTag.name}</SheetTitle>
-                  <Badge
-                    variant={statusConfig[viewingTag.status as keyof typeof statusConfig].variant}
-                  >
-                    {statusConfig[viewingTag.status as keyof typeof statusConfig].label}
-                  </Badge>
-                  <Badge variant="outline">{viewingTag.version}</Badge>
-                </div>
-                <SheetDescription>
-                  {viewingTag.position} · 一级能力: {viewingTag.domain} · 二级能力: {viewingTag.cluster}
-                </SheetDescription>
-              </SheetHeader>
-
-              <div className="mt-6 space-y-6">
-                <div>
-                  <h4 className="mb-2 text-sm font-semibold">能力定义</h4>
-                  <p className="text-sm text-muted-foreground">{viewingTag.definition}</p>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="mb-2 text-sm font-semibold">触发条件</h4>
-                  <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                    {viewingTag.triggerConditions.map((condition, idx) => (
-                      <li key={idx}>{condition}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="mb-2 text-sm font-semibold">成功标准</h4>
-                  <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                    {viewingTag.successCriteria.map((criteria, idx) => (
-                      <li key={idx}>{criteria}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div>
-                  <h4 className="mb-2 text-sm font-semibold">关键步骤</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingTag.keySteps.map((step, idx) => (
-                      <Badge key={idx} variant="outline">
-                        {idx + 1}. {step}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h4 className="mb-2 text-sm font-semibold text-destructive">风险点</h4>
-                  <ul className="list-inside list-disc space-y-1 text-sm text-muted-foreground">
-                    {viewingTag.riskPoints.map((risk, idx) => (
-                      <li key={idx}>{risk}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <Separator />
-
-                <div>
-                  <h4 className="mb-2 text-sm font-semibold">关联技能标签</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {viewingTag.relatedBehaviorTags.map((tag) => (
-                      <Badge key={tag} variant="secondary">
-                        {tag}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <SheetFooter className="mt-6">
-                <Button variant="outline" onClick={handleCloseSheet}>
-                  关闭
-                </Button>
-                <Button onClick={() => handleEdit(viewingTag)}>
-                  编辑
-                </Button>
-              </SheetFooter>
-            </>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+      {/* View/Edit Drawer */}
+      <TaskTagDrawer
+        open={drawerOpen}
+        onOpenChange={setDrawerOpen}
+        tag={viewingTag}
+        mode={drawerMode}
+        onModeChange={setDrawerMode}
+      />
     </>
   );
 }
