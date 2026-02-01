@@ -4,7 +4,6 @@ import {
   Typography,
   Tag,
   Button,
-  Input,
   Select,
   Checkbox,
   Empty,
@@ -23,7 +22,6 @@ import {
   CheckCircleOutlined,
   SaveOutlined,
   SendOutlined,
-  CloseOutlined,
   StopOutlined,
   EyeOutlined,
   EditOutlined,
@@ -42,15 +40,6 @@ interface LevelConfig {
   skills: Skill[];
 }
 
-interface LearningMapData {
-  id: string;
-  positionName: string;
-  levelRange: { start: number; end: number };
-  version: string;
-  status: "draft" | "published" | "disabled";
-  levels: { [key: string]: LevelConfig };
-}
-
 interface SkillConfig {
   learningMethods: string[];
   courses: string[];
@@ -58,54 +47,69 @@ interface SkillConfig {
   verificationMethod: string;
 }
 
-// Mock available skills for each level
+export interface LearningMapEditorData {
+  id: string;
+  positionName: string;
+  levelRange: { start: number; end: number };
+  version: string;
+  status: "draft" | "published" | "disabled";
+  levels: { [key: string]: LevelConfig };
+  skillConfigs?: { [skillId: string]: SkillConfig };
+}
+
+// Mock available skills for adding new skills
 const mockAvailableSkills: { [key: string]: Skill[] } = {
+  P1: [
+    { id: "new1", name: "基础技能 A", description: "P1 级别基础技能", order: 0 },
+    { id: "new2", name: "基础技能 B", description: "P1 级别基础技能", order: 1 },
+  ],
+  P2: [
+    { id: "new3", name: "进阶技能 A", description: "P2 级别进阶技能", order: 0 },
+    { id: "new4", name: "进阶技能 B", description: "P2 级别进阶技能", order: 1 },
+  ],
+  P3: [
+    { id: "new5", name: "专业技能 A", description: "P3 级别专业技能", order: 0 },
+    { id: "new6", name: "专业技能 B", description: "P3 级别专业技能", order: 1 },
+  ],
+  P4: [
+    { id: "new7", name: "高级技能 A", description: "P4 级别高级技能", order: 0 },
+    { id: "new8", name: "高级技能 B", description: "P4 级别高级技能", order: 1 },
+  ],
   P5: [
-    { id: "s1", name: "前端基础架构理解", description: "理解前端项目的基础架构设计原则", order: 0 },
-    { id: "s2", name: "代码规范与 Review", description: "掌握代码规范制定与代码审查能力", order: 1 },
+    { id: "new9", name: "专家技能 A", description: "P5 级别专家技能", order: 0 },
+    { id: "new10", name: "专家技能 B", description: "P5 级别专家技能", order: 1 },
   ],
   P6: [
-    { id: "s3", name: "组件化设计", description: "掌握可复用组件的设计与封装能力", order: 0 },
-    { id: "s4", name: "前端测试实践", description: "掌握单元测试、集成测试的编写能力", order: 1 },
-    { id: "s5", name: "工程化工具链", description: "理解并能配置 Webpack/Vite 等构建工具", order: 2 },
+    { id: "new11", name: "资深技能 A", description: "P6 级别资深技能", order: 0 },
+    { id: "new12", name: "资深技能 B", description: "P6 级别资深技能", order: 1 },
   ],
   P7: [
-    { id: "s6", name: "前端架构设计", description: "能够设计中大型前端项目的整体架构", order: 0 },
-    { id: "s7", name: "性能优化", description: "掌握前端性能分析与优化方法", order: 1 },
-    { id: "s8", name: "TypeScript 高级应用", description: "熟练运用 TS 泛型、类型体操等高级特性", order: 2 },
-    { id: "s9", name: "微前端架构", description: "理解并能实践微前端架构方案", order: 3 },
-  ],
-  P8: [
-    { id: "s10", name: "技术方案设计", description: "能够独立完成复杂业务的技术方案设计", order: 0 },
-    { id: "s11", name: "跨团队协作", description: "具备跨团队技术协调与推动能力", order: 1 },
-    { id: "s12", name: "技术选型决策", description: "能够进行技术选型并阐述决策依据", order: 2 },
-  ],
-  P9: [
-    { id: "s13", name: "技术战略规划", description: "能够制定团队/产品线的技术发展路线图", order: 0 },
-    { id: "s14", name: "技术影响力建设", description: "能够在公司内外建立技术影响力", order: 1 },
+    { id: "new13", name: "领导技能 A", description: "P7 级别领导技能", order: 0 },
+    { id: "new14", name: "领导技能 B", description: "P7 级别领导技能", order: 1 },
   ],
 };
 
 // Mock courses
 const mockCourses = [
-  { id: "c1", name: "前端架构设计实战" },
-  { id: "c2", name: "性能优化从入门到精通" },
-  { id: "c3", name: "TypeScript 高级编程" },
-  { id: "c4", name: "微前端架构实践" },
-  { id: "c5", name: "前端工程化体系建设" },
-  { id: "c6", name: "React 源码解析" },
-  { id: "c7", name: "前端测试最佳实践" },
+  { id: "c1", name: "产品知识入门" },
+  { id: "c2", name: "沟通技巧培训" },
+  { id: "c3", name: "CRM 系统操作" },
+  { id: "c4", name: "方案制作实战" },
+  { id: "c5", name: "竞品分析方法" },
+  { id: "c6", name: "客户关系管理" },
+  { id: "c7", name: "大客户开发策略" },
+  { id: "c8", name: "团队管理基础" },
 ];
 
 export interface LearningMapEditorProps {
   open: boolean;
   mode: "view" | "edit" | "create";
   mapId?: string;
-  initialData?: Partial<LearningMapData>;
+  initialData?: LearningMapEditorData;
   onClose: () => void;
-  onSave: (data: LearningMapData) => void;
-  onPublish?: (data: LearningMapData) => void;
-  onDisable?: (data: LearningMapData) => void;
+  onSave: (data: LearningMapEditorData) => void;
+  onPublish?: (data: LearningMapEditorData) => void;
+  onDisable?: (data: LearningMapEditorData) => void;
 }
 
 export function LearningMapEditor({
@@ -122,62 +126,45 @@ export function LearningMapEditor({
   const isCreateMode = mode === "create";
 
   // Map data
-  const [mapData, setMapData] = useState<LearningMapData>({
-    id: mapId || `map-${Date.now()}`,
-    positionName: "高级前端工程师",
-    levelRange: { start: 5, end: 9 },
+  const [mapData, setMapData] = useState<LearningMapEditorData>({
+    id: `map-${Date.now()}`,
+    positionName: "新建学习地图",
+    levelRange: { start: 1, end: 4 },
     version: "v1.0",
     status: "draft",
-    levels: {
-      P5: { skills: mockAvailableSkills.P5.slice(0, 2) },
-      P6: { skills: mockAvailableSkills.P6.slice(0, 2) },
-      P7: { skills: mockAvailableSkills.P7.slice(0, 3) },
-      P8: { skills: mockAvailableSkills.P8.slice(0, 2) },
-      P9: { skills: mockAvailableSkills.P9.slice(0, 1) },
-    },
+    levels: {},
   });
+
+  // Skill configuration
+  const [skillConfigs, setSkillConfigs] = useState<{ [skillId: string]: SkillConfig }>({});
+
+  // Current selection state
+  const [selectedLevel, setSelectedLevel] = useState<number>(1);
+  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
 
   // Reset data when opening with different mode/data
   useEffect(() => {
     if (open) {
       if (initialData) {
-        setMapData({
-          id: initialData.id || `map-${Date.now()}`,
-          positionName: initialData.positionName || "新建学习地图",
-          levelRange: initialData.levelRange || { start: 5, end: 9 },
-          version: initialData.version || "v1.0",
-          status: initialData.status || "draft",
-          levels: initialData.levels || {
-            P5: { skills: mockAvailableSkills.P5.slice(0, 2) },
-            P6: { skills: mockAvailableSkills.P6.slice(0, 2) },
-            P7: { skills: mockAvailableSkills.P7.slice(0, 3) },
-            P8: { skills: mockAvailableSkills.P8.slice(0, 2) },
-            P9: { skills: mockAvailableSkills.P9.slice(0, 1) },
-          },
-        });
+        setMapData(initialData);
+        setSkillConfigs(initialData.skillConfigs || {});
+        setSelectedLevel(initialData.levelRange.start);
       } else if (isCreateMode) {
         // Reset to default for create mode
         setMapData({
           id: `map-${Date.now()}`,
           positionName: "新建学习地图",
-          levelRange: { start: 5, end: 9 },
+          levelRange: { start: 1, end: 4 },
           version: "v1.0",
           status: "draft",
           levels: {},
         });
+        setSkillConfigs({});
+        setSelectedLevel(1);
       }
-      setSelectedLevel(5);
       setSelectedSkillId(null);
-      setSkillConfigs({});
     }
   }, [open, mode, initialData, isCreateMode]);
-
-  // Current selection state
-  const [selectedLevel, setSelectedLevel] = useState<number>(5);
-  const [selectedSkillId, setSelectedSkillId] = useState<string | null>(null);
-
-  // Skill configuration
-  const [skillConfigs, setSkillConfigs] = useState<{ [skillId: string]: SkillConfig }>({});
 
   // All levels from P1 to P15
   const allLevels = Array.from({ length: 15 }, (_, i) => i + 1);
@@ -307,21 +294,22 @@ export function LearningMapEditor({
       return;
     }
 
-    const updatedData = { ...mapData, status: "published" as const };
+    const updatedData = { ...mapData, status: "published" as const, skillConfigs };
     setMapData(updatedData);
     onPublish?.(updatedData);
     message.success("学习地图发布成功");
   };
 
   const handleDisable = () => {
-    const updatedData = { ...mapData, status: "disabled" as const };
+    const updatedData = { ...mapData, status: "disabled" as const, skillConfigs };
     setMapData(updatedData);
     onDisable?.(updatedData);
     message.success("学习地图已停用");
   };
 
   const handleSave = () => {
-    onSave(mapData);
+    const dataToSave = { ...mapData, skillConfigs };
+    onSave(dataToSave);
     message.success("学习地图已保存");
   };
 
