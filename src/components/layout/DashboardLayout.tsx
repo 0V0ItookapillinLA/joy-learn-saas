@@ -10,11 +10,11 @@ import {
   NodeIndexOutlined,
   AreaChartOutlined,
   BarChartOutlined,
-  SettingOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from "@ant-design/icons";
-import logoImg from "@/assets/logo.png";
+import { useAuth } from "@/contexts/AuthContext";
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
@@ -61,31 +61,33 @@ const menuItems: MenuProps["items"] = [
     icon: <BarChartOutlined />,
     label: "数据看板",
   },
-  {
-    key: "/settings",
-    icon: <SettingOutlined />,
-    label: "系统设置",
-  },
 ];
 
 export function DashboardLayout({ children, title, description }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
-  const displayName = "管理员";
-  const initials = "管理";
+  const displayName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "用户";
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   const handleMenuClick: MenuProps["onClick"] = (e) => {
     navigate(e.key);
   };
 
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
   const userMenuItems: MenuProps["items"] = [
     {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "系统设置",
-      onClick: () => navigate("/settings"),
+      key: "logout",
+      icon: <LogoutOutlined />,
+      label: "退出登录",
+      danger: true,
+      onClick: handleSignOut,
     },
   ];
 
@@ -116,15 +118,21 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
             borderBottom: "1px solid #f0f0f0",
           }}
         >
-          <img
-            src={logoImg}
-            alt="Logo"
+          <div
             style={{
               width: 32,
               height: 32,
-              objectFit: "contain",
+              borderRadius: 8,
+              background: "#1677ff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              fontWeight: "bold",
             }}
-          />
+          >
+            J
+          </div>
           {!collapsed && (
             <div style={{ marginLeft: 12 }}>
               <Text strong style={{ fontSize: 14 }}>
