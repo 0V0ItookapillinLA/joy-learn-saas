@@ -33,6 +33,13 @@ export function TrainingFunnel() {
       size="small"
       style={{ height: 340 }}
     >
+      {/* Insight tip at top */}
+      <div style={{ marginBottom: 12, padding: "8px 12px", background: "#f0f5ff", borderRadius: 4 }}>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          💡 洞察：从"练习中"到"已完课"流失率较高(25%)，建议关注学员练习质量
+        </Text>
+      </div>
+      
       <div>
         {funnelData.map((stage, index) => {
           const widthPercent = (stage.value / maxValue) * 100;
@@ -41,15 +48,15 @@ export function TrainingFunnel() {
             : null;
 
           return (
-            <div key={stage.name} style={{ marginBottom: index < funnelData.length - 1 ? 12 : 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+            <div key={stage.name} style={{ marginBottom: index < funnelData.length - 1 ? 8 : 0 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 2 }}>
                 <Tooltip title={stage.description}>
-                  <Text style={{ fontSize: 13 }}>{stage.name}</Text>
+                  <Text style={{ fontSize: 12 }}>{stage.name}</Text>
                 </Tooltip>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <Text strong style={{ fontSize: 13 }}>{stage.value.toLocaleString()}</Text>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <Text strong style={{ fontSize: 12 }}>{stage.value.toLocaleString()}</Text>
                   {dropRate && (
-                    <Text type="secondary" style={{ fontSize: 12 }}>
+                    <Text type="secondary" style={{ fontSize: 11 }}>
                       流失 {dropRate}%
                     </Text>
                   )}
@@ -57,7 +64,7 @@ export function TrainingFunnel() {
               </div>
               <div
                 style={{
-                  height: 20,
+                  height: 16,
                   background: "#f0f5ff",
                   borderRadius: 4,
                   overflow: "hidden",
@@ -72,10 +79,10 @@ export function TrainingFunnel() {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "flex-end",
-                    paddingRight: 8,
+                    paddingRight: 6,
                   }}
                 >
-                  <Text style={{ color: "#fff", fontSize: 11, fontWeight: 500 }}>
+                  <Text style={{ color: "#fff", fontSize: 10, fontWeight: 500 }}>
                     {((stage.value / maxValue) * 100).toFixed(0)}%
                   </Text>
                 </div>
@@ -83,11 +90,6 @@ export function TrainingFunnel() {
             </div>
           );
         })}
-      </div>
-      <div style={{ marginTop: 16, padding: "10px 12px", background: "#f0f5ff", borderRadius: 4 }}>
-        <Text type="secondary" style={{ fontSize: 12 }}>
-          💡 洞察：从"练习中"到"已完课"流失率较高(25%)，建议关注学员练习质量
-        </Text>
       </div>
     </Card>
   );

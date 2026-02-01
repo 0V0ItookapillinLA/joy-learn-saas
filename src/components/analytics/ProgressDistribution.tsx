@@ -39,17 +39,24 @@ export function ProgressDistribution() {
       size="small"
       style={{ height: 340 }}
     >
-      <ResponsiveContainer width="100%" height={220}>
-        <BarChart data={progressData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+      {/* Warning tip at top */}
+      <div style={{ marginBottom: 12, padding: "8px 12px", background: "#fff7e6", borderRadius: 4, border: "1px solid #ffd591" }}>
+        <Text style={{ fontSize: 12, color: "#d46b08" }}>
+          ⚠️ 警告：{lowProgressPercent}% 的学员（{lowProgressCount}人）进度低于40%
+        </Text>
+      </div>
+      
+      <ResponsiveContainer width="100%" height={200}>
+        <BarChart data={progressData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
           <XAxis
             dataKey="range"
-            tick={{ fontSize: 11, fill: "#8c8c8c" }}
+            tick={{ fontSize: 10, fill: "#8c8c8c" }}
             axisLine={{ stroke: "#f0f0f0" }}
             tickLine={false}
           />
           <YAxis
-            tick={{ fontSize: 11, fill: "#8c8c8c" }}
+            tick={{ fontSize: 10, fill: "#8c8c8c" }}
             axisLine={false}
             tickLine={false}
           />
@@ -68,11 +75,6 @@ export function ProgressDistribution() {
           <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="#1677ff" />
         </BarChart>
       </ResponsiveContainer>
-      <div style={{ marginTop: 8, padding: "10px 12px", background: "#fff7e6", borderRadius: 4, border: "1px solid #ffd591" }}>
-        <Text style={{ fontSize: 12, color: "#d46b08" }}>
-          ⚠️ 警告：{lowProgressPercent}% 的学员（{lowProgressCount}人）进度低于40%
-        </Text>
-      </div>
     </Card>
   );
 }
