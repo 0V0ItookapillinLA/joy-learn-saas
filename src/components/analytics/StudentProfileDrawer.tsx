@@ -256,36 +256,52 @@ function PracticeHistorySection() {
                     <MessageOutlined style={{ color: "#1677ff" }} />
                     <Text strong style={{ fontSize: 13 }}>对话记录</Text>
                   </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 300, overflowY: "auto" }}>
+                  <div style={{ 
+                    border: "1px solid #f0f0f0", 
+                    borderRadius: 4,
+                    overflow: "hidden"
+                  }}>
                     {item.dialogHistory.map((msg, idx) => (
                       <div
                         key={idx}
                         style={{
                           display: "flex",
-                          justifyContent: msg.role === "trainee" ? "flex-end" : "flex-start",
+                          borderBottom: idx < item.dialogHistory.length - 1 ? "1px solid #f0f0f0" : "none",
                         }}
                       >
+                        {/* Role Label */}
                         <div
                           style={{
-                            maxWidth: "80%",
-                            padding: "8px 12px",
-                            borderRadius: 8,
-                            background: msg.role === "trainee" ? "#1677ff" : "#f0f0f0",
-                            color: msg.role === "trainee" ? "#fff" : "#000",
+                            width: 80,
+                            flexShrink: 0,
+                            padding: "12px 16px",
+                            background: "#fafafa",
+                            borderRight: "1px solid #f0f0f0",
+                            display: "flex",
+                            alignItems: "flex-start",
                           }}
                         >
-                          <div style={{ fontSize: 12, marginBottom: 4 }}>
-                            <Text 
-                              type="secondary" 
-                              style={{ 
-                                fontSize: 11, 
-                                color: msg.role === "trainee" ? "rgba(255,255,255,0.7)" : undefined 
-                              }}
-                            >
-                              {msg.role === "ai" ? "AI客户" : "学员"} · {msg.timestamp}
-                            </Text>
-                          </div>
-                          <div style={{ fontSize: 13 }}>{msg.content}</div>
+                          <Text
+                            strong
+                            style={{
+                              fontSize: 13,
+                              color: msg.role === "trainee" ? "#fa8c16" : "#8c8c8c",
+                            }}
+                          >
+                            {msg.role === "trainee" ? "我" : "AI 陪练"}
+                          </Text>
+                        </div>
+                        {/* Content */}
+                        <div
+                          style={{
+                            flex: 1,
+                            padding: "12px 16px",
+                            background: "#fff",
+                          }}
+                        >
+                          <Text style={{ fontSize: 13, lineHeight: 1.6, color: "#262626" }}>
+                            {msg.content}
+                          </Text>
                         </div>
                       </div>
                     ))}
