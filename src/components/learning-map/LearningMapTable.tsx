@@ -9,7 +9,6 @@ interface LearningMapTableProps {
   onEdit: (map: LearningMap) => void;
   onPublish: (map: LearningMap) => void;
   onDisable: (map: LearningMap) => void;
-  onCreateVersion: (map: LearningMap) => void;
 }
 
 export function LearningMapTable({
@@ -18,7 +17,6 @@ export function LearningMapTable({
   onEdit,
   onPublish,
   onDisable,
-  onCreateVersion,
 }: LearningMapTableProps) {
   const getStatusTag = (status: LearningMap["status"]) => {
     switch (status) {
@@ -139,7 +137,7 @@ export function LearningMapTable({
     {
       title: "操作",
       key: "action",
-      width: 200,
+      width: 180,
       align: "center",
       fixed: "right",
       render: (_, record) => (
@@ -147,25 +145,18 @@ export function LearningMapTable({
           <Button type="link" size="small" onClick={() => onView(record)}>
             查看
           </Button>
+          <Button type="link" size="small" onClick={() => onEdit(record)}>
+            编辑
+          </Button>
           {record.status === "draft" && (
-            <>
-              <Button type="link" size="small" onClick={() => onEdit(record)}>
-                编辑
-              </Button>
-              <Button type="link" size="small" onClick={() => onPublish(record)}>
-                发布
-              </Button>
-            </>
+            <Button type="link" size="small" onClick={() => onPublish(record)}>
+              发布
+            </Button>
           )}
           {record.status === "published" && (
-            <>
-              <Button type="link" size="small" onClick={() => onCreateVersion(record)}>
-                创建新版本
-              </Button>
-              <Button type="link" size="small" danger onClick={() => onDisable(record)}>
-                停用
-              </Button>
-            </>
+            <Button type="link" size="small" danger onClick={() => onDisable(record)}>
+              停用
+            </Button>
           )}
           {record.status === "disabled" && (
             <Button type="link" size="small" onClick={() => onPublish(record)}>
