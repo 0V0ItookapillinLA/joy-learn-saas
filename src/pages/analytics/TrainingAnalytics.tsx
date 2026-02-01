@@ -10,19 +10,23 @@ import { ProgressDistribution } from "@/components/analytics/ProgressDistributio
 import { RiskMonitor } from "@/components/analytics/RiskMonitor";
 import { StudentListTable } from "@/components/analytics/StudentListTable";
 import { StudentProfileDrawer } from "@/components/analytics/StudentProfileDrawer";
+import { RiskOrgsDrawer } from "@/components/analytics/RiskOrgsDrawer";
+import { RiskStudentsDrawer } from "@/components/analytics/RiskStudentsDrawer";
 
 export default function TrainingAnalytics() {
   const [selectedOrg, setSelectedOrg] = useState<string>("all");
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [profileDrawerOpen, setProfileDrawerOpen] = useState(false);
+  const [orgsDrawerOpen, setOrgsDrawerOpen] = useState(false);
+  const [studentsDrawerOpen, setStudentsDrawerOpen] = useState(false);
 
   const handleStudentClick = (studentId: string) => {
     setSelectedStudent(studentId);
-    setDrawerOpen(true);
+    setProfileDrawerOpen(true);
   };
 
-  const handleCloseDrawer = () => {
-    setDrawerOpen(false);
+  const handleCloseProfileDrawer = () => {
+    setProfileDrawerOpen(false);
     setSelectedStudent(null);
   };
 
@@ -83,6 +87,8 @@ export default function TrainingAnalytics() {
         <RiskMonitor
           onOrgClick={(orgId) => setSelectedOrg(orgId)}
           onStudentClick={handleStudentClick}
+          onViewAllOrgs={() => setOrgsDrawerOpen(true)}
+          onViewAllStudents={() => setStudentsDrawerOpen(true)}
         />
       </div>
 
@@ -92,11 +98,23 @@ export default function TrainingAnalytics() {
         departmentFilter={selectedOrg !== "all" ? selectedOrg : undefined}
       />
 
-      {/* Student Profile Drawer */}
+      {/* Drawers */}
       <StudentProfileDrawer
-        open={drawerOpen}
-        onClose={handleCloseDrawer}
+        open={profileDrawerOpen}
+        onClose={handleCloseProfileDrawer}
         studentId={selectedStudent}
+      />
+      
+      <RiskOrgsDrawer
+        open={orgsDrawerOpen}
+        onClose={() => setOrgsDrawerOpen(false)}
+        onOrgClick={(orgId) => setSelectedOrg(orgId)}
+      />
+      
+      <RiskStudentsDrawer
+        open={studentsDrawerOpen}
+        onClose={() => setStudentsDrawerOpen(false)}
+        onStudentClick={handleStudentClick}
       />
     </DashboardLayout>
   );

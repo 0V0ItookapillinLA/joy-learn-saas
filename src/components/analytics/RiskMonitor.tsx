@@ -1,4 +1,4 @@
-import { Card, Row, Col, List, Typography, Tag, Button, Avatar, Progress, Tooltip, message } from "antd";
+import { Card, Row, Col, List, Typography, Tag, Button, Avatar, Progress, Tooltip } from "antd";
 import { RightOutlined, WarningOutlined, UserOutlined, InfoCircleOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
@@ -8,13 +8,11 @@ interface RiskOrg {
   name: string;
   progress: number;
   traineeCount: number;
-  trend: "up" | "down" | "stable";
 }
 
 interface RiskStudent {
   id: string;
   name: string;
-  avatar?: string;
   practiceCount: number;
   latestScore: number;
   department: string;
@@ -22,11 +20,11 @@ interface RiskStudent {
 }
 
 const riskOrgs: RiskOrg[] = [
-  { id: "1", name: "华北销售部", progress: 20, traineeCount: 45, trend: "down" },
-  { id: "2", name: "研发二组", progress: 25, traineeCount: 32, trend: "stable" },
-  { id: "3", name: "客服三组", progress: 30, traineeCount: 28, trend: "up" },
-  { id: "4", name: "华东物流部", progress: 32, traineeCount: 56, trend: "down" },
-  { id: "5", name: "市场拓展组", progress: 35, traineeCount: 18, trend: "stable" },
+  { id: "1", name: "华北销售部", progress: 20, traineeCount: 45 },
+  { id: "2", name: "研发二组", progress: 25, traineeCount: 32 },
+  { id: "3", name: "客服三组", progress: 30, traineeCount: 28 },
+  { id: "4", name: "华东物流部", progress: 32, traineeCount: 56 },
+  { id: "5", name: "市场拓展组", progress: 35, traineeCount: 18 },
 ];
 
 const riskStudents: RiskStudent[] = [
@@ -44,22 +42,6 @@ interface RiskMonitorProps {
 }
 
 export function RiskMonitor({ onOrgClick, onStudentClick, onViewAllOrgs, onViewAllStudents }: RiskMonitorProps) {
-  const handleViewAllOrgs = () => {
-    if (onViewAllOrgs) {
-      onViewAllOrgs();
-    } else {
-      message.info("查看全部需关注组织");
-    }
-  };
-
-  const handleViewAllStudents = () => {
-    if (onViewAllStudents) {
-      onViewAllStudents();
-    } else {
-      message.info("查看全部滞后人员");
-    }
-  };
-
   return (
     <Row gutter={16}>
       <Col span={12}>
@@ -72,8 +54,8 @@ export function RiskMonitor({ onOrgClick, onStudentClick, onViewAllOrgs, onViewA
             </div>
           }
           size="small"
-          extra={<Button type="link" size="small" onClick={handleViewAllOrgs}>查看全部</Button>}
-          styles={{ body: { minHeight: 280 } }}
+          extra={<Button type="link" size="small" onClick={onViewAllOrgs}>查看全部</Button>}
+          style={{ height: 320 }}
         >
           <List
             dataSource={riskOrgs}
@@ -91,7 +73,8 @@ export function RiskMonitor({ onOrgClick, onStudentClick, onViewAllOrgs, onViewA
                     <Progress
                       percent={org.progress}
                       size="small"
-                      strokeColor={org.progress < 30 ? "#ff4d4f" : "#faad14"}
+                      strokeColor="#1677ff"
+                      trailColor="#f0f5ff"
                       style={{ flex: 1, marginBottom: 0 }}
                     />
                     <RightOutlined style={{ color: "#bfbfbf", fontSize: 12 }} />
@@ -115,8 +98,8 @@ export function RiskMonitor({ onOrgClick, onStudentClick, onViewAllOrgs, onViewA
             </div>
           }
           size="small"
-          extra={<Button type="link" size="small" onClick={handleViewAllStudents}>查看全部</Button>}
-          styles={{ body: { minHeight: 280 } }}
+          extra={<Button type="link" size="small" onClick={onViewAllStudents}>查看全部</Button>}
+          style={{ height: 320 }}
         >
           <List
             dataSource={riskStudents}
@@ -130,7 +113,7 @@ export function RiskMonitor({ onOrgClick, onStudentClick, onViewAllOrgs, onViewA
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", justifyContent: "space-between" }}>
                       <Text style={{ fontSize: 13 }}>{student.name}</Text>
-                      <Tag color="red" style={{ fontSize: 11 }}>
+                      <Tag color="blue" style={{ fontSize: 11 }}>
                         练{student.practiceCount}次 | {student.latestScore}分
                       </Tag>
                     </div>

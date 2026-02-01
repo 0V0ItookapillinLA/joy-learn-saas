@@ -8,18 +8,17 @@ import {
   CartesianGrid,
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
-  Cell,
 } from "recharts";
 
 const { Text } = Typography;
 
 const progressData = [
-  { range: "0-20%", count: 320, label: "僵尸学员", color: "#ff4d4f" },
-  { range: "21-40%", count: 180, label: "滞后", color: "#faad14" },
-  { range: "41-60%", count: 450, label: "进行中", color: "#1677ff" },
-  { range: "61-80%", count: 680, label: "稳步推进", color: "#36cfc9" },
-  { range: "81-99%", count: 520, label: "即将完成", color: "#52c41a" },
-  { range: "100%", count: 850, label: "已完成", color: "#722ed1" },
+  { range: "0-20%", count: 320, label: "僵尸学员" },
+  { range: "21-40%", count: 180, label: "滞后" },
+  { range: "41-60%", count: 450, label: "进行中" },
+  { range: "61-80%", count: 680, label: "稳步推进" },
+  { range: "81-99%", count: 520, label: "即将完成" },
+  { range: "100%", count: 850, label: "已完成" },
 ];
 
 export function ProgressDistribution() {
@@ -38,9 +37,9 @@ export function ProgressDistribution() {
         </div>
       }
       size="small"
-      styles={{ body: { minHeight: 280 } }}
+      style={{ height: 340 }}
     >
-      <ResponsiveContainer width="100%" height={200}>
+      <ResponsiveContainer width="100%" height={220}>
         <BarChart data={progressData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
           <XAxis
@@ -66,14 +65,10 @@ export function ProgressDistribution() {
               fontSize: 12,
             }}
           />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {progressData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Bar>
+          <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="#1677ff" />
         </BarChart>
       </ResponsiveContainer>
-      <div style={{ marginTop: 12, padding: "10px 12px", background: "#fff7e6", borderRadius: 4, border: "1px solid #ffd591" }}>
+      <div style={{ marginTop: 8, padding: "10px 12px", background: "#fff7e6", borderRadius: 4, border: "1px solid #ffd591" }}>
         <Text style={{ fontSize: 12, color: "#d46b08" }}>
           ⚠️ 警告：{lowProgressPercent}% 的学员（{lowProgressCount}人）进度低于40%
         </Text>

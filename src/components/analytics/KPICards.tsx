@@ -1,4 +1,4 @@
-import { Card, Row, Col, Statistic, Tooltip } from "antd";
+import { Card, Row, Col, Tooltip } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import {
   AreaChart,
@@ -13,7 +13,6 @@ interface KPIData {
   trend: number;
   trendLabel: string;
   sparklineData: { value: number }[];
-  color: string;
   tooltip?: string;
 }
 
@@ -27,7 +26,6 @@ const kpiData: KPIData[] = [
     sparklineData: [
       { value: 70 }, { value: 72 }, { value: 75 }, { value: 78 }, { value: 82 }, { value: 85 }
     ],
-    color: "#1677ff",
     tooltip: "应训人数中实际参与培训的比例",
   },
   {
@@ -39,7 +37,6 @@ const kpiData: KPIData[] = [
     sparklineData: [
       { value: 68 }, { value: 65 }, { value: 64 }, { value: 63 }, { value: 62 }, { value: 62 }
     ],
-    color: "#faad14",
     tooltip: "通过考核评估的人数占总人数比例",
   },
   {
@@ -50,7 +47,6 @@ const kpiData: KPIData[] = [
     sparklineData: [
       { value: 980 }, { value: 1050 }, { value: 1100 }, { value: 1180 }, { value: 1200 }, { value: 1240 }
     ],
-    color: "#52c41a",
     tooltip: "近7日进行过AI陪练的学员数量",
   },
   {
@@ -62,7 +58,6 @@ const kpiData: KPIData[] = [
     sparklineData: [
       { value: 35 }, { value: 38 }, { value: 42 }, { value: 45 }, { value: 48 }, { value: 52 }
     ],
-    color: "#722ed1",
     tooltip: "AI陪练对话轮次总数",
   },
 ];
@@ -107,14 +102,14 @@ export function KPICards() {
                   <AreaChart data={kpi.sparklineData}>
                     <defs>
                       <linearGradient id={`gradient-${kpi.title}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={kpi.color} stopOpacity={0.3} />
-                        <stop offset="100%" stopColor={kpi.color} stopOpacity={0} />
+                        <stop offset="0%" stopColor="#1677ff" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#1677ff" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <Area
                       type="monotone"
                       dataKey="value"
-                      stroke={kpi.color}
+                      stroke="#1677ff"
                       strokeWidth={2}
                       fill={`url(#gradient-${kpi.title})`}
                     />
