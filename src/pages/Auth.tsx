@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Form, Input, Button, Tabs, Card, Typography, App } from "antd";
 import { EyeInvisibleOutlined, EyeTwoTone, UserOutlined, LockOutlined, MailOutlined } from "@ant-design/icons";
-
+import logoImage from "@/assets/logo.png";
 const { Title, Text } = Typography;
 
 interface LoginFormValues {
@@ -210,23 +210,16 @@ export default function Auth() {
     >
       <div style={{ width: "100%", maxWidth: 400 }}>
         <div style={{ textAlign: "center", marginBottom: 32 }}>
-          <div
+          <img
+            src={logoImage}
+            alt="JoyLearning Logo"
             style={{
               width: 56,
               height: 56,
-              borderRadius: 12,
-              background: "#1677ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
               margin: "0 auto 16px",
-              color: "#fff",
-              fontSize: 24,
-              fontWeight: "bold",
+              display: "block",
             }}
-          >
-            J
-          </div>
+          />
           <Title level={3} style={{ marginBottom: 4 }}>
             JoyLearning
           </Title>
