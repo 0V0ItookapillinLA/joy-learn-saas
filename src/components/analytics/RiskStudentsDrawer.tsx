@@ -91,6 +91,7 @@ export function RiskStudentsDrawer({ open, onClose, onStudentClick }: RiskStuden
       width={560}
       onClose={onClose}
       open={open}
+      zIndex={1000}
     >
       <List
         dataSource={riskStudentsDetail}

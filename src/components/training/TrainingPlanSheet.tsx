@@ -304,6 +304,7 @@ export function TrainingPlanSheet({
       width={640}
       open={open}
       onClose={() => onOpenChange(false)}
+      zIndex={1000}
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button onClick={() => onOpenChange(false)}>取消</Button>
