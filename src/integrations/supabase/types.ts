@@ -61,6 +61,69 @@ export type Database = {
           },
         ]
       }
+      ai_courseware: {
+        Row: {
+          character_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          organization_id: string
+          outline: Json | null
+          scripts: Json | null
+          source_documents: Json | null
+          status: string
+          title: string
+          updated_at: string
+          video_urls: Json | null
+        }
+        Insert: {
+          character_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          organization_id: string
+          outline?: Json | null
+          scripts?: Json | null
+          source_documents?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+          video_urls?: Json | null
+        }
+        Update: {
+          character_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          organization_id?: string
+          outline?: Json | null
+          scripts?: Json | null
+          source_documents?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+          video_urls?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_courseware_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "ai_characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_courseware_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           created_at: string | null
