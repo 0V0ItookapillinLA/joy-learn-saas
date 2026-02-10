@@ -1,4 +1,4 @@
-import { Card, Row, Col, Typography, Tag, Progress, Empty } from "antd";
+import { Card, Row, Col, Typography, Tag, Progress, Select, Table, Space, Avatar, Statistic } from "antd";
 import {
   TrophyOutlined,
   StarOutlined,
@@ -8,131 +8,170 @@ import {
   FireOutlined,
   CheckCircleOutlined,
   RocketOutlined,
+  UserOutlined,
+  CrownOutlined,
 } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 
 const { Text, Title } = Typography;
 
 const iconMap: Record<string, React.ReactNode> = {
-  trophy: <TrophyOutlined style={{ fontSize: 28 }} />,
-  star: <StarOutlined style={{ fontSize: 28 }} />,
-  thunder: <ThunderboltOutlined style={{ fontSize: 28 }} />,
-  team: <TeamOutlined style={{ fontSize: 28 }} />,
-  book: <BookOutlined style={{ fontSize: 28 }} />,
-  fire: <FireOutlined style={{ fontSize: 28 }} />,
-  check: <CheckCircleOutlined style={{ fontSize: 28 }} />,
-  rocket: <RocketOutlined style={{ fontSize: 28 }} />,
+  trophy: <TrophyOutlined style={{ fontSize: 20 }} />,
+  star: <StarOutlined style={{ fontSize: 20 }} />,
+  thunder: <ThunderboltOutlined style={{ fontSize: 20 }} />,
+  team: <TeamOutlined style={{ fontSize: 20 }} />,
+  book: <BookOutlined style={{ fontSize: 20 }} />,
+  fire: <FireOutlined style={{ fontSize: 20 }} />,
+  check: <CheckCircleOutlined style={{ fontSize: 20 }} />,
+  rocket: <RocketOutlined style={{ fontSize: 20 }} />,
 };
 
-const categoryColors: Record<string, string> = {
-  learning: "blue",
-  practice: "green",
-  exam: "orange",
-  social: "purple",
-};
-
-const categoryLabels: Record<string, string> = {
-  learning: "学习",
-  practice: "练习",
-  exam: "考核",
-  social: "社交",
-};
-
-// Default achievements for display
-const defaultAchievements = [
-  { id: "1", name: "初出茅庐", description: "完成第一次练习", icon: "star", category: "practice", points: 10, earned: true },
-  { id: "2", name: "学霸之路", description: "连续打卡7天", icon: "fire", category: "learning", points: 20, earned: true },
-  { id: "3", name: "满分达人", description: "练习中获得满分", icon: "trophy", category: "practice", points: 30, earned: true },
-  { id: "4", name: "知识渊博", description: "完成10门课程", icon: "book", category: "learning", points: 50, earned: false },
-  { id: "5", name: "团队之星", description: "帮助5位同事", icon: "team", category: "social", points: 25, earned: false },
-  { id: "6", name: "闪电侠", description: "5分钟内完成练习", icon: "thunder", category: "practice", points: 15, earned: false },
-  { id: "7", name: "持之以恒", description: "连续打卡30天", icon: "fire", category: "learning", points: 100, earned: false },
-  { id: "8", name: "火箭起飞", description: "一个月内晋升一级", icon: "rocket", category: "exam", points: 80, earned: false },
+const allAchievements = [
+  { id: "1", name: "初出茅庐", icon: "star", points: 10 },
+  { id: "2", name: "学霸之路", icon: "fire", points: 20 },
+  { id: "3", name: "满分达人", icon: "trophy", points: 30 },
+  { id: "4", name: "知识渊博", icon: "book", points: 50 },
+  { id: "5", name: "团队之星", icon: "team", points: 25 },
+  { id: "6", name: "闪电侠", icon: "thunder", points: 15 },
+  { id: "7", name: "持之以恒", icon: "fire", points: 100 },
+  { id: "8", name: "火箭起飞", icon: "rocket", points: 80 },
 ];
 
+interface MemberAchievement {
+  id: string;
+  name: string;
+  department: string;
+  earnedCount: number;
+  totalPoints: number;
+  latestAchievement: string;
+  earnedIds: string[];
+}
+
+const mockMembers: MemberAchievement[] = [
+  { id: "1", name: "钱七", department: "客服组", earnedCount: 6, totalPoints: 150, latestAchievement: "持之以恒", earnedIds: ["1","2","3","5","6","7"] },
+  { id: "2", name: "张三", department: "销售一组", earnedCount: 5, totalPoints: 105, latestAchievement: "知识渊博", earnedIds: ["1","2","3","4","6"] },
+  { id: "3", name: "王五", department: "客服组", earnedCount: 4, totalPoints: 75, latestAchievement: "满分达人", earnedIds: ["1","2","3","5"] },
+  { id: "4", name: "李四", department: "销售一组", earnedCount: 3, totalPoints: 45, latestAchievement: "学霸之路", earnedIds: ["1","2","6"] },
+  { id: "5", name: "周九", department: "销售二组", earnedCount: 2, totalPoints: 30, latestAchievement: "初出茅庐", earnedIds: ["1","2"] },
+  { id: "6", name: "赵六", department: "销售二组", earnedCount: 1, totalPoints: 10, latestAchievement: "初出茅庐", earnedIds: ["1"] },
+  { id: "7", name: "孙八", department: "销售一组", earnedCount: 1, totalPoints: 10, latestAchievement: "初出茅庐", earnedIds: ["1"] },
+  { id: "8", name: "吴十", department: "客服组", earnedCount: 0, totalPoints: 0, latestAchievement: "-", earnedIds: [] },
+];
+
+const departments = ["全部", "销售一组", "销售二组", "客服组"];
+
 export function AchievementWall() {
-  const { user } = useAuth();
+  const [deptFilter, setDeptFilter] = useState("全部");
+  const filtered = deptFilter === "全部" ? mockMembers : mockMembers.filter(m => m.department === deptFilter);
 
-  const { data } = useQuery({
-    queryKey: ["achievements", user?.id],
-    queryFn: async () => {
-      const { data: achievements } = await supabase
-        .from("achievements" as any)
-        .select("*");
-
-      const { data: earned } = await supabase
-        .from("user_achievements" as any)
-        .select("achievement_id")
-        .eq("user_id", user!.id);
-
-      const earnedSet = new Set((earned || []).map((e: any) => e.achievement_id));
-
-      return {
-        achievements: (achievements || []) as any[],
-        earnedSet,
-      };
-    },
-    enabled: !!user,
-  });
-
-  const achievements = data?.achievements?.length
-    ? data.achievements.map((a: any) => ({ ...a, earned: data.earnedSet.has(a.id) }))
-    : defaultAchievements;
-
-  const earnedCount = achievements.filter((a: any) => a.earned).length;
-  const totalPoints = achievements.filter((a: any) => a.earned).reduce((sum: number, a: any) => sum + (a.points || 0), 0);
+  const totalEarned = filtered.reduce((s, m) => s + m.earnedCount, 0);
+  const avgEarned = filtered.length > 0 ? (totalEarned / filtered.length).toFixed(1) : "0";
+  const topScorer = [...filtered].sort((a, b) => b.totalPoints - a.totalPoints)[0];
 
   return (
     <div>
-      <div style={{ marginBottom: 24, display: "flex", gap: 24, alignItems: "center" }}>
-        <div>
-          <Text type="secondary">已解锁</Text>
-          <Title level={3} style={{ margin: 0 }}>{earnedCount}/{achievements.length}</Title>
-        </div>
-        <div>
-          <Text type="secondary">总积分</Text>
-          <Title level={3} style={{ margin: 0, color: "#faad14" }}>{totalPoints}</Title>
-        </div>
-        <Progress
-          percent={Math.round((earnedCount / achievements.length) * 100)}
-          style={{ flex: 1, maxWidth: 300 }}
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+        <Space>
+          <TrophyOutlined />
+          <Text strong>团队成就概览</Text>
+        </Space>
+        <Select value={deptFilter} onChange={setDeptFilter} style={{ width: 140 }}
+          options={departments.map(d => ({ label: d, value: d }))}
         />
       </div>
 
-      <Row gutter={[16, 16]}>
-        {achievements.map((ach: any) => (
-          <Col key={ach.id} xs={12} sm={8} md={6}>
-            <Card
-              hoverable
-              style={{
-                textAlign: "center",
-                opacity: ach.earned ? 1 : 0.4,
-                filter: ach.earned ? "none" : "grayscale(100%)",
-                border: ach.earned ? "1px solid #52c41a" : undefined,
-              }}
-            >
-              <div style={{ marginBottom: 8 }}>
-                {iconMap[ach.icon] || <TrophyOutlined style={{ fontSize: 28 }} />}
-              </div>
-              <Text strong style={{ display: "block" }}>{ach.name}</Text>
-              <Text type="secondary" style={{ fontSize: 12, display: "block", marginTop: 4 }}>
-                {ach.description}
-              </Text>
-              <div style={{ marginTop: 8 }}>
-                <Tag color={categoryColors[ach.category] || "default"}>
-                  {categoryLabels[ach.category] || ach.category}
-                </Tag>
-                <Tag color="gold">{ach.points} 分</Tag>
-              </div>
-              {ach.earned && (
-                <CheckCircleOutlined style={{ color: "#52c41a", position: "absolute", top: 8, right: 8 }} />
-              )}
-            </Card>
-          </Col>
-        ))}
+      {/* Summary */}
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic title="团队总勋章数" value={totalEarned} prefix={<TrophyOutlined style={{ color: "#faad14" }} />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="人均勋章" value={avgEarned} prefix={<StarOutlined style={{ color: "#1677ff" }} />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="勋章达人" value={topScorer?.name || "-"} prefix={<CrownOutlined style={{ color: "#faad14" }} />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="团队完成率"
+              value={Math.round((totalEarned / (filtered.length * allAchievements.length)) * 100)}
+              suffix="%"
+              prefix={<CheckCircleOutlined style={{ color: "#52c41a" }} />}
+            />
+          </Card>
+        </Col>
       </Row>
+
+      {/* Member Table */}
+      <Table
+        dataSource={filtered}
+        rowKey="id"
+        pagination={false}
+        columns={[
+          {
+            title: "成员",
+            dataIndex: "name",
+            render: (name: string) => (
+              <Space>
+                <Avatar size="small" style={{ background: "#1677ff" }}>{name[0]}</Avatar>
+                <Text strong>{name}</Text>
+              </Space>
+            ),
+          },
+          { title: "部门", dataIndex: "department", width: 120 },
+          {
+            title: "已获勋章",
+            dataIndex: "earnedCount",
+            width: 120,
+            sorter: (a, b) => a.earnedCount - b.earnedCount,
+            render: (c: number) => (
+              <span>
+                <TrophyOutlined style={{ color: "#faad14", marginRight: 4 }} />
+                {c} / {allAchievements.length}
+              </span>
+            ),
+          },
+          {
+            title: "勋章详情",
+            key: "badges",
+            render: (_: any, record: MemberAchievement) => (
+              <div style={{ display: "flex", gap: 4 }}>
+                {allAchievements.map(a => (
+                  <span
+                    key={a.id}
+                    style={{
+                      opacity: record.earnedIds.includes(a.id) ? 1 : 0.2,
+                      filter: record.earnedIds.includes(a.id) ? "none" : "grayscale(100%)",
+                    }}
+                    title={a.name}
+                  >
+                    {iconMap[a.icon]}
+                  </span>
+                ))}
+              </div>
+            ),
+          },
+          {
+            title: "总积分",
+            dataIndex: "totalPoints",
+            width: 100,
+            sorter: (a, b) => a.totalPoints - b.totalPoints,
+            render: (p: number) => <Tag color="gold">{p} 分</Tag>,
+          },
+          {
+            title: "最新勋章",
+            dataIndex: "latestAchievement",
+            width: 120,
+          },
+        ]}
+      />
     </div>
   );
 }

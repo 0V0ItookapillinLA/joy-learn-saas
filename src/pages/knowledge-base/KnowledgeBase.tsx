@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button, Table, Tag, Input, Select, Space, Typography, message } from "antd";
-import { PlusOutlined, SearchOutlined, FileTextOutlined, FilePdfOutlined, FileWordOutlined, FilePptOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Input, Select, Space, Typography, message, Breadcrumb, Card, Empty } from "antd";
+import { PlusOutlined, SearchOutlined, FileTextOutlined, FilePdfOutlined, FileWordOutlined, FilePptOutlined, FolderOutlined, FolderOpenOutlined, HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,15 @@ import { UploadDocModal } from "@/components/knowledge-base/UploadDocModal";
 import { KnowledgeDocDrawer } from "@/components/knowledge-base/KnowledgeDocDrawer";
 
 const { Text } = Typography;
+
+// Mock folder structure
+const mockFolders = [
+  { id: "folder-sales", name: "销售话术", parent: null, docCount: 12, icon: "📢" },
+  { id: "folder-product", name: "产品知识", parent: null, docCount: 8, icon: "📦" },
+  { id: "folder-service", name: "客服流程", parent: null, docCount: 6, icon: "🎧" },
+  { id: "folder-onboarding", name: "新人培训", parent: null, docCount: 15, icon: "🎓" },
+  { id: "folder-methodology", name: "方法论", parent: null, docCount: 4, icon: "📐" },
+];
 
 const categoryOptions = [
   { label: "全部分类", value: "" },
@@ -67,6 +76,7 @@ export default function KnowledgeBase() {
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   const { data: docs = [], isLoading } = useQuery({
@@ -98,6 +108,8 @@ export default function KnowledgeBase() {
       setDrawerDoc(null);
     },
   });
+
+  const currentFolderData = mockFolders.find(f => f.id === currentFolder);
 
   const columns: ColumnsType<KnowledgeDoc> = [
     {
@@ -153,8 +165,56 @@ export default function KnowledgeBase() {
 
   return (
     <DashboardLayout title="知识库" description="管理培训资料，AI 自动提取知识点">
+      {/* Breadcrumb Navigation */}
+      <div style={{ marginBottom: 16 }}>
+        <Breadcrumb
+          items={[
+            {
+              title: (
+                <a onClick={() => setCurrentFolder(null)} style={{ cursor: "pointer" }}>
+                  <HomeOutlined style={{ marginRight: 4 }} />
+                  知识库
+                </a>
+              ),
+            },
+            ...(currentFolderData
+              ? [{ title: <span>{currentFolderData.icon} {currentFolderData.name}</span> }]
+              : []),
+          ]}
+        />
+      </div>
+
+      {/* Folder Grid - show when at root level */}
+      {!currentFolder && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
+            {mockFolders.map(folder => (
+              <Card
+                key={folder.id}
+                hoverable
+                onClick={() => setCurrentFolder(folder.id)}
+                style={{ width: 180, textAlign: "center" }}
+                styles={{ body: { padding: "20px 16px" } }}
+              >
+                <div style={{ fontSize: 36, marginBottom: 8 }}>
+                  {currentFolder === folder.id ? <FolderOpenOutlined style={{ color: "#faad14" }} /> : <FolderOutlined style={{ color: "#faad14" }} />}
+                </div>
+                <Text strong style={{ display: "block", marginBottom: 4 }}>{folder.name}</Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>{folder.docCount} 份资料</Text>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Filter & Upload Bar */}
       <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <Space wrap>
+          {currentFolder && (
+            <Button icon={<ArrowLeftOutlined />} onClick={() => setCurrentFolder(null)}>
+              返回上层
+            </Button>
+          )}
           <Select
             style={{ width: 120 }}
             options={categoryOptions}
@@ -181,6 +241,7 @@ export default function KnowledgeBase() {
         </Button>
       </div>
 
+      {/* Document Table */}
       <Table
         columns={columns}
         dataSource={docs}
