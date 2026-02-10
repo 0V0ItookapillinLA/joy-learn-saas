@@ -1,39 +1,15 @@
 import { useState } from "react";
-import { Button, Table, Tag, Input, Select, Space, Typography, message, Breadcrumb } from "antd";
-import { PlusOutlined, SearchOutlined, FileTextOutlined, FilePdfOutlined, FileWordOutlined, FilePptOutlined, FolderOutlined, HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Input, Space, Typography, message, Modal, Form, Select, Popconfirm } from "antd";
+import { PlusOutlined, SearchOutlined, FileTextOutlined, FilePdfOutlined, FileWordOutlined, FilePptOutlined, ArrowLeftOutlined, FolderOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { UploadDocModal } from "@/components/knowledge-base/UploadDocModal";
 import { KnowledgeDocDrawer } from "@/components/knowledge-base/KnowledgeDocDrawer";
 
 const { Text } = Typography;
-
-const mockFolders = [
-  { id: "folder-sales", name: "销售话术", icon: "📢", docCount: 12 },
-  { id: "folder-product", name: "产品知识", icon: "📦", docCount: 8 },
-  { id: "folder-service", name: "客服流程", icon: "🎧", docCount: 6 },
-  { id: "folder-onboarding", name: "新人培训", icon: "🎓", docCount: 15 },
-  { id: "folder-methodology", name: "方法论", icon: "📐", docCount: 4 },
-];
-
-const categoryOptions = [
-  { label: "全部分类", value: "" },
-  { label: "话术", value: "话术" },
-  { label: "流程", value: "流程" },
-  { label: "产品", value: "产品" },
-  { label: "方法论", value: "方法论" },
-  { label: "通用", value: "general" },
-];
-
-const statusOptions = [
-  { label: "全部状态", value: "" },
-  { label: "草稿", value: "draft" },
-  { label: "解析中", value: "processing" },
-  { label: "就绪", value: "ready" },
-  { label: "失败", value: "error" },
-];
 
 const statusMap: Record<string, { color: string; label: string }> = {
   draft: { color: "default", label: "草稿" },
@@ -42,6 +18,12 @@ const statusMap: Record<string, { color: string; label: string }> = {
   error: { color: "error", label: "失败" },
 };
 
+const authorityOptions = [
+  { label: "高", value: "高" },
+  { label: "中", value: "中" },
+  { label: "低", value: "低" },
+];
+
 const fileIcon = (type: string | null) => {
   if (!type) return <FileTextOutlined />;
   if (type.includes("pdf")) return <FilePdfOutlined style={{ color: "#ff4d4f" }} />;
@@ -49,6 +31,17 @@ const fileIcon = (type: string | null) => {
   if (type.includes("presentation") || type.includes("pptx")) return <FilePptOutlined style={{ color: "#fa8c16" }} />;
   return <FileTextOutlined />;
 };
+
+interface KnowledgeBaseItem {
+  id: string;
+  name: string;
+  description: string | null;
+  authority_level: string | null;
+  organization_id: string;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface KnowledgeDoc {
   id: string;
@@ -67,38 +60,102 @@ interface KnowledgeDoc {
   created_at: string;
   updated_at: string;
   organization_id: string;
+  knowledge_base_id: string | null;
 }
 
-type FolderRow = { _type: "folder"; id: string; name: string; icon: string; docCount: number };
-type DocRow = KnowledgeDoc & { _type: "doc" };
-type TableRow = FolderRow | DocRow;
-
 export default function KnowledgeBase() {
+  const [currentKB, setCurrentKB] = useState<KnowledgeBaseItem | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [drawerDoc, setDrawerDoc] = useState<KnowledgeDoc | null>(null);
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
-  const [currentFolder, setCurrentFolder] = useState<string | null>(null);
-  const [newFolderName, setNewFolderName] = useState("");
-  const [showNewFolder, setShowNewFolder] = useState(false);
+  const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  const { data: docs = [], isLoading } = useQuery({
-    queryKey: ["knowledge-documents", categoryFilter, statusFilter, search],
+  // ====== Knowledge Bases List ======
+  const { data: knowledgeBases = [], isLoading: kbLoading } = useQuery({
+    queryKey: ["knowledge-bases"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("knowledge_bases" as any)
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data || []) as unknown as KnowledgeBaseItem[];
+    },
+  });
+
+  // ====== Documents in current KB ======
+  const { data: docs = [], isLoading: docsLoading } = useQuery({
+    queryKey: ["knowledge-documents", currentKB?.id, search],
+    enabled: !!currentKB,
     queryFn: async () => {
       let query = supabase
         .from("knowledge_documents" as any)
         .select("*")
+        .eq("knowledge_base_id", currentKB!.id)
         .order("created_at", { ascending: false });
-
-      if (categoryFilter) query = query.eq("category", categoryFilter);
-      if (statusFilter) query = query.eq("status", statusFilter);
       if (search) query = query.ilike("title", `%${search}%`);
-
       const { data, error } = await query;
       if (error) throw error;
       return (data || []) as unknown as KnowledgeDoc[];
+    },
+  });
+
+  // ====== Doc counts per KB ======
+  const { data: docCounts = {} } = useQuery({
+    queryKey: ["knowledge-doc-counts"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("knowledge_documents" as any)
+        .select("knowledge_base_id");
+      if (error) throw error;
+      const counts: Record<string, number> = {};
+      (data || []).forEach((d: any) => {
+        if (d.knowledge_base_id) {
+          counts[d.knowledge_base_id] = (counts[d.knowledge_base_id] || 0) + 1;
+        }
+      });
+      return counts;
+    },
+  });
+
+  const createKBMutation = useMutation({
+    mutationFn: async (values: { name: string; description: string; authority_level: string }) => {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("organization_id")
+        .eq("user_id", user!.id)
+        .single();
+      if (!profile?.organization_id) throw new Error("未找到组织信息");
+
+      const { error } = await supabase.from("knowledge_bases" as any).insert({
+        name: values.name,
+        description: values.description || null,
+        authority_level: values.authority_level || "中",
+        organization_id: profile.organization_id,
+        created_by: user!.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-bases"] });
+      message.success("知识库创建成功");
+      setCreateOpen(false);
+      form.resetFields();
+    },
+    onError: (err: any) => message.error(err.message || "创建失败"),
+  });
+
+  const deleteKBMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("knowledge_bases" as any).delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["knowledge-bases"] });
+      message.success("知识库已删除");
     },
   });
 
@@ -114,59 +171,113 @@ export default function KnowledgeBase() {
     },
   });
 
-  const currentFolderData = mockFolders.find(f => f.id === currentFolder);
-
-  // Build mixed datasource: folders + docs at root, only docs inside folder
-  const tableData: TableRow[] = currentFolder
-    ? docs.map(d => ({ ...d, _type: "doc" as const }))
-    : [
-        ...mockFolders.map(f => ({ _type: "folder" as const, ...f })),
-        ...docs.map(d => ({ ...d, _type: "doc" as const })),
-      ];
-
-  const columns: ColumnsType<TableRow> = [
+  // ====== KB List Columns ======
+  const kbColumns: ColumnsType<KnowledgeBaseItem> = [
     {
-      title: "文档",
-      dataIndex: "title",
-      key: "title",
-      render: (_: any, record: TableRow) => {
-        if (record._type === "folder") {
-          return (
-            <Space>
-              <FolderOutlined style={{ color: "#faad14", fontSize: 18 }} />
-              <div>
-                <Text strong>{record.icon} {record.name}</Text>
-                <div><Text type="secondary" style={{ fontSize: 12 }}>{record.docCount} 份资料</Text></div>
-              </div>
-            </Space>
-          );
-        }
-        return (
-          <Space>
-            {fileIcon(record.file_type)}
-            <div>
-              <Text strong>{record.title}</Text>
-              {record.file_name && (
-                <div><Text type="secondary" style={{ fontSize: 12 }}>{record.file_name}</Text></div>
-              )}
-            </div>
-          </Space>
-        );
+      title: "知识库名称",
+      dataIndex: "name",
+      key: "name",
+      render: (name: string) => (
+        <Space>
+          <FolderOutlined style={{ color: "#faad14", fontSize: 16 }} />
+          <Text strong>{name}</Text>
+        </Space>
+      ),
+    },
+    {
+      title: "知识库描述",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (desc: string) => desc || "-",
+    },
+    {
+      title: "文档数量",
+      key: "docCount",
+      width: 100,
+      render: (_: any, record: KnowledgeBaseItem) => (docCounts as any)[record.id] || 0,
+    },
+    {
+      title: "文档权威性",
+      dataIndex: "authority_level",
+      key: "authority_level",
+      width: 100,
+      render: (level: string) => {
+        const colorMap: Record<string, string> = { "高": "red", "中": "orange", "低": "green" };
+        return <Tag color={colorMap[level] || "default"}>{level || "中"}</Tag>;
       },
     },
     {
+      title: "创建时间",
+      dataIndex: "created_at",
+      key: "created_at",
+      width: 180,
+      render: (t: string) => new Date(t).toLocaleString("zh-CN"),
+    },
+    {
+      title: "更新时间",
+      dataIndex: "updated_at",
+      key: "updated_at",
+      width: 180,
+      render: (t: string) => new Date(t).toLocaleString("zh-CN"),
+    },
+    {
+      title: "操作",
+      key: "actions",
+      width: 120,
+      render: (_: any, record: KnowledgeBaseItem) => (
+        <Space>
+          <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); setCurrentKB(record); }}>
+            查看
+          </Button>
+          <Popconfirm
+            title="确定删除此知识库？"
+            onConfirm={(e) => { e?.stopPropagation(); deleteKBMutation.mutate(record.id); }}
+            onCancel={(e) => e?.stopPropagation()}
+            okText="删除"
+            cancelText="取消"
+          >
+            <Button type="link" danger size="small" onClick={(e) => e.stopPropagation()}>
+              删除
+            </Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ];
+
+  // ====== Doc List Columns ======
+  const docColumns: ColumnsType<KnowledgeDoc> = [
+    {
+      title: "文件标题",
+      dataIndex: "title",
+      key: "title",
+      render: (title: string, record: KnowledgeDoc) => (
+        <Space>
+          {fileIcon(record.file_type)}
+          <div>
+            <Text strong>{title}</Text>
+            {record.file_name && (
+              <div><Text type="secondary" style={{ fontSize: 12 }}>{record.file_name}</Text></div>
+            )}
+          </div>
+        </Space>
+      ),
+    },
+    {
       title: "分类",
+      dataIndex: "category",
       key: "category",
       width: 100,
-      render: (_: any, record: TableRow) => record._type === "folder" ? "-" : (record.category || "通用"),
+      render: (cat: string) => cat || "通用",
     },
     {
       title: "状态",
+      dataIndex: "status",
       key: "status",
       width: 100,
-      render: (_: any, record: TableRow) => {
-        if (record._type === "folder") return "-";
-        const s = statusMap[record.status] || { color: "default", label: record.status };
+      render: (status: string) => {
+        const s = statusMap[status] || { color: "default", label: status };
         return <Tag color={s.color}>{s.label}</Tag>;
       },
     },
@@ -174,141 +285,153 @@ export default function KnowledgeBase() {
       title: "知识点数",
       key: "points",
       width: 100,
-      render: (_: any, record: TableRow) => {
-        if (record._type === "folder") return "-";
+      render: (_: any, record: KnowledgeDoc) => {
         const points = Array.isArray(record.ai_key_points) ? record.ai_key_points.length : 0;
         return points > 0 ? <Tag color="blue">{points} 个</Tag> : <Text type="secondary">-</Text>;
       },
     },
     {
-      title: "上传时间",
+      title: "创建时间",
+      dataIndex: "created_at",
       key: "created_at",
       width: 180,
-      render: (_: any, record: TableRow) => {
-        if (record._type === "folder") return "-";
-        return new Date(record.created_at).toLocaleString("zh-CN");
-      },
+      render: (t: string) => new Date(t).toLocaleString("zh-CN"),
+    },
+    {
+      title: "更新时间",
+      dataIndex: "updated_at",
+      key: "updated_at",
+      width: 180,
+      render: (t: string) => new Date(t).toLocaleString("zh-CN"),
+    },
+    {
+      title: "操作",
+      key: "actions",
+      width: 150,
+      render: (_: any, record: KnowledgeDoc) => (
+        <Space>
+          <Button type="link" size="small" onClick={(e) => { e.stopPropagation(); setDrawerDoc(record); }}>
+            基础信息
+          </Button>
+        </Space>
+      ),
     },
   ];
 
-  return (
-    <DashboardLayout title="知识库" description="管理培训资料，AI 自动提取知识点">
-      {/* Breadcrumb */}
-      <div style={{ marginBottom: 16 }}>
-        <Breadcrumb
-          items={[
-            {
-              title: (
-                <a onClick={() => setCurrentFolder(null)} style={{ cursor: "pointer" }}>
-                  <HomeOutlined style={{ marginRight: 4 }} />
-                  知识库
-                </a>
-              ),
-            },
-            ...(currentFolderData
-              ? [{ title: <span>{currentFolderData.icon} {currentFolderData.name}</span> }]
-              : []),
-          ]}
-        />
-      </div>
+  // ====== Inside a Knowledge Base ======
+  if (currentKB) {
+    return (
+      <DashboardLayout title="知识库" description="管理培训资料，AI 自动提取知识点">
+        <div style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+          <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => { setCurrentKB(null); setSearch(""); }} />
+          <Typography.Title level={4} style={{ margin: 0 }}>{currentKB.name}</Typography.Title>
+        </div>
 
-      {/* Filter & Upload Bar */}
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
-        <Space wrap>
-          {currentFolder && (
-            <Button icon={<ArrowLeftOutlined />} onClick={() => setCurrentFolder(null)}>
-              返回上层
-            </Button>
-          )}
-          <Select style={{ width: 120 }} options={categoryOptions} value={categoryFilter} onChange={setCategoryFilter} />
-          <Select style={{ width: 120 }} options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
+        <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <Input
-            placeholder="搜索文档标题"
+            placeholder="输入关键词搜索"
             prefix={<SearchOutlined />}
-            style={{ width: 200 }}
+            style={{ width: 240 }}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             allowClear
           />
-        </Space>
-        {currentFolder ? (
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadOpen(true)}>
-            上传资料
+            新建文件
           </Button>
-        ) : (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowNewFolder(true)}>
-            新建文件夹
-          </Button>
-        )}
+        </div>
+
+        <Table
+          columns={docColumns}
+          dataSource={docs}
+          rowKey="id"
+          loading={docsLoading}
+          onRow={(record) => ({
+            onClick: () => setDrawerDoc(record),
+            style: { cursor: "pointer" },
+          })}
+          pagination={{ pageSize: 20 }}
+        />
+
+        <UploadDocModal
+          open={uploadOpen}
+          onClose={() => setUploadOpen(false)}
+          knowledgeBaseId={currentKB.id}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] });
+            queryClient.invalidateQueries({ queryKey: ["knowledge-doc-counts"] });
+            setUploadOpen(false);
+          }}
+        />
+
+        <KnowledgeDocDrawer
+          doc={drawerDoc}
+          onClose={() => setDrawerDoc(null)}
+          onDelete={(id) => deleteMutation.mutate(id)}
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] })}
+        />
+      </DashboardLayout>
+    );
+  }
+
+  // ====== Root: Knowledge Bases List ======
+  return (
+    <DashboardLayout title="知识库" description="管理培训资料，AI 自动提取知识点">
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <Input
+          placeholder="输入关键词搜索"
+          prefix={<SearchOutlined />}
+          style={{ width: 240 }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          allowClear
+        />
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+          新建知识库
+        </Button>
       </div>
 
-      {/* New folder inline input */}
-      {showNewFolder && !currentFolder && (
-        <div style={{ marginBottom: 16, display: "flex", gap: 8 }}>
-          <Input
-            placeholder="输入文件夹名称"
-            value={newFolderName}
-            onChange={(e) => setNewFolderName(e.target.value)}
-            style={{ width: 240 }}
-            onPressEnter={() => {
-              if (newFolderName.trim()) {
-                message.success(`文件夹「${newFolderName}」已创建`);
-                setNewFolderName("");
-                setShowNewFolder(false);
-              }
-            }}
-            autoFocus
-          />
-          <Button
-            type="primary"
-            onClick={() => {
-              if (newFolderName.trim()) {
-                message.success(`文件夹「${newFolderName}」已创建`);
-                setNewFolderName("");
-                setShowNewFolder(false);
-              }
-            }}
-          >
-            确定
-          </Button>
-          <Button onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}>取消</Button>
-        </div>
-      )}
-
-      {/* Table with folders + docs */}
       <Table
-        columns={columns}
-        dataSource={tableData}
-        rowKey={(r) => r._type === "folder" ? r.id : r.id}
-        loading={isLoading}
+        columns={kbColumns}
+        dataSource={knowledgeBases.filter(kb => !search || kb.name.includes(search))}
+        rowKey="id"
+        loading={kbLoading}
         onRow={(record) => ({
-          onClick: () => {
-            if (record._type === "folder") {
-              setCurrentFolder(record.id);
-            } else {
-              setDrawerDoc(record);
-            }
-          },
+          onClick: () => setCurrentKB(record),
           style: { cursor: "pointer" },
         })}
         pagination={{ pageSize: 20 }}
       />
 
-      <UploadDocModal
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] });
-          setUploadOpen(false);
-        }}
-      />
-
-      <KnowledgeDocDrawer
-        doc={drawerDoc}
-        onClose={() => setDrawerDoc(null)}
-        onDelete={(id) => deleteMutation.mutate(id)}
-        onRefresh={() => queryClient.invalidateQueries({ queryKey: ["knowledge-documents"] })}
-      />
+      {/* Create Knowledge Base Modal */}
+      <Modal
+        title="新建"
+        open={createOpen}
+        onCancel={() => { setCreateOpen(false); form.resetFields(); }}
+        onOk={() => form.submit()}
+        confirmLoading={createKBMutation.isPending}
+        okText="确定"
+        cancelText="取消"
+        destroyOnClose
+        zIndex={1000}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={(values) => createKBMutation.mutate(values)}
+          style={{ marginTop: 16 }}
+        >
+          <Form.Item name="name" label="知识库名称" rules={[{ required: true, message: "请输入知识库名称" }]}>
+            <Input placeholder="请输入知识库名称" />
+          </Form.Item>
+          <Form.Item name="description" label="知识库描述" rules={[{ required: true, message: "请输入知识库描述" }]}>
+            <Input.TextArea rows={3} placeholder="请输入知识库描述" showCount maxLength={2000} />
+          </Form.Item>
+          <Form.Item name="authority_level" label="文档权威性" initialValue="中">
+            <Select options={authorityOptions} />
+          </Form.Item>
+        </Form>
+      </Modal>
     </DashboardLayout>
   );
 }
