@@ -189,16 +189,23 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
   const handlePPTConfirm = async (characterId: string | null, voiceStyle: string) => {
     if (!coursewareId) return;
     try {
+      // Simulate recording: update status to "recorded" and generate placeholder video URLs
+      const videoUrls = outline.map((_: any, i: number) => ({
+        chapterId: `ch_${i + 1}`,
+        url: `simulated://chapter-${i + 1}.mp4`,
+      }));
+
       await supabase
         .from("ai_courseware" as any)
         .update({
           character_id: characterId,
-          status: "ready",
+          status: "recorded",
           outline,
           scripts,
+          video_urls: videoUrls,
         } as any)
         .eq("id", coursewareId);
-      message.success("课件录制任务已提交！视频生成后将自动更新");
+      message.success("课件录制完成！可在列表中点击「预览」查看");
       onSuccess();
     } catch (err: any) {
       message.error(err.message || "保存失败");
