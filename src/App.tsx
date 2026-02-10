@@ -11,6 +11,7 @@ import PracticePlanList from "./pages/practices/PracticePlanList";
 import CharacterConfig from "./pages/characters/CharacterConfig";
 import LearningMapLibrary from "./pages/learning-map/LearningMapLibrary";
 import KnowledgeBase from "./pages/knowledge-base/KnowledgeBase";
+import AICourseware from "./pages/ai-courseware/AICourseware";
 import GrowthMap from "./pages/trainees/GrowthMap";
 import TrainingAnalytics from "./pages/analytics/TrainingAnalytics";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
@@ -57,6 +58,11 @@ const App = () => (
               <Route path="/knowledge-base" element={
                 <ProtectedRoute>
                   <KnowledgeBase />
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-courseware" element={
+                <ProtectedRoute>
+                  <AICourseware />
                 </ProtectedRoute>
               } />
               <Route path="/learning-map" element={

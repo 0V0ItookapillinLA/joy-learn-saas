@@ -11,6 +11,7 @@ import {
   AreaChartOutlined,
   BarChartOutlined,
   DatabaseOutlined,
+  VideoCameraOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -52,6 +53,11 @@ const menuItems: MenuProps["items"] = [
     key: "/knowledge-base",
     icon: <DatabaseOutlined />,
     label: "知识库",
+  },
+  {
+    key: "/ai-courseware",
+    icon: <VideoCameraOutlined />,
+    label: "AI 制课",
   },
   {
     key: "/learning-map",
