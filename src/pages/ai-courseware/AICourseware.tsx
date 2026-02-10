@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button, Table, Tag, Space, Typography, Modal, message, Empty } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined, PlayCircleOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
@@ -229,15 +229,38 @@ export default function AICourseware() {
 function CoursewarePreviewContent({ courseware }: { courseware: Courseware }) {
   const outline = Array.isArray(courseware.outline) ? courseware.outline : [];
   const scripts = typeof courseware.scripts === "object" && courseware.scripts ? courseware.scripts : {};
-  const videoUrls = Array.isArray(courseware.video_urls) ? courseware.video_urls : [];
+  const [currentChapter, setCurrentChapter] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!playing) return;
+    const timer = setInterval(() => {
+      setProgress((p) => {
+        if (p >= 100) {
+          if (currentChapter < outline.length - 1) {
+            setCurrentChapter((c) => c + 1);
+            return 0;
+          }
+          setPlaying(false);
+          return 100;
+        }
+        return p + 0.5;
+      });
+    }, 50);
+    return () => clearInterval(timer);
+  }, [playing, currentChapter, outline.length]);
 
   if (outline.length === 0) {
     return <Empty description="暂无课件内容" />;
   }
 
+  const chapter = outline[currentChapter] || outline[0];
+  const script = scripts[chapter?.title] || scripts[chapter?.id] || scripts[`ch_${currentChapter + 1}`] || "";
+
   return (
     <div>
-      {/* Simulated PPT + Avatar video player */}
+      {/* Simulated Video Player */}
       <div style={{
         position: "relative",
         width: "100%",
@@ -245,67 +268,78 @@ function CoursewarePreviewContent({ courseware }: { courseware: Courseware }) {
         background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)",
         borderRadius: 12,
         overflow: "hidden",
-        marginBottom: 24,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        marginBottom: 16,
       }}>
-        <div style={{ textAlign: "center", color: "#fff", padding: 40 }}>
-          <PlayCircleOutlined style={{ fontSize: 64, marginBottom: 16, opacity: 0.8 }} />
-          <Typography.Title level={3} style={{ color: "#fff", margin: 0 }}>
-            {courseware.title}
+        {/* PPT Content Area */}
+        <div style={{ padding: "40px 100px 40px 40px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <Typography.Title level={3} style={{ color: "#fff", margin: "0 0 16px 0" }}>
+            第 {currentChapter + 1} 章: {chapter?.title}
           </Typography.Title>
-          <Text style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, marginTop: 8, display: "block" }}>
-            {outline.length} 个章节 · 数字人讲解视频
-          </Text>
-          {videoUrls.length > 0 ? (
-            <Tag color="green" style={{ marginTop: 16 }}>视频已生成，点击播放</Tag>
-          ) : (
-            <Tag color="orange" style={{ marginTop: 16 }}>视频录制中，请稍后刷新查看</Tag>
-          )}
+          <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 14, lineHeight: 1.8, maxHeight: 200, overflow: "hidden" }}>
+            {script ? script.slice(0, 300) + (script.length > 300 ? "..." : "") : "讲稿内容加载中..."}
+          </div>
         </div>
 
-        {/* Avatar placeholder in bottom-right */}
+        {/* Digital Avatar */}
         <div style={{
-          position: "absolute",
-          bottom: 16,
-          right: 16,
-          width: 80,
-          height: 80,
-          borderRadius: "50%",
+          position: "absolute", bottom: 20, right: 20,
+          width: 90, height: 90, borderRadius: "50%",
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "3px solid rgba(255,255,255,0.3)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          border: "3px solid rgba(255,255,255,0.4)",
+          animation: playing ? "pulse 2s ease-in-out infinite" : "none",
         }}>
-          <Text style={{ color: "#fff", fontSize: 24 }}>🎙️</Text>
+          <span style={{ fontSize: 36 }}>🎙️</span>
+        </div>
+
+        {/* Play/Pause Overlay */}
+        {!playing && (
+          <div
+            onClick={() => { setPlaying(true); if (progress >= 100) { setProgress(0); setCurrentChapter(0); } }}
+            style={{
+              position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center",
+              background: "rgba(0,0,0,0.3)", cursor: "pointer",
+            }}
+          >
+            <PlayCircleOutlined style={{ fontSize: 72, color: "#fff", opacity: 0.9 }} />
+          </div>
+        )}
+
+        {/* Progress Bar */}
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 4, background: "rgba(255,255,255,0.2)" }}>
+          <div style={{ height: "100%", width: `${progress}%`, background: "#667eea", transition: "width 50ms linear" }} />
         </div>
       </div>
 
-      {/* Chapter list */}
+      {/* Controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+        <Button size="small" onClick={() => setPlaying(!playing)}>
+          {playing ? "暂停" : "播放"}
+        </Button>
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          第 {currentChapter + 1}/{outline.length} 章 · {chapter?.title}
+        </Text>
+      </div>
+
+      {/* Chapter List */}
       <Typography.Title level={5}>章节列表</Typography.Title>
-      {outline.map((chapter: any, i: number) => (
-        <div key={i} style={{
-          padding: "12px 16px",
-          marginBottom: 8,
-          background: "#fafafa",
-          borderRadius: 8,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <div>
-            <Text strong>第 {i + 1} 章: {chapter.title}</Text>
-            {chapter.description && (
-              <div><Text type="secondary" style={{ fontSize: 12 }}>{chapter.description}</Text></div>
-            )}
-          </div>
-          <Tag color={scripts[chapter.title] || scripts[`chapter_${i}`] ? "green" : "default"}>
-            {scripts[chapter.title] || scripts[`chapter_${i}`] ? "讲稿就绪" : "待生成"}
-          </Tag>
+      {outline.map((ch: any, i: number) => (
+        <div
+          key={i}
+          onClick={() => { setCurrentChapter(i); setProgress(0); }}
+          style={{
+            padding: "10px 16px", marginBottom: 6, borderRadius: 8, cursor: "pointer",
+            background: i === currentChapter ? "#e6f4ff" : "#fafafa",
+            border: i === currentChapter ? "1px solid #91caff" : "1px solid transparent",
+            display: "flex", justifyContent: "space-between", alignItems: "center",
+          }}
+        >
+          <Text strong={i === currentChapter}>第 {i + 1} 章: {ch.title}</Text>
+          <Tag color="green">已录制</Tag>
         </div>
       ))}
+
+      <style>{`@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }`}</style>
     </div>
   );
 }
