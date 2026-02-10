@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { Table, Select, Space, Typography, Avatar, Tag } from "antd";
-import { TrophyOutlined, CrownOutlined, FireOutlined } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { Table, Select, Space, Typography, Avatar, Tag, Row, Col, Card, Statistic } from "antd";
+import { TrophyOutlined, CrownOutlined, FireOutlined, TeamOutlined, RiseOutlined, UserOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
@@ -11,6 +9,8 @@ const timeRangeOptions = [
   { label: "本月", value: "month" },
   { label: "总榜", value: "all" },
 ];
+
+const departments = ["全部", "销售一组", "销售二组", "客服组"];
 
 const rankIcons: Record<number, React.ReactNode> = {
   1: <CrownOutlined style={{ color: "#faad14", fontSize: 18 }} />,
@@ -21,95 +21,73 @@ const rankIcons: Record<number, React.ReactNode> = {
 interface LeaderEntry {
   user_id: string;
   full_name: string;
-  department_name: string | null;
+  department: string;
   total_duration: number;
   check_in_days: number;
+  practice_count: number;
+  avg_score: number;
 }
+
+const mockData: LeaderEntry[] = [
+  { user_id: "1", full_name: "钱七", department: "客服组", total_duration: 560, check_in_days: 25, practice_count: 32, avg_score: 88 },
+  { user_id: "2", full_name: "张三", department: "销售一组", total_duration: 480, check_in_days: 22, practice_count: 28, avg_score: 82 },
+  { user_id: "3", full_name: "王五", department: "客服组", total_duration: 420, check_in_days: 20, practice_count: 25, avg_score: 85 },
+  { user_id: "4", full_name: "李四", department: "销售一组", total_duration: 360, check_in_days: 18, practice_count: 20, avg_score: 78 },
+  { user_id: "5", full_name: "周九", department: "销售二组", total_duration: 300, check_in_days: 15, practice_count: 18, avg_score: 75 },
+  { user_id: "6", full_name: "赵六", department: "销售二组", total_duration: 240, check_in_days: 12, practice_count: 14, avg_score: 72 },
+  { user_id: "7", full_name: "孙八", department: "销售一组", total_duration: 180, check_in_days: 8, practice_count: 10, avg_score: 68 },
+  { user_id: "8", full_name: "吴十", department: "客服组", total_duration: 120, check_in_days: 5, practice_count: 6, avg_score: 65 },
+];
 
 export function Leaderboard() {
   const [timeRange, setTimeRange] = useState("month");
+  const [deptFilter, setDeptFilter] = useState("全部");
 
-  const { data: entries = [], isLoading } = useQuery({
-    queryKey: ["leaderboard", timeRange],
-    queryFn: async () => {
-      // Get streaks with profile info
-      let query = supabase
-        .from("learning_streaks" as any)
-        .select("user_id, duration_minutes, check_in_date");
+  const filtered = deptFilter === "全部" ? mockData : mockData.filter(m => m.department === deptFilter);
+  const sorted = [...filtered].sort((a, b) => b.total_duration - a.total_duration);
 
-      if (timeRange === "week") {
-        const weekAgo = new Date();
-        weekAgo.setDate(weekAgo.getDate() - 7);
-        query = query.gte("check_in_date", weekAgo.toISOString().split("T")[0]);
-      } else if (timeRange === "month") {
-        const monthAgo = new Date();
-        monthAgo.setDate(monthAgo.getDate() - 30);
-        query = query.gte("check_in_date", monthAgo.toISOString().split("T")[0]);
-      }
-
-      const { data: streaks, error } = await query;
-      if (error) throw error;
-
-      // Aggregate by user
-      const userMap = new Map<string, { total: number; days: Set<string> }>();
-      for (const s of (streaks || []) as any[]) {
-        const existing = userMap.get(s.user_id) || { total: 0, days: new Set<string>() };
-        existing.total += s.duration_minutes || 0;
-        existing.days.add(s.check_in_date);
-        userMap.set(s.user_id, existing);
-      }
-
-      // Get profiles
-      const userIds = Array.from(userMap.keys());
-      if (userIds.length === 0) return [];
-
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, department_id")
-        .in("user_id", userIds);
-
-      const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
-
-      const result: LeaderEntry[] = userIds.map((uid) => {
-        const stats = userMap.get(uid)!;
-        const profile = profileMap.get(uid);
-        return {
-          user_id: uid,
-          full_name: profile?.full_name || "未知用户",
-          department_name: null,
-          total_duration: stats.total,
-          check_in_days: stats.days.size,
-        };
-      });
-
-      result.sort((a, b) => b.total_duration - a.total_duration);
-      return result;
-    },
-  });
-
-  // Mock data for display when no real data
-  const displayData = entries.length > 0 ? entries : [
-    { user_id: "1", full_name: "张三", department_name: "销售部", total_duration: 480, check_in_days: 22 },
-    { user_id: "2", full_name: "李四", department_name: "客服部", total_duration: 360, check_in_days: 18 },
-    { user_id: "3", full_name: "王五", department_name: "销售部", total_duration: 300, check_in_days: 15 },
-    { user_id: "4", full_name: "赵六", department_name: "市场部", total_duration: 240, check_in_days: 12 },
-    { user_id: "5", full_name: "钱七", department_name: "客服部", total_duration: 180, check_in_days: 10 },
-  ];
+  const totalMembers = filtered.length;
+  const avgDuration = Math.round(filtered.reduce((s, m) => s + m.total_duration, 0) / totalMembers);
+  const topPerformer = sorted[0];
 
   return (
     <div>
-      <div style={{ marginBottom: 16, display: "flex", justifyContent: "flex-end" }}>
-        <Select
-          options={timeRangeOptions}
-          value={timeRange}
-          onChange={setTimeRange}
-          style={{ width: 100 }}
-        />
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+        <Space>
+          <TeamOutlined />
+          <Text strong>团队学习排行</Text>
+        </Space>
+        <Space>
+          <Select options={departments.map(d => ({ label: d, value: d }))} value={deptFilter} onChange={setDeptFilter} style={{ width: 140 }} />
+          <Select options={timeRangeOptions} value={timeRange} onChange={setTimeRange} style={{ width: 100 }} />
+        </Space>
       </div>
 
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic title="团队人数" value={totalMembers} prefix={<TeamOutlined style={{ color: "#1677ff" }} />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="人均学习时长" value={Math.floor(avgDuration / 60)} suffix="h" prefix={<RiseOutlined style={{ color: "#52c41a" }} />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="学习之星" value={topPerformer?.full_name || "-"} prefix={<CrownOutlined style={{ color: "#faad14" }} />} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="人均练习次数" value={Math.round(filtered.reduce((s, m) => s + m.practice_count, 0) / totalMembers)} prefix={<FireOutlined style={{ color: "#ff4d4f" }} />} />
+          </Card>
+        </Col>
+      </Row>
+
       <Table
-        loading={isLoading}
-        dataSource={displayData}
+        dataSource={sorted}
         rowKey="user_id"
         pagination={false}
         columns={[
@@ -122,27 +100,21 @@ export function Leaderboard() {
             ),
           },
           {
-            title: "学员",
+            title: "成员",
             dataIndex: "full_name",
             render: (name: string) => (
               <Space>
-                <Avatar size="small" style={{ background: "#1677ff" }}>
-                  {name.slice(0, 1)}
-                </Avatar>
+                <Avatar size="small" style={{ background: "#1677ff" }}>{name[0]}</Avatar>
                 <Text strong>{name}</Text>
               </Space>
             ),
           },
-          {
-            title: "部门",
-            dataIndex: "department_name",
-            width: 120,
-            render: (d: string | null) => d || "-",
-          },
+          { title: "部门", dataIndex: "department", width: 120 },
           {
             title: "学习时长",
             dataIndex: "total_duration",
             width: 120,
+            sorter: (a, b) => a.total_duration - b.total_duration,
             render: (m: number) => {
               const h = Math.floor(m / 60);
               const min = m % 60;
@@ -153,7 +125,23 @@ export function Leaderboard() {
             title: "打卡天数",
             dataIndex: "check_in_days",
             width: 100,
+            sorter: (a, b) => a.check_in_days - b.check_in_days,
             render: (d: number) => <Tag icon={<FireOutlined />} color="orange">{d} 天</Tag>,
+          },
+          {
+            title: "练习次数",
+            dataIndex: "practice_count",
+            width: 100,
+            sorter: (a, b) => a.practice_count - b.practice_count,
+          },
+          {
+            title: "平均分",
+            dataIndex: "avg_score",
+            width: 100,
+            sorter: (a, b) => a.avg_score - b.avg_score,
+            render: (s: number) => (
+              <Tag color={s >= 80 ? "green" : s >= 60 ? "blue" : "red"}>{s} 分</Tag>
+            ),
           },
         ]}
       />

@@ -1,164 +1,162 @@
-import { Typography, Card, Statistic, Row, Col, Tooltip } from "antd";
-import { FireOutlined, CalendarOutlined, ClockCircleOutlined } from "@ant-design/icons";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { Typography, Card, Statistic, Row, Col, Table, Tag, Avatar, Select, Space } from "antd";
+import { FireOutlined, CalendarOutlined, ClockCircleOutlined, UserOutlined, TeamOutlined } from "@ant-design/icons";
+import { useState } from "react";
 
-const { Text } = Typography;
+const { Text, Title } = Typography;
 
-const MONTHS_BACK = 6;
-const CELL_SIZE = 14;
-const CELL_GAP = 3;
+interface MemberCheckIn {
+  id: string;
+  name: string;
+  department: string;
+  monthDays: number;
+  currentStreak: number;
+  totalHours: number;
+  lastActive: string;
+}
+
+const mockMembers: MemberCheckIn[] = [
+  { id: "1", name: "张三", department: "销售一组", monthDays: 22, currentStreak: 15, totalHours: 48, lastActive: "2026-02-10" },
+  { id: "2", name: "李四", department: "销售一组", monthDays: 18, currentStreak: 8, totalHours: 36, lastActive: "2026-02-09" },
+  { id: "3", name: "王五", department: "客服组", monthDays: 20, currentStreak: 12, totalHours: 42, lastActive: "2026-02-10" },
+  { id: "4", name: "赵六", department: "销售二组", monthDays: 12, currentStreak: 3, totalHours: 24, lastActive: "2026-02-07" },
+  { id: "5", name: "钱七", department: "客服组", monthDays: 25, currentStreak: 25, totalHours: 56, lastActive: "2026-02-10" },
+  { id: "6", name: "孙八", department: "销售一组", monthDays: 8, currentStreak: 0, totalHours: 16, lastActive: "2026-02-03" },
+  { id: "7", name: "周九", department: "销售二组", monthDays: 15, currentStreak: 5, totalHours: 30, lastActive: "2026-02-09" },
+  { id: "8", name: "吴十", department: "客服组", monthDays: 10, currentStreak: 2, totalHours: 20, lastActive: "2026-02-08" },
+];
+
+const departments = ["全部", "销售一组", "销售二组", "客服组"];
 
 export function CheckInCalendar() {
-  const { user } = useAuth();
+  const [deptFilter, setDeptFilter] = useState("全部");
 
-  const { data } = useQuery({
-    queryKey: ["my-streaks", user?.id],
-    queryFn: async () => {
-      if (!user) return { streaks: [], stats: { total: 0, streak: 0, monthDays: 0 } };
+  const filtered = deptFilter === "全部" ? mockMembers : mockMembers.filter(m => m.department === deptFilter);
 
-      const startDate = new Date();
-      startDate.setMonth(startDate.getMonth() - MONTHS_BACK);
-
-      const { data: streaks, error } = await supabase
-        .from("learning_streaks" as any)
-        .select("check_in_date, duration_minutes")
-        .eq("user_id", user.id)
-        .gte("check_in_date", startDate.toISOString().split("T")[0])
-        .order("check_in_date", { ascending: true });
-
-      if (error) throw error;
-
-      const dateSet = new Set((streaks || []).map((s: any) => s.check_in_date));
-      const totalMinutes = (streaks || []).reduce((sum: number, s: any) => sum + (s.duration_minutes || 0), 0);
-
-      // Calculate current streak
-      let streak = 0;
-      const today = new Date();
-      for (let i = 0; i < 365; i++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        const key = d.toISOString().split("T")[0];
-        if (dateSet.has(key)) {
-          streak++;
-        } else if (i > 0) {
-          break;
-        }
-      }
-
-      // This month check-in days
-      const thisMonth = new Date().toISOString().slice(0, 7);
-      const monthDays = (streaks || []).filter((s: any) => s.check_in_date.startsWith(thisMonth)).length;
-
-      return {
-        streaks: streaks || [],
-        stats: { total: totalMinutes, streak, monthDays },
-        dateSet,
-      };
-    },
-    enabled: !!user,
-  });
-
-  const stats = data?.stats || { total: 0, streak: 0, monthDays: 0 };
-  const dateSet = data?.dateSet || new Set();
-
-  // Generate calendar grid (last N months)
-  const generateGrid = () => {
-    const weeks: { date: string; level: number }[][] = [];
-    const today = new Date();
-    const start = new Date(today);
-    start.setDate(start.getDate() - (MONTHS_BACK * 30));
-    // Align to Sunday
-    start.setDate(start.getDate() - start.getDay());
-
-    let currentWeek: { date: string; level: number }[] = [];
-    const d = new Date(start);
-
-    while (d <= today) {
-      const key = d.toISOString().split("T")[0];
-      const hasCheckIn = dateSet.has(key);
-      currentWeek.push({ date: key, level: hasCheckIn ? 3 : 0 });
-
-      if (d.getDay() === 6) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
-      d.setDate(d.getDate() + 1);
-    }
-    if (currentWeek.length > 0) weeks.push(currentWeek);
-
-    return weeks;
-  };
-
-  const weeks = generateGrid();
-  const levelColors = ["#ebedf0", "#9be9a8", "#40c463", "#30a14e"];
-
-  // Use mock stats if no data
-  const displayStats = stats.total > 0 ? stats : { total: 1440, streak: 5, monthDays: 12 };
+  const avgMonthDays = Math.round(filtered.reduce((s, m) => s + m.monthDays, 0) / filtered.length);
+  const avgStreak = Math.round(filtered.reduce((s, m) => s + m.currentStreak, 0) / filtered.length);
+  const totalHours = filtered.reduce((s, m) => s + m.totalHours, 0);
+  const activeLast3Days = filtered.filter(m => {
+    const d = new Date(m.lastActive);
+    const now = new Date();
+    return (now.getTime() - d.getTime()) / 86400000 <= 3;
+  }).length;
 
   return (
     <div>
+      {/* Filter */}
+      <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between" }}>
+        <Space>
+          <TeamOutlined />
+          <Text strong>团队打卡概览</Text>
+        </Space>
+        <Select value={deptFilter} onChange={setDeptFilter} style={{ width: 140 }}
+          options={departments.map(d => ({ label: d, value: d }))}
+        />
+      </div>
+
+      {/* Summary Cards */}
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
+        <Col span={6}>
           <Card>
             <Statistic
-              title="连续打卡"
-              value={displayStats.streak}
-              suffix="天"
-              prefix={<FireOutlined style={{ color: "#ff4d4f" }} />}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic
-              title="本月学习天数"
-              value={displayStats.monthDays}
+              title="人均本月打卡"
+              value={avgMonthDays}
               suffix="天"
               prefix={<CalendarOutlined style={{ color: "#1677ff" }} />}
             />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col span={6}>
           <Card>
             <Statistic
-              title="总学习时长"
-              value={Math.floor(displayStats.total / 60)}
+              title="人均连续打卡"
+              value={avgStreak}
+              suffix="天"
+              prefix={<FireOutlined style={{ color: "#ff4d4f" }} />}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="团队总学习时长"
+              value={totalHours}
               suffix="小时"
               prefix={<ClockCircleOutlined style={{ color: "#52c41a" }} />}
             />
           </Card>
         </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="近3天活跃人数"
+              value={activeLast3Days}
+              suffix={`/ ${filtered.length}`}
+              prefix={<UserOutlined style={{ color: "#faad14" }} />}
+            />
+          </Card>
+        </Col>
       </Row>
 
-      <Card title="学习热力图" style={{ overflow: "auto" }}>
-        <div style={{ display: "flex", gap: CELL_GAP, padding: "8px 0" }}>
-          {weeks.map((week, wi) => (
-            <div key={wi} style={{ display: "flex", flexDirection: "column", gap: CELL_GAP }}>
-              {week.map((day, di) => (
-                <Tooltip key={di} title={`${day.date}${day.level > 0 ? " ✓ 已打卡" : ""}`}>
-                  <div
-                    style={{
-                      width: CELL_SIZE,
-                      height: CELL_SIZE,
-                      borderRadius: 2,
-                      background: levelColors[day.level],
-                    }}
-                  />
-                </Tooltip>
-              ))}
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginTop: 8 }}>
-          <Text type="secondary" style={{ fontSize: 12 }}>少</Text>
-          {levelColors.map((c, i) => (
-            <div key={i} style={{ width: CELL_SIZE, height: CELL_SIZE, borderRadius: 2, background: c }} />
-          ))}
-          <Text type="secondary" style={{ fontSize: 12 }}>多</Text>
-        </div>
-      </Card>
+      {/* Member Table */}
+      <Table
+        dataSource={filtered}
+        rowKey="id"
+        pagination={false}
+        columns={[
+          {
+            title: "成员",
+            dataIndex: "name",
+            render: (name: string) => (
+              <Space>
+                <Avatar size="small" style={{ background: "#1677ff" }}>{name[0]}</Avatar>
+                <Text strong>{name}</Text>
+              </Space>
+            ),
+          },
+          { title: "部门", dataIndex: "department", width: 120 },
+          {
+            title: "本月打卡",
+            dataIndex: "monthDays",
+            width: 110,
+            sorter: (a, b) => a.monthDays - b.monthDays,
+            render: (d: number) => <Tag color={d >= 20 ? "green" : d >= 10 ? "blue" : "orange"}>{d} 天</Tag>,
+          },
+          {
+            title: "连续打卡",
+            dataIndex: "currentStreak",
+            width: 110,
+            sorter: (a, b) => a.currentStreak - b.currentStreak,
+            render: (d: number) => (
+              <span>
+                {d > 0 && <FireOutlined style={{ color: "#ff4d4f", marginRight: 4 }} />}
+                {d} 天
+              </span>
+            ),
+          },
+          {
+            title: "累计时长",
+            dataIndex: "totalHours",
+            width: 100,
+            sorter: (a, b) => a.totalHours - b.totalHours,
+            render: (h: number) => `${h}h`,
+          },
+          {
+            title: "最后活跃",
+            dataIndex: "lastActive",
+            width: 120,
+            render: (d: string) => {
+              const days = Math.floor((Date.now() - new Date(d).getTime()) / 86400000);
+              return (
+                <span>
+                  {d}
+                  {days > 3 && <Tag color="red" style={{ marginLeft: 4 }}>⚠ {days}天未活跃</Tag>}
+                </span>
+              );
+            },
+          },
+        ]}
+      />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { KnowledgeSelector } from "./KnowledgeSelector";
 import { OutlineEditor } from "./OutlineEditor";
 import { ScriptEditor } from "./ScriptEditor";
+import { PPTPreview } from "./PPTPreview";
 
 interface Courseware {
   id: string;
@@ -27,6 +28,43 @@ interface Props {
   courseware: Courseware | null;
   onClose: () => void;
   onSuccess: () => void;
+}
+
+interface SlideData {
+  chapterIndex: number;
+  chapterTitle: string;
+  slideIndex: number;
+  title: string;
+  bullets: string[];
+  script: string;
+}
+
+function generateSlidesFromOutline(outline: any[], scripts: Record<string, string>): SlideData[] {
+  const slides: SlideData[] = [];
+  (outline || []).forEach((chapter: any, ci: number) => {
+    const script = scripts[chapter.title] || scripts[`chapter_${ci}`] || "";
+    const sentences = script.split(/[。！？\n]+/).filter(Boolean);
+    
+    // Generate 2-4 slides per chapter
+    const slideCount = Math.min(4, Math.max(2, Math.ceil(sentences.length / 3)));
+    for (let si = 0; si < slideCount; si++) {
+      const startIdx = Math.floor(si * sentences.length / slideCount);
+      const endIdx = Math.floor((si + 1) * sentences.length / slideCount);
+      const slideSentences = sentences.slice(startIdx, endIdx);
+      
+      slides.push({
+        chapterIndex: ci,
+        chapterTitle: chapter.title,
+        slideIndex: si,
+        title: si === 0 ? chapter.title : `${chapter.title} (${si + 1})`,
+        bullets: slideSentences.length > 0 
+          ? slideSentences.slice(0, 4)
+          : [`${chapter.title} 的核心内容`, "详细讲解与案例分析", "实践要点总结"],
+        script: slideSentences.join("。") + (slideSentences.length > 0 ? "。" : ""),
+      });
+    }
+  });
+  return slides;
 }
 
 export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Props) {
@@ -71,7 +109,6 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
 
     setGenerating(true);
     try {
-      // Get org id
       const { data: profile } = await supabase
         .from("profiles")
         .select("organization_id")
@@ -80,7 +117,6 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
 
       if (!profile?.organization_id) throw new Error("未找到组织信息");
 
-      // Create or update courseware record
       let cwId = coursewareId;
       if (!cwId) {
         const { data: newCw, error: insertErr } = await supabase
@@ -101,15 +137,10 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
       } else {
         await supabase
           .from("ai_courseware" as any)
-          .update({
-            title,
-            source_documents: selectedDocs.map((d) => d.id),
-            status: "generating",
-          } as any)
+          .update({ title, source_documents: selectedDocs.map((d) => d.id), status: "generating" } as any)
           .eq("id", cwId);
       }
 
-      // Call AI to generate outline
       const { data: fnData, error: fnError } = await supabase.functions.invoke(
         "ai-generate-courseware",
         {
@@ -146,11 +177,7 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
     try {
       await supabase
         .from("ai_courseware" as any)
-        .update({
-          outline,
-          scripts,
-          status: "ready",
-        } as any)
+        .update({ outline, scripts, status: "ready" } as any)
         .eq("id", coursewareId);
       message.success("课件保存成功");
       onSuccess();
@@ -159,10 +186,32 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
     }
   };
 
+  const handlePPTConfirm = async (characterId: string | null, voiceStyle: string) => {
+    if (!coursewareId) return;
+    try {
+      await supabase
+        .from("ai_courseware" as any)
+        .update({
+          character_id: characterId,
+          status: "ready",
+          outline,
+          scripts,
+        } as any)
+        .eq("id", coursewareId);
+      message.success("课件录制任务已提交！视频生成后将自动更新");
+      onSuccess();
+    } catch (err: any) {
+      message.error(err.message || "保存失败");
+    }
+  };
+
+  const slides = generateSlidesFromOutline(outline, scripts);
+
   const steps = [
     { title: "选择知识" },
     { title: "编辑大纲" },
     { title: "编辑讲稿" },
+    { title: "PPT确认与录制" },
   ];
 
   return (
@@ -170,7 +219,7 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
       title={courseware ? `编辑课件: ${courseware.title}` : "新建课件"}
       open={open}
       onClose={onClose}
-      width={900}
+      width={step === 3 ? 1100 : 900}
       zIndex={1000}
       footer={
         <div style={{ display: "flex", justifyContent: "space-between" }}>
@@ -188,9 +237,12 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
               </Button>
             )}
             {step === 2 && (
-              <Button type="primary" onClick={handleSave}>
-                保存课件
-              </Button>
+              <Space>
+                <Button onClick={handleSave}>仅保存讲稿</Button>
+                <Button type="primary" onClick={() => setStep(3)}>
+                  进入PPT预览
+                </Button>
+              </Space>
             )}
           </Space>
         </div>
@@ -215,6 +267,14 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
 
       {step === 2 && (
         <ScriptEditor outline={outline} scripts={scripts} onChange={setScripts} />
+      )}
+
+      {step === 3 && (
+        <PPTPreview
+          slides={slides}
+          onConfirm={handlePPTConfirm}
+          onBack={() => setStep(2)}
+        />
       )}
     </Drawer>
   );
