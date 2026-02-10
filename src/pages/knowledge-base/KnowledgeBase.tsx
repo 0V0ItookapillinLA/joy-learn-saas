@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button, Table, Tag, Input, Select, Space, Typography, message, Breadcrumb, Card, Empty } from "antd";
-import { PlusOutlined, SearchOutlined, FileTextOutlined, FilePdfOutlined, FileWordOutlined, FilePptOutlined, FolderOutlined, FolderOpenOutlined, HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import { Button, Table, Tag, Input, Select, Space, Typography, message, Breadcrumb } from "antd";
+import { PlusOutlined, SearchOutlined, FileTextOutlined, FilePdfOutlined, FileWordOutlined, FilePptOutlined, FolderOutlined, HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,13 +10,12 @@ import { KnowledgeDocDrawer } from "@/components/knowledge-base/KnowledgeDocDraw
 
 const { Text } = Typography;
 
-// Mock folder structure
 const mockFolders = [
-  { id: "folder-sales", name: "销售话术", parent: null, docCount: 12, icon: "📢" },
-  { id: "folder-product", name: "产品知识", parent: null, docCount: 8, icon: "📦" },
-  { id: "folder-service", name: "客服流程", parent: null, docCount: 6, icon: "🎧" },
-  { id: "folder-onboarding", name: "新人培训", parent: null, docCount: 15, icon: "🎓" },
-  { id: "folder-methodology", name: "方法论", parent: null, docCount: 4, icon: "📐" },
+  { id: "folder-sales", name: "销售话术", icon: "📢", docCount: 12 },
+  { id: "folder-product", name: "产品知识", icon: "📦", docCount: 8 },
+  { id: "folder-service", name: "客服流程", icon: "🎧", docCount: 6 },
+  { id: "folder-onboarding", name: "新人培训", icon: "🎓", docCount: 15 },
+  { id: "folder-methodology", name: "方法论", icon: "📐", docCount: 4 },
 ];
 
 const categoryOptions = [
@@ -70,6 +69,10 @@ interface KnowledgeDoc {
   organization_id: string;
 }
 
+type FolderRow = { _type: "folder"; id: string; name: string; icon: string; docCount: number };
+type DocRow = KnowledgeDoc & { _type: "doc" };
+type TableRow = FolderRow | DocRow;
+
 export default function KnowledgeBase() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [drawerDoc, setDrawerDoc] = useState<KnowledgeDoc | null>(null);
@@ -111,37 +114,57 @@ export default function KnowledgeBase() {
 
   const currentFolderData = mockFolders.find(f => f.id === currentFolder);
 
-  const columns: ColumnsType<KnowledgeDoc> = [
+  // Build mixed datasource: folders + docs at root, only docs inside folder
+  const tableData: TableRow[] = currentFolder
+    ? docs.map(d => ({ ...d, _type: "doc" as const }))
+    : [
+        ...mockFolders.map(f => ({ _type: "folder" as const, ...f })),
+        ...docs.map(d => ({ ...d, _type: "doc" as const })),
+      ];
+
+  const columns: ColumnsType<TableRow> = [
     {
       title: "文档",
       dataIndex: "title",
       key: "title",
-      render: (title: string, record: KnowledgeDoc) => (
-        <Space>
-          {fileIcon(record.file_type)}
-          <div>
-            <Text strong>{title}</Text>
-            {record.file_name && (
-              <div><Text type="secondary" style={{ fontSize: 12 }}>{record.file_name}</Text></div>
-            )}
-          </div>
-        </Space>
-      ),
+      render: (_: any, record: TableRow) => {
+        if (record._type === "folder") {
+          return (
+            <Space>
+              <FolderOutlined style={{ color: "#faad14", fontSize: 18 }} />
+              <div>
+                <Text strong>{record.icon} {record.name}</Text>
+                <div><Text type="secondary" style={{ fontSize: 12 }}>{record.docCount} 份资料</Text></div>
+              </div>
+            </Space>
+          );
+        }
+        return (
+          <Space>
+            {fileIcon(record.file_type)}
+            <div>
+              <Text strong>{record.title}</Text>
+              {record.file_name && (
+                <div><Text type="secondary" style={{ fontSize: 12 }}>{record.file_name}</Text></div>
+              )}
+            </div>
+          </Space>
+        );
+      },
     },
     {
       title: "分类",
-      dataIndex: "category",
       key: "category",
       width: 100,
-      render: (cat: string) => cat || "通用",
+      render: (_: any, record: TableRow) => record._type === "folder" ? "-" : (record.category || "通用"),
     },
     {
       title: "状态",
-      dataIndex: "status",
       key: "status",
       width: 100,
-      render: (status: string) => {
-        const s = statusMap[status] || { color: "default", label: status };
+      render: (_: any, record: TableRow) => {
+        if (record._type === "folder") return "-";
+        const s = statusMap[record.status] || { color: "default", label: record.status };
         return <Tag color={s.color}>{s.label}</Tag>;
       },
     },
@@ -149,23 +172,26 @@ export default function KnowledgeBase() {
       title: "知识点数",
       key: "points",
       width: 100,
-      render: (_: any, record: KnowledgeDoc) => {
+      render: (_: any, record: TableRow) => {
+        if (record._type === "folder") return "-";
         const points = Array.isArray(record.ai_key_points) ? record.ai_key_points.length : 0;
         return points > 0 ? <Tag color="blue">{points} 个</Tag> : <Text type="secondary">-</Text>;
       },
     },
     {
       title: "上传时间",
-      dataIndex: "created_at",
       key: "created_at",
       width: 180,
-      render: (t: string) => new Date(t).toLocaleString("zh-CN"),
+      render: (_: any, record: TableRow) => {
+        if (record._type === "folder") return "-";
+        return new Date(record.created_at).toLocaleString("zh-CN");
+      },
     },
   ];
 
   return (
     <DashboardLayout title="知识库" description="管理培训资料，AI 自动提取知识点">
-      {/* Breadcrumb Navigation */}
+      {/* Breadcrumb */}
       <div style={{ marginBottom: 16 }}>
         <Breadcrumb
           items={[
@@ -184,29 +210,6 @@ export default function KnowledgeBase() {
         />
       </div>
 
-      {/* Folder Grid - show when at root level */}
-      {!currentFolder && (
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 16 }}>
-            {mockFolders.map(folder => (
-              <Card
-                key={folder.id}
-                hoverable
-                onClick={() => setCurrentFolder(folder.id)}
-                style={{ width: 180, textAlign: "center" }}
-                styles={{ body: { padding: "20px 16px" } }}
-              >
-                <div style={{ fontSize: 36, marginBottom: 8 }}>
-                  {currentFolder === folder.id ? <FolderOpenOutlined style={{ color: "#faad14" }} /> : <FolderOutlined style={{ color: "#faad14" }} />}
-                </div>
-                <Text strong style={{ display: "block", marginBottom: 4 }}>{folder.name}</Text>
-                <Text type="secondary" style={{ fontSize: 12 }}>{folder.docCount} 份资料</Text>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Filter & Upload Bar */}
       <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
         <Space wrap>
@@ -215,18 +218,8 @@ export default function KnowledgeBase() {
               返回上层
             </Button>
           )}
-          <Select
-            style={{ width: 120 }}
-            options={categoryOptions}
-            value={categoryFilter}
-            onChange={setCategoryFilter}
-          />
-          <Select
-            style={{ width: 120 }}
-            options={statusOptions}
-            value={statusFilter}
-            onChange={setStatusFilter}
-          />
+          <Select style={{ width: 120 }} options={categoryOptions} value={categoryFilter} onChange={setCategoryFilter} />
+          <Select style={{ width: 120 }} options={statusOptions} value={statusFilter} onChange={setStatusFilter} />
           <Input
             placeholder="搜索文档标题"
             prefix={<SearchOutlined />}
@@ -241,14 +234,20 @@ export default function KnowledgeBase() {
         </Button>
       </div>
 
-      {/* Document Table */}
+      {/* Table with folders + docs */}
       <Table
         columns={columns}
-        dataSource={docs}
-        rowKey="id"
+        dataSource={tableData}
+        rowKey={(r) => r._type === "folder" ? r.id : r.id}
         loading={isLoading}
         onRow={(record) => ({
-          onClick: () => setDrawerDoc(record),
+          onClick: () => {
+            if (record._type === "folder") {
+              setCurrentFolder(record.id);
+            } else {
+              setDrawerDoc(record);
+            }
+          },
           style: { cursor: "pointer" },
         })}
         pagination={{ pageSize: 20 }}
