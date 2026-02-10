@@ -272,6 +272,47 @@ export type Database = {
           },
         ]
       }
+      knowledge_bases: {
+        Row: {
+          authority_level: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          name: string
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          authority_level?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          authority_level?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_bases_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_documents: {
         Row: {
           ai_key_points: Json | null
@@ -285,6 +326,7 @@ export type Database = {
           file_type: string | null
           file_url: string | null
           id: string
+          knowledge_base_id: string | null
           organization_id: string
           status: string
           tags: Json | null
@@ -303,6 +345,7 @@ export type Database = {
           file_type?: string | null
           file_url?: string | null
           id?: string
+          knowledge_base_id?: string | null
           organization_id: string
           status?: string
           tags?: Json | null
@@ -321,6 +364,7 @@ export type Database = {
           file_type?: string | null
           file_url?: string | null
           id?: string
+          knowledge_base_id?: string | null
           organization_id?: string
           status?: string
           tags?: Json | null
@@ -328,6 +372,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "knowledge_documents_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "knowledge_documents_organization_id_fkey"
             columns: ["organization_id"]

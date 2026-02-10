@@ -9,6 +9,7 @@ interface UploadDocModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  knowledgeBaseId?: string;
 }
 
 const categoryOptions = [
@@ -19,7 +20,7 @@ const categoryOptions = [
   { label: "通用", value: "general" },
 ];
 
-export function UploadDocModal({ open, onClose, onSuccess }: UploadDocModalProps) {
+export function UploadDocModal({ open, onClose, onSuccess, knowledgeBaseId }: UploadDocModalProps) {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,6 +80,7 @@ export function UploadDocModal({ open, onClose, onSuccess }: UploadDocModalProps
           status: "processing",
           organization_id: profile.organization_id,
           created_by: user!.id,
+          knowledge_base_id: knowledgeBaseId || null,
         } as any)
         .select()
         .single();
