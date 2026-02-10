@@ -80,6 +80,8 @@ export default function KnowledgeBase() {
   const [categoryFilter, setCategoryFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [currentFolder, setCurrentFolder] = useState<string | null>(null);
+  const [newFolderName, setNewFolderName] = useState("");
+  const [showNewFolder, setShowNewFolder] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: docs = [], isLoading } = useQuery({
@@ -229,10 +231,49 @@ export default function KnowledgeBase() {
             allowClear
           />
         </Space>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadOpen(true)}>
-          上传资料
-        </Button>
+        {currentFolder ? (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setUploadOpen(true)}>
+            上传资料
+          </Button>
+        ) : (
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setShowNewFolder(true)}>
+            新建文件夹
+          </Button>
+        )}
       </div>
+
+      {/* New folder inline input */}
+      {showNewFolder && !currentFolder && (
+        <div style={{ marginBottom: 16, display: "flex", gap: 8 }}>
+          <Input
+            placeholder="输入文件夹名称"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            style={{ width: 240 }}
+            onPressEnter={() => {
+              if (newFolderName.trim()) {
+                message.success(`文件夹「${newFolderName}」已创建`);
+                setNewFolderName("");
+                setShowNewFolder(false);
+              }
+            }}
+            autoFocus
+          />
+          <Button
+            type="primary"
+            onClick={() => {
+              if (newFolderName.trim()) {
+                message.success(`文件夹「${newFolderName}」已创建`);
+                setNewFolderName("");
+                setShowNewFolder(false);
+              }
+            }}
+          >
+            确定
+          </Button>
+          <Button onClick={() => { setShowNewFolder(false); setNewFolderName(""); }}>取消</Button>
+        </div>
+      )}
 
       {/* Table with folders + docs */}
       <Table
