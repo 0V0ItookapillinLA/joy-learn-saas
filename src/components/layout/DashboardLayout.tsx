@@ -10,6 +10,7 @@ import {
   NodeIndexOutlined,
   AreaChartOutlined,
   BarChartOutlined,
+  DatabaseOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -46,6 +47,11 @@ const menuItems: MenuProps["items"] = [
     key: "/characters",
     icon: <RobotOutlined />,
     label: "角色配置",
+  },
+  {
+    key: "/knowledge-base",
+    icon: <DatabaseOutlined />,
+    label: "知识库",
   },
   {
     key: "/learning-map",
