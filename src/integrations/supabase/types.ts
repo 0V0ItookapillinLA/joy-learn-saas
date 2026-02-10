@@ -14,6 +14,53 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string | null
+          condition: Json | null
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          organization_id: string
+          points: number
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          condition?: Json | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          organization_id: string
+          points?: number
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          condition?: Json | null
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          organization_id?: string
+          points?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievements_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_characters: {
         Row: {
           avatar_url: string | null
@@ -283,6 +330,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "knowledge_documents_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_streaks: {
+        Row: {
+          activities: Json | null
+          check_in_date: string
+          created_at: string
+          duration_minutes: number
+          id: string
+          organization_id: string
+          user_id: string
+        }
+        Insert: {
+          activities?: Json | null
+          check_in_date: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          organization_id: string
+          user_id: string
+        }
+        Update: {
+          activities?: Json | null
+          check_in_date?: string
+          created_at?: string
+          duration_minutes?: number
+          id?: string
+          organization_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_streaks_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -770,6 +855,35 @@ export type Database = {
             columns: ["training_plan_id"]
             isOneToOne: false
             referencedRelation: "training_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
             referencedColumns: ["id"]
           },
         ]
