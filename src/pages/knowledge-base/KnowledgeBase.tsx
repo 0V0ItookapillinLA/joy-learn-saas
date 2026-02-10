@@ -201,7 +201,7 @@ export default function KnowledgeBase() {
       title: "文档权威性",
       dataIndex: "authority_level",
       key: "authority_level",
-      width: 100,
+      width: 120,
       render: (level: string) => {
         const colorMap: Record<string, string> = { "高": "red", "中": "orange", "低": "green" };
         return <Tag color={colorMap[level] || "default"}>{level || "中"}</Tag>;
