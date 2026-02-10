@@ -37,6 +37,10 @@ export function UploadDocModal({ open, onClose, onSuccess }: UploadDocModalProps
       const file = fileList[0].originFileObj;
       if (!file) return;
 
+      // Sanitize filename: remove non-ASCII chars and spaces
+      const ext = file.name.split(".").pop() || "bin";
+      const safeName = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
+
       // Get organization_id
       const { data: profile } = await supabase
         .from("profiles")
@@ -50,7 +54,7 @@ export function UploadDocModal({ open, onClose, onSuccess }: UploadDocModalProps
       }
 
       // Upload file to storage
-      const filePath = `knowledge/${Date.now()}_${file.name}`;
+      const filePath = `knowledge/${safeName}`;
       const { error: uploadError } = await supabase.storage
         .from("training-attachments")
         .upload(filePath, file);
