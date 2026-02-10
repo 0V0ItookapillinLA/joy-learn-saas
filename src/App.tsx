@@ -13,6 +13,7 @@ import LearningMapLibrary from "./pages/learning-map/LearningMapLibrary";
 import KnowledgeBase from "./pages/knowledge-base/KnowledgeBase";
 import AICourseware from "./pages/ai-courseware/AICourseware";
 import GrowthMap from "./pages/trainees/GrowthMap";
+import LearningCenter from "./pages/learning-center/LearningCenter";
 import TrainingAnalytics from "./pages/analytics/TrainingAnalytics";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
 import NotFound from "./pages/NotFound";
@@ -73,6 +74,11 @@ const App = () => (
               <Route path="/growth-map" element={
                 <ProtectedRoute>
                   <GrowthMap />
+                </ProtectedRoute>
+              } />
+              <Route path="/learning-center" element={
+                <ProtectedRoute>
+                  <LearningCenter />
                 </ProtectedRoute>
               } />
               <Route path="/analytics" element={

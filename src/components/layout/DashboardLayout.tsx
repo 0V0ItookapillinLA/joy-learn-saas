@@ -12,6 +12,7 @@ import {
   BarChartOutlined,
   DatabaseOutlined,
   VideoCameraOutlined,
+  TrophyOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -68,6 +69,11 @@ const menuItems: MenuProps["items"] = [
     key: "/growth-map",
     icon: <AreaChartOutlined />,
     label: "成长地图",
+  },
+  {
+    key: "/learning-center",
+    icon: <TrophyOutlined />,
+    label: "学习中心",
   },
   {
     key: "/analytics",
