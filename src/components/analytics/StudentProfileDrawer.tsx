@@ -1,4 +1,4 @@
-import { Drawer, Typography, Tag, Avatar, Divider, Button, message } from "antd";
+import { Drawer, Typography, Tag, Avatar, Divider, Button, message, Tabs } from "antd";
 import {
   UserOutlined,
   PlusOutlined,
@@ -10,7 +10,10 @@ import {
   UpOutlined,
   MessageOutlined,
   BulbOutlined,
+  ExperimentOutlined,
+  BarChartOutlined,
 } from "@ant-design/icons";
+import { AIDiagnosisSection } from "./AIDiagnosisSection";
 import {
   RadarChart,
   PolarGrid,
@@ -380,103 +383,105 @@ export function StudentProfileDrawer({ open, onClose, studentId }: StudentProfil
           </div>
         </div>
 
-        <div style={{ padding: 24 }}>
-          {/* Radar Chart */}
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 16 }}>能力雷达图 (成长地图)</Title>
-            <ResponsiveContainer width="100%" height={240}>
-              <RadarChart data={radarData}>
-                <PolarGrid stroke="#f0f0f0" />
-                <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
-                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
-                <Radar
-                  name="岗位标准"
-                  dataKey="standard"
-                  stroke="#d9d9d9"
-                  fill="#d9d9d9"
-                  fillOpacity={0.3}
-                  strokeWidth={2}
-                />
-                <Radar
-                  name="当前能力"
-                  dataKey="current"
-                  stroke="#1677ff"
-                  fill="#1677ff"
-                  fillOpacity={0.3}
-                  strokeWidth={2}
-                />
-                <Legend />
-              </RadarChart>
-            </ResponsiveContainer>
-            <div style={{ marginTop: 12 }}>
-              <Text type="secondary" style={{ fontSize: 12 }}>短板分析：</Text>
-              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                <Tag color="red">异议处理 (-15分)</Tag>
-                <Tag color="orange">产品知识 (-13分)</Tag>
-              </div>
-            </div>
-          </div>
-
-          <Divider />
-
-          {/* AI Summary */}
-          <div style={{ marginBottom: 24 }}>
-            <Title level={5} style={{ marginBottom: 12 }}>AI 综合评价</Title>
-            <Paragraph style={{ marginBottom: 12 }}>
-              该学员整体表现<Text strong>良好</Text>，在<Text type="success">沟通表达</Text>和<Text type="success">客户维护</Text>方面表现突出。
-              但在处理<Text type="danger">客户异议</Text>时容易急躁，且<Text type="warning">产品知识</Text>储备不足，建议针对性强化训练。
-            </Paragraph>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <Tag color="green">逻辑清晰</Tag>
-              <Tag color="green">表达流畅</Tag>
-              <Tag color="orange">语速过快</Tag>
-              <Tag color="red">耐心不足</Tag>
-            </div>
-          </div>
-
-          <Divider />
-
-          {/* Recommendations */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <Title level={5} style={{ margin: 0 }}>智能推荐课程</Title>
-              <Button type="link" size="small">查看更多</Button>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {recommendations.map((rec) => (
-                <div
-                  key={rec.id}
-                  style={{
-                    padding: "12px 16px",
-                    background: "#fafafa",
-                    borderRadius: 8,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                      <Text strong>{rec.title}</Text>
-                      <Tag color={rec.type === "scenario" ? "blue" : "green"}>
-                        {rec.type === "scenario" ? "模拟场景" : "知识点"}
-                      </Tag>
-                      <Tag color="gold">匹配度 {rec.matchScore}%</Tag>
+        <div style={{ padding: "0 24px 24px" }}>
+          <Tabs
+            defaultActiveKey="overview"
+            items={[
+              {
+                key: "overview",
+                label: <span><BarChartOutlined /> 能力概览</span>,
+                children: (
+                  <div>
+                    {/* Radar Chart */}
+                    <div style={{ marginBottom: 24 }}>
+                      <Title level={5} style={{ marginBottom: 16 }}>能力雷达图 (成长地图)</Title>
+                      <ResponsiveContainer width="100%" height={240}>
+                        <RadarChart data={radarData}>
+                          <PolarGrid stroke="#f0f0f0" />
+                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 12 }} />
+                          <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                          <Radar name="岗位标准" dataKey="standard" stroke="#d9d9d9" fill="#d9d9d9" fillOpacity={0.3} strokeWidth={2} />
+                          <Radar name="当前能力" dataKey="current" stroke="#1677ff" fill="#1677ff" fillOpacity={0.3} strokeWidth={2} />
+                          <Legend />
+                        </RadarChart>
+                      </ResponsiveContainer>
+                      <div style={{ marginTop: 12 }}>
+                        <Text type="secondary" style={{ fontSize: 12 }}>短板分析：</Text>
+                        <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                          {radarData
+                            .filter(r => r.current < r.standard)
+                            .map(r => (
+                              <Tag key={r.skill} color={r.standard - r.current > 10 ? "red" : "orange"}>
+                                {r.skill} ({r.current - r.standard}分)
+                              </Tag>
+                            ))}
+                        </div>
+                      </div>
                     </div>
-                    <Text type="secondary" style={{ fontSize: 12 }}>{rec.reason}</Text>
+
+                    <Divider />
+
+                    {/* AI Summary */}
+                    <div style={{ marginBottom: 24 }}>
+                      <Title level={5} style={{ marginBottom: 12 }}>AI 综合评价</Title>
+                      <Paragraph style={{ marginBottom: 12 }}>
+                        该学员整体表现<Text strong>良好</Text>，在<Text type="success">沟通表达</Text>和<Text type="success">客户维护</Text>方面表现突出。
+                        但在处理<Text type="danger">客户异议</Text>时容易急躁，且<Text type="warning">产品知识</Text>储备不足，建议针对性强化训练。
+                      </Paragraph>
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                        <Tag color="green">逻辑清晰</Tag>
+                        <Tag color="green">表达流畅</Tag>
+                        <Tag color="orange">语速过快</Tag>
+                        <Tag color="red">耐心不足</Tag>
+                      </div>
+                    </div>
+
+                    <Divider />
+
+                    {/* Recommendations */}
+                    <div style={{ marginBottom: 24 }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                        <Title level={5} style={{ margin: 0 }}>智能推荐课程</Title>
+                        <Button type="link" size="small">查看更多</Button>
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                        {recommendations.map((rec) => (
+                          <div key={rec.id} style={{ padding: "12px 16px", background: "#fafafa", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                            <div style={{ flex: 1 }}>
+                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                                <Text strong>{rec.title}</Text>
+                                <Tag color={rec.type === "scenario" ? "blue" : "green"}>{rec.type === "scenario" ? "模拟场景" : "知识点"}</Tag>
+                                <Tag color="gold">匹配度 {rec.matchScore}%</Tag>
+                              </div>
+                              <Text type="secondary" style={{ fontSize: 12 }}>{rec.reason}</Text>
+                            </div>
+                            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleAssignTask()}>指派</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <Divider />
+
+                    {/* Practice History */}
+                    <PracticeHistorySection />
                   </div>
-                  <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => handleAssignTask()}>
-                    指派
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <Divider />
-
-          {/* Practice History */}
-          <PracticeHistorySection />
+                ),
+              },
+              {
+                key: "diagnosis",
+                label: <span><ExperimentOutlined /> AI诊断</span>,
+                children: (
+                  <AIDiagnosisSection
+                    studentName={studentData.name}
+                    radarData={radarData}
+                    practiceHistory={practiceHistory}
+                    onAssignTask={(skills) => handleAssignTask(skills)}
+                  />
+                ),
+              },
+            ]}
+          />
         </div>
 
         {/* Footer Actions */}
