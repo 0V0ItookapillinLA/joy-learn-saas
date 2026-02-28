@@ -81,7 +81,7 @@ export function CoursewareCreator({ open, courseware, onClose, onSuccess }: Prop
   useEffect(() => {
     if (courseware) {
       setTitle(courseware.title);
-      setSelectedDocs(Array.isArray(courseware.source_documents) ? courseware.source_documents : []);
+      setSelectedDocs(Array.isArray(courseware.source_documents) ? courseware.source_documents.filter(Boolean) : []);
       setOutline(Array.isArray(courseware.outline) ? courseware.outline : []);
       setScripts(typeof courseware.scripts === "object" && courseware.scripts ? courseware.scripts : {});
       setCoursewareId(courseware.id);
