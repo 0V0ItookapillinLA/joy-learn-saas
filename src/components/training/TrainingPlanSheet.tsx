@@ -7,6 +7,7 @@ import type { TrainingPlan } from "./TrainingPlanTable";
 import { usePracticeSessions } from "@/hooks/usePracticeSessions";
 import { useLessonContents } from "@/hooks/useLessonContents";
 import { useExams } from "@/hooks/useExams";
+import { useJoyagentConfigs } from "@/hooks/useJoyagentConfigs";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -42,6 +43,7 @@ export function TrainingPlanSheet({
   const { data: practiceSessions = [] } = usePracticeSessions();
   const { data: lessonContents = [] } = useLessonContents();
   const { data: exams = [] } = useExams();
+  const { data: joyagentConfigs = [] } = useJoyagentConfigs();
   const [form] = Form.useForm();
   const [activeTab, setActiveTab] = useState("basic");
   const [chapters, setChapters] = useState<Chapter[]>([{ id: "1", title: "章节1", items: [{ id: "1-1", type: "lesson" }] }]);
@@ -55,6 +57,7 @@ export function TrainingPlanSheet({
         title: plan.title || "",
         description: plan.description || "",
         department: "",
+        agent_id: (plan as any).agent_id || undefined,
       });
       if (plan.training_chapters && plan.training_chapters.length > 0) {
         const loadedChapters: Chapter[] = plan.training_chapters
@@ -164,14 +167,14 @@ export function TrainingPlanSheet({
       if (isEdit && plan) {
         const { error: planError } = await supabase
           .from("training_plans")
-          .update({ title: values.title, description: values.description, updated_at: new Date().toISOString() })
+          .update({ title: values.title, description: values.description, agent_id: values.agent_id || null, updated_at: new Date().toISOString() } as any)
           .eq("id", plan.id);
         if (planError) throw planError;
         message.success("培训计划已更新");
       } else {
         const { data: trainingPlan, error: planError } = await supabase
           .from("training_plans")
-          .insert({ title: values.title, description: values.description, organization_id: orgId, created_by: user.id, status: "draft" })
+          .insert({ title: values.title, description: values.description, organization_id: orgId, created_by: user.id, status: "draft", agent_id: values.agent_id || null } as any)
           .select()
           .single();
         if (planError) throw planError;
@@ -209,12 +212,24 @@ export function TrainingPlanSheet({
           <Form.Item label="培训名称" name="title" rules={[{ required: true, message: "请输入培训名称" }]}>
             <Input placeholder="请输入培训名称" />
           </Form.Item>
-          <Form.Item label="所属部门" name="department">
+           <Form.Item label="所属部门" name="department">
             <Select placeholder="请选择部门">
               <Select.Option value="sales">销售部</Select.Option>
               <Select.Option value="marketing">市场部</Select.Option>
               <Select.Option value="hr">人力资源部</Select.Option>
               <Select.Option value="tech">技术部</Select.Option>
+            </Select>
+          </Form.Item>
+          <Form.Item label="Agent ID" name="agent_id" tooltip="选择在Joyagent平台配置好的Agent">
+            <Select placeholder="请选择Agent" allowClear showSearch optionFilterProp="label">
+              {joyagentConfigs.map((config) => (
+                <Select.Option key={config.id} value={config.id} label={`${config.agent_name} (${config.agent_id})`}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{config.agent_name}</span>
+                    <span style={{ color: '#999', fontSize: 12 }}>{config.agent_id}</span>
+                  </div>
+                </Select.Option>
+              ))}
             </Select>
           </Form.Item>
           <Form.Item label="培训描述" name="description">

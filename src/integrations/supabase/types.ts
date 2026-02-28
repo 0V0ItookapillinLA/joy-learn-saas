@@ -272,6 +272,47 @@ export type Database = {
           },
         ]
       }
+      joyagent_configs: {
+        Row: {
+          agent_id: string
+          agent_name: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          organization_id: string
+          updated_at: string
+        }
+        Insert: {
+          agent_id: string
+          agent_name: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id: string
+          updated_at?: string
+        }
+        Update: {
+          agent_id?: string
+          agent_name?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          organization_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "joyagent_configs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       knowledge_bases: {
         Row: {
           authority_level: string | null
@@ -802,6 +843,7 @@ export type Database = {
       }
       training_plans: {
         Row: {
+          agent_id: string | null
           cover_image_url: string | null
           created_at: string | null
           created_by: string | null
@@ -816,6 +858,7 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          agent_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -830,6 +873,7 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          agent_id?: string | null
           cover_image_url?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -844,6 +888,13 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "training_plans_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "joyagent_configs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "training_plans_organization_id_fkey"
             columns: ["organization_id"]
