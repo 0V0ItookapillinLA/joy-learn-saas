@@ -123,12 +123,25 @@ export default function KnowledgeBase() {
 
   const createKBMutation = useMutation({
     mutationFn: async (values: { name: string; description: string; authority_level: string }) => {
-      const { data: profile } = await supabase
+      let { data: profile } = await supabase
         .from("profiles")
         .select("organization_id")
         .eq("user_id", user!.id)
         .single();
-      if (!profile?.organization_id) throw new Error("未找到组织信息");
+      if (!profile?.organization_id) {
+        await supabase.rpc('initialize_user_with_organization', {
+          _user_id: user!.id,
+          _full_name: user!.user_metadata?.full_name || null,
+          _org_name: '我的组织'
+        });
+        const { data: refreshed } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("user_id", user!.id)
+          .single();
+        profile = refreshed;
+      }
+      if (!profile?.organization_id) throw new Error("组织初始化失败，请刷新页面重试");
 
       const { error } = await supabase.from("knowledge_bases" as any).insert({
         name: values.name,

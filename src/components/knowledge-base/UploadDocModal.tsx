@@ -42,15 +42,30 @@ export function UploadDocModal({ open, onClose, onSuccess, knowledgeBaseId }: Up
       const ext = file.name.split(".").pop() || "bin";
       const safeName = `${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
-      // Get organization_id
-      const { data: profile } = await supabase
+      // Get organization_id, auto-initialize if missing
+      let { data: profile } = await supabase
         .from("profiles")
         .select("organization_id")
         .eq("user_id", user!.id)
         .single();
 
       if (!profile?.organization_id) {
-        message.error("未找到组织信息");
+        // Auto-initialize organization
+        await supabase.rpc('initialize_user_with_organization', {
+          _user_id: user!.id,
+          _full_name: user!.user_metadata?.full_name || null,
+          _org_name: '我的组织'
+        });
+        const { data: refreshed } = await supabase
+          .from("profiles")
+          .select("organization_id")
+          .eq("user_id", user!.id)
+          .single();
+        profile = refreshed;
+      }
+
+      if (!profile?.organization_id) {
+        message.error("组织初始化失败，请刷新页面重试");
         return;
       }
 
