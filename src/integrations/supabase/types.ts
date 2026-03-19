@@ -219,6 +219,88 @@ export type Database = {
           },
         ]
       }
+      dialog_scripts: {
+        Row: {
+          assessment_model: Json | null
+          character_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          dialog_turns: Json | null
+          exam_config: Json | null
+          id: string
+          knowledge_base_id: string | null
+          knowledge_doc_ids: Json | null
+          mode: string
+          organization_id: string
+          practice_config: Json | null
+          status: string
+          title: string
+          updated_at: string
+          voice_style: string | null
+        }
+        Insert: {
+          assessment_model?: Json | null
+          character_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dialog_turns?: Json | null
+          exam_config?: Json | null
+          id?: string
+          knowledge_base_id?: string | null
+          knowledge_doc_ids?: Json | null
+          mode?: string
+          organization_id: string
+          practice_config?: Json | null
+          status?: string
+          title: string
+          updated_at?: string
+          voice_style?: string | null
+        }
+        Update: {
+          assessment_model?: Json | null
+          character_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          dialog_turns?: Json | null
+          exam_config?: Json | null
+          id?: string
+          knowledge_base_id?: string | null
+          knowledge_doc_ids?: Json | null
+          mode?: string
+          organization_id?: string
+          practice_config?: Json | null
+          status?: string
+          title?: string
+          updated_at?: string
+          voice_style?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dialog_scripts_character_id_fkey"
+            columns: ["character_id"]
+            isOneToOne: false
+            referencedRelation: "ai_characters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dialog_scripts_knowledge_base_id_fkey"
+            columns: ["knowledge_base_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_bases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dialog_scripts_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string | null
@@ -562,6 +644,7 @@ export type Database = {
           chapter_id: string | null
           created_at: string | null
           description: string | null
+          dialog_script_id: string | null
           id: string
           max_attempts: number | null
           organization_id: string
@@ -578,6 +661,7 @@ export type Database = {
           chapter_id?: string | null
           created_at?: string | null
           description?: string | null
+          dialog_script_id?: string | null
           id?: string
           max_attempts?: number | null
           organization_id: string
@@ -594,6 +678,7 @@ export type Database = {
           chapter_id?: string | null
           created_at?: string | null
           description?: string | null
+          dialog_script_id?: string | null
           id?: string
           max_attempts?: number | null
           organization_id?: string
@@ -611,6 +696,13 @@ export type Database = {
             columns: ["chapter_id"]
             isOneToOne: false
             referencedRelation: "training_chapters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_sessions_dialog_script_id_fkey"
+            columns: ["dialog_script_id"]
+            isOneToOne: false
+            referencedRelation: "dialog_scripts"
             referencedColumns: ["id"]
           },
           {
