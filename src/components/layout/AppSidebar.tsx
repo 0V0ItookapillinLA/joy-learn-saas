@@ -3,6 +3,7 @@ import {
   Home,
   BookOpen,
   MessageSquare,
+  MessagesSquare,
   Bot,
   Map,
   BarChart3,
@@ -48,6 +49,11 @@ const menuItems = [
     title: "角色配置",
     icon: Bot,
     url: "/characters",
+  },
+  {
+    title: "AI 对话",
+    icon: MessagesSquare,
+    url: "/dialog-scripts",
   },
   {
     title: "学习地图",

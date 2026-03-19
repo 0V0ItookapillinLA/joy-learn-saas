@@ -12,6 +12,7 @@ import CharacterConfig from "./pages/characters/CharacterConfig";
 import LearningMapLibrary from "./pages/learning-map/LearningMapLibrary";
 import KnowledgeBase from "./pages/knowledge-base/KnowledgeBase";
 import AICourseware from "./pages/ai-courseware/AICourseware";
+import DialogScriptList from "./pages/dialog-scripts/DialogScriptList";
 import GrowthMap from "./pages/trainees/GrowthMap";
 import LearningCenter from "./pages/learning-center/LearningCenter";
 import TrainingAnalytics from "./pages/analytics/TrainingAnalytics";
@@ -64,6 +65,11 @@ const App = () => (
               <Route path="/ai-courseware" element={
                 <ProtectedRoute>
                   <AICourseware />
+                </ProtectedRoute>
+              } />
+              <Route path="/dialog-scripts" element={
+                <ProtectedRoute>
+                  <DialogScriptList />
                 </ProtectedRoute>
               } />
               <Route path="/learning-map" element={
