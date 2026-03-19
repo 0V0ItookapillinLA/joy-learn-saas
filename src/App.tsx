@@ -3,6 +3,7 @@ import zhCN from "antd/locale/zh_CN";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { WorkspaceProvider } from "@/contexts/WorkspaceContext";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -28,27 +29,29 @@ const App = () => (
     <AntApp>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-              <Route path="/training/plans" element={<ProtectedRoute><TrainingPlans /></ProtectedRoute>} />
-              <Route path="/practices" element={<ProtectedRoute><PracticePlanList /></ProtectedRoute>} />
-              <Route path="/characters" element={<ProtectedRoute><CharacterConfig /></ProtectedRoute>} />
-              <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
-              <Route path="/ai-courseware" element={<ProtectedRoute><AICourseware /></ProtectedRoute>} />
-              <Route path="/learning-map" element={<ProtectedRoute><LearningMapLibrary /></ProtectedRoute>} />
-              <Route path="/growth-map" element={<ProtectedRoute><GrowthMap /></ProtectedRoute>} />
-              <Route path="/learning-center" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
-              <Route path="/badges" element={<ProtectedRoute><BadgeManagement /></ProtectedRoute>} />
-              <Route path="/exams" element={<ProtectedRoute><SmartExamBuilder /></ProtectedRoute>} />
-              <Route path="/practice-reports" element={<ProtectedRoute><PracticeReports /></ProtectedRoute>} />
-              <Route path="/community" element={<ProtectedRoute><CommunityManagement /></ProtectedRoute>} />
-              <Route path="/settings" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <WorkspaceProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/training/plans" element={<ProtectedRoute><TrainingPlans /></ProtectedRoute>} />
+                <Route path="/practices" element={<ProtectedRoute><PracticePlanList /></ProtectedRoute>} />
+                <Route path="/characters" element={<ProtectedRoute><CharacterConfig /></ProtectedRoute>} />
+                <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
+                <Route path="/ai-courseware" element={<ProtectedRoute><AICourseware /></ProtectedRoute>} />
+                <Route path="/learning-map" element={<ProtectedRoute><LearningMapLibrary /></ProtectedRoute>} />
+                <Route path="/growth-map" element={<ProtectedRoute><GrowthMap /></ProtectedRoute>} />
+                <Route path="/learning-center" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
+                <Route path="/badges" element={<ProtectedRoute><BadgeManagement /></ProtectedRoute>} />
+                <Route path="/exams" element={<ProtectedRoute><SmartExamBuilder /></ProtectedRoute>} />
+                <Route path="/practice-reports" element={<ProtectedRoute><PracticeReports /></ProtectedRoute>} />
+                <Route path="/community" element={<ProtectedRoute><CommunityManagement /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </WorkspaceProvider>
         </AuthProvider>
       </QueryClientProvider>
     </AntApp>
