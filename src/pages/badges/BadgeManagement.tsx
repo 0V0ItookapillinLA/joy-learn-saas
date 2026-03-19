@@ -229,7 +229,7 @@ export default function BadgeManagement() {
         onCancel={() => setModalOpen(false)}
         onOk={handleSave}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
-        width={640}
+        width="50vw"
       >
         <Form form={form} layout="vertical" initialValues={editForm}>
           <Row gutter={16}>

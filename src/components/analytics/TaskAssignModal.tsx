@@ -131,7 +131,7 @@ export function TaskAssignModal({
       title="指派学习任务"
       open={open}
       onCancel={onClose}
-      width={720}
+      width="50vw"
       footer={[
         <Button key="cancel" onClick={onClose}>
           取消

@@ -107,11 +107,15 @@ export default function PracticePlanList() {
       title: "练习模式",
       dataIndex: "practice_mode",
       key: "practice_mode",
-      render: (mode) => (
-        <Tag color={mode === 'fixed_script' ? 'orange' : 'blue'}>
-          {mode === 'free_dialogue' ? '自由对话' : mode === 'fixed_script' ? '固定剧本' : mode || '自由对话'}
-        </Tag>
-      ),
+      render: (mode: string) => {
+        const modeMap: Record<string, { label: string; color: string }> = {
+          free_dialogue: { label: "自由对话", color: "blue" },
+          fixed_script: { label: "固定剧本", color: "orange" },
+          fixed_dialog: { label: "固定对话", color: "green" },
+        };
+        const m = modeMap[mode] || { label: mode || "自由对话", color: "blue" };
+        return <Tag color={m.color}>{m.label}</Tag>;
+      },
     },
     {
       title: "创建时间",
