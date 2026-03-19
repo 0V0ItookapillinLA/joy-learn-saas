@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       achievements: {
         Row: {
+          badge_image_url: string | null
           category: string | null
           condition: Json | null
           created_at: string
@@ -25,9 +26,12 @@ export type Database = {
           name: string
           organization_id: string
           points: number
+          tier: string | null
+          unlock_message: string | null
           updated_at: string
         }
         Insert: {
+          badge_image_url?: string | null
           category?: string | null
           condition?: Json | null
           created_at?: string
@@ -37,9 +41,12 @@ export type Database = {
           name: string
           organization_id: string
           points?: number
+          tier?: string | null
+          unlock_message?: string | null
           updated_at?: string
         }
         Update: {
+          badge_image_url?: string | null
           category?: string | null
           condition?: Json | null
           created_at?: string
@@ -49,6 +56,8 @@ export type Database = {
           name?: string
           organization_id?: string
           points?: number
+          tier?: string | null
+          unlock_message?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -301,6 +310,69 @@ export type Database = {
           },
         ]
       }
+      exam_results: {
+        Row: {
+          ai_feedback: Json | null
+          answers: Json | null
+          attempt_number: number | null
+          completed_at: string | null
+          created_at: string
+          exam_id: string
+          id: string
+          max_score: number | null
+          passed: boolean | null
+          score: number | null
+          started_at: string | null
+          training_plan_id: string | null
+          user_id: string
+        }
+        Insert: {
+          ai_feedback?: Json | null
+          answers?: Json | null
+          attempt_number?: number | null
+          completed_at?: string | null
+          created_at?: string
+          exam_id: string
+          id?: string
+          max_score?: number | null
+          passed?: boolean | null
+          score?: number | null
+          started_at?: string | null
+          training_plan_id?: string | null
+          user_id: string
+        }
+        Update: {
+          ai_feedback?: Json | null
+          answers?: Json | null
+          attempt_number?: number | null
+          completed_at?: string | null
+          created_at?: string
+          exam_id?: string
+          id?: string
+          max_score?: number | null
+          passed?: boolean | null
+          score?: number | null
+          started_at?: string | null
+          training_plan_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_results_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_results_training_plan_id_fkey"
+            columns: ["training_plan_id"]
+            isOneToOne: false
+            referencedRelation: "training_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       exams: {
         Row: {
           created_at: string | null
@@ -347,6 +419,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "exams_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_courses: {
+        Row: {
+          content_url: string | null
+          course_type: string | null
+          cover_image_url: string | null
+          created_at: string
+          description: string | null
+          duration_minutes: number | null
+          external_id: string | null
+          id: string
+          metadata: Json | null
+          organization_id: string
+          source: string
+          tags: Json | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_url?: string | null
+          course_type?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id: string
+          source?: string
+          tags?: Json | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_url?: string | null
+          course_type?: string | null
+          cover_image_url?: string | null
+          created_at?: string
+          description?: string | null
+          duration_minutes?: number | null
+          external_id?: string | null
+          id?: string
+          metadata?: Json | null
+          organization_id?: string
+          source?: string
+          tags?: Json | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_courses_organization_id_fkey"
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
@@ -507,6 +638,60 @@ export type Database = {
             columns: ["organization_id"]
             isOneToOne: false
             referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_reminder_logs: {
+        Row: {
+          channel: string | null
+          created_at: string
+          id: string
+          message_content: string | null
+          organization_id: string
+          reminder_type: string | null
+          sent_at: string
+          status: string | null
+          training_plan_id: string | null
+          user_id: string
+        }
+        Insert: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          message_content?: string | null
+          organization_id: string
+          reminder_type?: string | null
+          sent_at?: string
+          status?: string | null
+          training_plan_id?: string | null
+          user_id: string
+        }
+        Update: {
+          channel?: string | null
+          created_at?: string
+          id?: string
+          message_content?: string | null
+          organization_id?: string
+          reminder_type?: string | null
+          sent_at?: string
+          status?: string | null
+          training_plan_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_reminder_logs_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "learning_reminder_logs_training_plan_id_fkey"
+            columns: ["training_plan_id"]
+            isOneToOne: false
+            referencedRelation: "training_plans"
             referencedColumns: ["id"]
           },
         ]
