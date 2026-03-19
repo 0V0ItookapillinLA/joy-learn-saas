@@ -78,6 +78,11 @@ const menuItems: MenuProps["items"] = [
     label: "学习中心",
   },
   {
+    key: "/badges",
+    icon: <StarOutlined />,
+    label: "徽章管理",
+  },
+  {
     key: "/analytics",
     icon: <BarChartOutlined />,
     label: "数据看板",

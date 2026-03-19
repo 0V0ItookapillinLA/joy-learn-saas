@@ -62,6 +62,16 @@ const menuItems = [
     url: "/growth-map",
   },
   {
+    title: "学习中心",
+    icon: Trophy,
+    url: "/learning-center",
+  },
+  {
+    title: "徽章管理",
+    icon: Award,
+    url: "/badges",
+  },
+  {
     title: "数据看板",
     icon: BarChart3,
     url: "/analytics",
