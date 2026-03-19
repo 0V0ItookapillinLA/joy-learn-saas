@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, Select, Table, Tag, Button, Drawer, Avatar, Progress, Collapse, Statistic, Row, Col, Input } from "antd";
 import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 
 const mockPlans = [
   { id: "p1", title: "供应链产品-电商仓-服饰面试详情" },
@@ -205,50 +206,65 @@ function ReportDetail({ data }: { data: typeof mockDetailData }) {
         </div>
       </div>
 
-      {/* 综合评价 */}
+      {/* 综合评价 + 雷达图 */}
       <Card title="综合评价" size="small">
-        <p style={{ lineHeight: 1.8 }}>{data.overallReview}</p>
-        <Row gutter={24} style={{ marginTop: 16 }}>
-          <Col span={12}>
-            <Card size="small" title={<span>✅ 优势维度</span>} style={{ borderColor: "#52c41a" }}>
-              {data.strengths.map((s, i) => (
-                <div key={i} style={{ marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, color: "#52c41a" }}>{s.name}</div>
-                  <div style={{ color: "#666", fontSize: 13 }}>{s.detail}</div>
-                </div>
-              ))}
-            </Card>
+        <Row gutter={24}>
+          <Col span={16}>
+            <p style={{ lineHeight: 2, color: "#333", fontSize: 14 }}>{data.overallReview}</p>
+            <div style={{ marginTop: 12, color: "#666", fontSize: 13 }}>
+              <span style={{ fontWeight: 600 }}>关键词总结：</span>
+              {data.radarData.dimensions.join("、")}
+            </div>
           </Col>
-          <Col span={12}>
-            <Card size="small" title={<span>⚠️ 改善维度</span>} style={{ borderColor: "#faad14" }}>
-              {data.weaknesses.map((w, i) => (
-                <div key={i} style={{ marginBottom: 8 }}>
-                  <div style={{ fontWeight: 600, color: "#faad14" }}>{w.name}</div>
-                  <div style={{ color: "#666", fontSize: 13 }}>{w.detail}</div>
-                </div>
-              ))}
-            </Card>
+          <Col span={8}>
+            <ResponsiveContainer width="100%" height={240}>
+              <RadarChart data={data.radarData.dimensions.map((dim, i) => ({
+                subject: dim,
+                score: data.radarData.scores[i],
+                fullMark: 100,
+              }))}>
+                <PolarGrid />
+                <PolarAngleAxis dataKey="subject" tick={{ fontSize: 12 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                <Radar name="得分" dataKey="score" stroke="#1890ff" fill="#1890ff" fillOpacity={0.25} />
+              </RadarChart>
+            </ResponsiveContainer>
           </Col>
         </Row>
       </Card>
 
       {/* 能力素质 */}
-      <Card title="能力素质" size="small">
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontWeight: 600 }}>能力素质 </span>
-          <span>得分：{data.score} <span style={{ color: "#999" }}>/100</span></span>
+      <div>
+        <div style={{ marginBottom: 12, display: "flex", alignItems: "baseline", gap: 12 }}>
+          <span style={{ fontWeight: 600, fontSize: 16 }}>能力素质</span>
+          <span style={{ color: "#999" }}>|</span>
+          <span>得分：<span style={{ fontSize: 28, fontWeight: 700 }}>{data.score}</span><span style={{ color: "#999" }}>/100分</span></span>
         </div>
         <Row gutter={16}>
-          {data.radarData.dimensions.map((dim, i) => (
-            <Col span={8} key={dim} style={{ marginBottom: 12 }}>
-              <Card size="small">
-                <Statistic title={dim} value={data.radarData.scores[i]} suffix="/ 100" />
-                <Progress percent={data.radarData.scores[i]} size="small" strokeColor={data.radarData.scores[i] >= 60 ? "#52c41a" : "#faad14"} />
-              </Card>
-            </Col>
-          ))}
+          <Col span={14}>
+            <Card size="small" title={<span>🎯 优势维度</span>}>
+              {data.strengths.map((s, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <span style={{ fontWeight: 600, color: "#fa8c16" }}>{s.name}：</span>
+                  <span style={{ color: "#666", fontSize: 13 }}>{s.detail}</span>
+                </div>
+              ))}
+            </Card>
+          </Col>
+          <Col span={10}>
+            <Card size="small" title={<span>🔔 劣势维度</span>}>
+              {data.weaknesses.length > 0 ? data.weaknesses.map((w, i) => (
+                <div key={i} style={{ marginBottom: 12 }}>
+                  <span style={{ fontWeight: 600, color: "#fa8c16" }}>{w.name}：</span>
+                  <span style={{ color: "#666", fontSize: 13 }}>{w.detail}</span>
+                </div>
+              )) : (
+                <div style={{ color: "#999" }}>暂无数据：暂无劣势分析</div>
+              )}
+            </Card>
+          </Col>
         </Row>
-      </Card>
+      </div>
 
       {/* 会话记录分析 */}
       <Card title="会话记录分析" size="small">
