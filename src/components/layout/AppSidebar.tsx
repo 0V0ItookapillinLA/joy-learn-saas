@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-import { FileText } from "lucide-react";
+
 
 const menuItems = [
   { title: "首页", icon: Home, url: "/" },
