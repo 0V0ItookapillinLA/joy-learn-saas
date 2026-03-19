@@ -35,10 +35,11 @@ import { FileText } from "lucide-react";
 const menuItems = [
   { title: "首页", icon: Home, url: "/" },
   { title: "培训计划", icon: BookOpen, url: "/training/plans" },
-  { title: "AI制课", icon: FileText, url: "/ai-courseware" },
+  { title: "AI 制课", icon: FileText, url: "/ai-courseware" },
   { title: "练习计划", icon: MessageSquare, url: "/practices" },
   { title: "智能组卷", icon: FileText, url: "/exams" },
   { title: "角色配置", icon: Bot, url: "/characters" },
+  { title: "知识库", icon: BookOpen, url: "/knowledge-base" },
   { title: "学习地图", icon: Route, url: "/learning-map" },
   { title: "成长地图", icon: Map, url: "/growth-map" },
   { title: "学习中心", icon: Trophy, url: "/learning-center" },
