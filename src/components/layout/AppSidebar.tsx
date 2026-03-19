@@ -10,6 +10,8 @@ import {
   LogOut,
   Shield,
   Route,
+  Trophy,
+  Award,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
@@ -58,6 +60,16 @@ const menuItems = [
     title: "成长地图",
     icon: Map,
     url: "/growth-map",
+  },
+  {
+    title: "学习中心",
+    icon: Trophy,
+    url: "/learning-center",
+  },
+  {
+    title: "徽章管理",
+    icon: Award,
+    url: "/badges",
   },
   {
     title: "数据看板",

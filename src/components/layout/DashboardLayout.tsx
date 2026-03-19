@@ -13,7 +13,8 @@ import {
   DatabaseOutlined,
   VideoCameraOutlined,
   TrophyOutlined,
-  
+  StarOutlined,
+  SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -75,6 +76,11 @@ const menuItems: MenuProps["items"] = [
     key: "/learning-center",
     icon: <TrophyOutlined />,
     label: "学习中心",
+  },
+  {
+    key: "/badges",
+    icon: <StarOutlined />,
+    label: "徽章管理",
   },
   {
     key: "/analytics",
