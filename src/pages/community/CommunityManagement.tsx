@@ -163,6 +163,18 @@ export default function CommunityManagement() {
               </Row>
             </Card>
 
+            {/* Practice goal & scenario */}
+            <Card title="练习目标与场景">
+              <div style={{ marginBottom: 12 }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>🎯 练习目标</div>
+                <div style={{ color: "#666", lineHeight: 1.8 }}>{mockPracticeInfo.goal}</div>
+              </div>
+              <div>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>🎬 场景介绍</div>
+                <div style={{ color: "#666", lineHeight: 1.8 }}>{mockPracticeInfo.scenario}</div>
+              </div>
+            </Card>
+
             {/* Conversation */}
             <Card title="对话记录">
               <div className="space-y-4">

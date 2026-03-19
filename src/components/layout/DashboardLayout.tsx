@@ -46,6 +46,7 @@ const menuItems: MenuProps["items"] = [
   { key: "/learning-map", icon: <NodeIndexOutlined />, label: "学习地图" },
   { key: "/growth-map", icon: <AreaChartOutlined />, label: "成长地图" },
   { key: "/learning-center", icon: <TrophyOutlined />, label: "学习中心" },
+  { key: "/settings", icon: <SettingOutlined />, label: "组织设置" },
   { key: "/badges", icon: <StarOutlined />, label: "徽章管理" },
   { key: "/community", icon: <TeamOutlined />, label: "公开社区" },
 ];
