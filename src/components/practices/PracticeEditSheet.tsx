@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Drawer, Button, Input, Form, Select, Tabs, Card, Space, InputNumber, Typography, App, Tag, Divider } from "antd";
-import { PlusOutlined, DeleteOutlined, MessageOutlined, FileTextOutlined, CheckCircleOutlined, LoadingOutlined } from "@ant-design/icons";
+import { Drawer, Button, Input, Form, Select, Tabs, Card, Space, InputNumber, Typography, App, Tag, Divider, Checkbox, Empty } from "antd";
+import { PlusOutlined, DeleteOutlined, MessageOutlined, FileTextOutlined, CheckCircleOutlined, LoadingOutlined, EditOutlined, UserOutlined, RobotOutlined } from "@ant-design/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useActiveAICharacters } from "@/hooks/useAICharacters";
 
@@ -11,6 +11,14 @@ interface AssessmentItem {
   id: string;
   name: string;
   weight: number;
+}
+
+interface DialogTurn {
+  id: string;
+  aiContent: string;
+  traineeAnswer: string;
+  keyPoints: string;
+  editing?: boolean;
 }
 
 interface PracticeFormData {
@@ -25,6 +33,7 @@ interface PracticeFormData {
   passScore: number;
   passAttempts: number;
   assessmentItems: AssessmentItem[];
+  dialogTurns: DialogTurn[];
 }
 
 interface PracticeEditSheetProps {
@@ -49,6 +58,7 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
   const [promptInput, setPromptInput] = useState("");
   const [activeTab, setActiveTab] = useState("basic");
   const [form] = Form.useForm();
+  const [dialogTurns, setDialogTurns] = useState<DialogTurn[]>([]);
 
   const { data: aiCharacters = [], isLoading: isLoadingCharacters } = useActiveAICharacters();
 
@@ -64,31 +74,27 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
     passScore: 50,
     passAttempts: 3,
     assessmentItems: defaultAssessmentItems,
+    dialogTurns: [],
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData((prev) => ({ ...prev, ...initialData }));
       form.setFieldsValue(initialData);
+      setDialogTurns(initialData.dialogTurns || []);
       setStep(2);
+      setPracticeMode(initialData.dialogTurns?.length ? "fixed" : "free");
     } else {
       setFormData({
-        title: "",
-        department: "",
-        description: "",
-        scenarioDescription: "",
-        aiRoleId: "",
-        aiRoleInfo: "",
-        traineeRole: "",
-        dialogueGoal: "",
-        passScore: 50,
-        passAttempts: 3,
-        assessmentItems: defaultAssessmentItems,
+        title: "", department: "", description: "", scenarioDescription: "",
+        aiRoleId: "", aiRoleInfo: "", traineeRole: "", dialogueGoal: "",
+        passScore: 50, passAttempts: 3, assessmentItems: defaultAssessmentItems, dialogTurns: [],
       });
       form.resetFields();
       setStep(1);
       setPromptInput("");
       setActiveTab("basic");
+      setDialogTurns([]);
     }
   }, [initialData, open, form]);
 
@@ -100,31 +106,89 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
 
     setIsGenerating(true);
     try {
-      const { data, error } = await supabase.functions.invoke("generate-practice-script", {
-        body: { prompt: promptInput.trim(), practiceMode },
-      });
+      if (practiceMode === "fixed") {
+        // Use dialog script generation for fixed mode
+        const { data, error } = await supabase.functions.invoke("generate-dialog-script", {
+          body: {
+            title: promptInput.trim().slice(0, 30),
+            sceneDescription: promptInput.trim(),
+            knowledgeContent: "",
+            assessmentDimensions: formData.assessmentItems.map(i => i.name).filter(Boolean),
+          },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || "生成失败");
 
-      if (error) throw error;
-      if (!data || !data.success) throw new Error(data?.error || "生成失败");
+        const turns: DialogTurn[] = (data.dialog_turns || []).map((t: any, idx: number) => ({
+          id: t.id || String(idx + 1),
+          aiContent: t.speaker === "companion" ? t.content : (t.standard_answer || ""),
+          traineeAnswer: t.speaker === "trainee" ? t.content : (t.standard_answer || ""),
+          keyPoints: (t.key_points || []).map((kp: any) => kp.content).join("；"),
+        }));
 
-      const script = data.script;
-      const newFormData = {
-        title: script.title || promptInput.slice(0, 20),
-        department: "",
-        description: script.description || `培训场景：${promptInput}`,
-        scenarioDescription: script.scenarioDescription || "",
-        aiRoleId: "1",
-        aiRoleInfo: script.aiRoleInfo || "",
-        traineeRole: script.traineeRole || "",
-        dialogueGoal: script.dialogueGoal || "",
-        passScore: 50,
-        passAttempts: 3,
-        assessmentItems: script.assessmentItems || defaultAssessmentItems,
-      };
-      setFormData(newFormData);
-      form.setFieldsValue(newFormData);
-      setStep(2);
-      message.success("练习剧本已生成");
+        // Pair consecutive companion+trainee turns into single rounds
+        const pairedTurns: DialogTurn[] = [];
+        let i = 0;
+        const rawTurns = data.dialog_turns || [];
+        while (i < rawTurns.length) {
+          const current = rawTurns[i];
+          const next = rawTurns[i + 1];
+          if (current.speaker === "companion" && next?.speaker === "trainee") {
+            pairedTurns.push({
+              id: String(pairedTurns.length + 1),
+              aiContent: current.content || "",
+              traineeAnswer: next.standard_answer || next.content || "",
+              keyPoints: [...(current.key_points || []), ...(next.key_points || [])].map((kp: any) => kp.content).join("；"),
+            });
+            i += 2;
+          } else {
+            pairedTurns.push({
+              id: String(pairedTurns.length + 1),
+              aiContent: current.speaker === "companion" ? current.content : "",
+              traineeAnswer: current.speaker === "trainee" ? (current.standard_answer || current.content) : "",
+              keyPoints: (current.key_points || []).map((kp: any) => kp.content).join("；"),
+            });
+            i += 1;
+          }
+        }
+
+        setDialogTurns(pairedTurns);
+        const newFormData = {
+          ...formData,
+          title: data.summary?.slice(0, 30) || promptInput.slice(0, 20),
+          description: `固定剧本练习：${promptInput}`,
+          scenarioDescription: promptInput,
+          dialogTurns: pairedTurns,
+        };
+        setFormData(newFormData);
+        form.setFieldsValue(newFormData);
+        setStep(2);
+        setActiveTab("dialogue");
+        message.success("对话剧本已生成，可在下方编辑");
+      } else {
+        // Free dialogue mode - use existing practice script generation
+        const { data, error } = await supabase.functions.invoke("generate-practice-script", {
+          body: { prompt: promptInput.trim(), practiceMode },
+        });
+        if (error) throw error;
+        if (!data?.success) throw new Error(data?.error || "生成失败");
+
+        const script = data.script;
+        const newFormData = {
+          ...formData,
+          title: script.title || promptInput.slice(0, 20),
+          description: script.description || `培训场景：${promptInput}`,
+          scenarioDescription: script.scenarioDescription || "",
+          aiRoleInfo: script.aiRoleInfo || "",
+          traineeRole: script.traineeRole || "",
+          dialogueGoal: script.dialogueGoal || "",
+          assessmentItems: script.assessmentItems || defaultAssessmentItems,
+        };
+        setFormData(newFormData);
+        form.setFieldsValue(newFormData);
+        setStep(2);
+        message.success("练习剧本已生成");
+      }
     } catch (error) {
       message.error("生成失败：" + (error instanceof Error ? error.message : "请重试"));
     } finally {
@@ -132,6 +196,26 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
     }
   };
 
+  // Dialog turn editing
+  const updateTurn = (id: string, field: keyof DialogTurn, value: string) => {
+    setDialogTurns(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const removeTurn = (id: string) => {
+    setDialogTurns(prev => prev.filter(t => t.id !== id));
+  };
+
+  const addTurn = () => {
+    setDialogTurns(prev => [...prev, {
+      id: String(Date.now()),
+      aiContent: "",
+      traineeAnswer: "",
+      keyPoints: "",
+      editing: true,
+    }]);
+  };
+
+  // Assessment items
   const addAssessmentItem = () => {
     setFormData((prev) => ({
       ...prev,
@@ -156,7 +240,7 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      onSave({ ...formData, ...values });
+      onSave({ ...formData, ...values, dialogTurns });
       onOpenChange(false);
     } catch (error) {
       message.error("请填写完整信息");
@@ -177,47 +261,40 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
               <div>
                 <Text strong>自由对话</Text>
                 <br />
-                <Text type="secondary">本期支持</Text>
+                <Text type="secondary">AI根据场景自由发挥对话</Text>
               </div>
               {practiceMode === "free" && <CheckCircleOutlined style={{ color: "#1677ff", marginLeft: "auto" }} />}
             </div>
           </Card>
-          <Card style={{ flex: 1, opacity: 0.6, cursor: "not-allowed" }}>
+          <Card
+            hoverable
+            style={{ flex: 1, borderColor: practiceMode === "fixed" ? "#1677ff" : undefined }}
+            onClick={() => setPracticeMode("fixed")}
+          >
             <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
               <FileTextOutlined style={{ fontSize: 24, color: "#fa8c16" }} />
               <div>
                 <Text strong>固定剧本</Text>
                 <br />
-                <Text type="secondary">敬请期待</Text>
+                <Text type="secondary">AI按照预设对话流程进行</Text>
               </div>
+              {practiceMode === "fixed" && <CheckCircleOutlined style={{ color: "#1677ff", marginLeft: "auto" }} />}
             </div>
           </Card>
         </div>
       </Card>
 
-      <Card title="创建副本">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-          <Card size="small" style={{ background: "#e6f4ff", border: "1px solid #91caff" }}>
-            <Text strong style={{ color: "#1677ff" }}>📝 练习场景描述</Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: 12 }}>请详细描述练习场景</Text>
-          </Card>
-          <Card size="small" style={{ background: "#fff7e6", border: "1px solid #ffd591" }}>
-            <Text strong style={{ color: "#fa8c16" }}>👤 人物角色设定</Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: 12 }}>请明确参与角色</Text>
-          </Card>
-        </div>
-
-        <Form.Item label="AI角色设置" required>
+      <Card title="创建练习">
+        <Form.Item label="AI角色设置">
           <Select
-            value={formData.aiRoleId}
+            value={formData.aiRoleId || undefined}
             onChange={(value) => {
               const selected = aiCharacters.find((c) => c.id === value);
               setFormData({ ...formData, aiRoleId: value, aiRoleInfo: selected?.personality || "" });
             }}
             loading={isLoadingCharacters}
             placeholder="请选择AI角色"
+            allowClear
           >
             {aiCharacters.map((c) => (
               <Select.Option key={c.id} value={c.id}>{c.name}</Select.Option>
@@ -225,23 +302,88 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
           </Select>
         </Form.Item>
 
-        <Form.Item label="创建剧本">
+        <Form.Item label="场景描述">
           <TextArea
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
-            placeholder="请输入练习场景描述"
+            placeholder={practiceMode === "fixed"
+              ? "请描述对话场景，AI将自动生成每一轮对话内容（如：客户咨询保险产品，销售顾问需要了解客户需求并推荐合适的产品）"
+              : "请输入练习场景描述"}
             rows={5}
           />
         </Form.Item>
 
-        <Button icon={isGenerating ? <LoadingOutlined /> : <FileTextOutlined />} onClick={handleGenerate} loading={isGenerating}>
-          生成剧本
+        <Button
+          type="primary"
+          icon={isGenerating ? <LoadingOutlined /> : <FileTextOutlined />}
+          onClick={handleGenerate}
+          loading={isGenerating}
+        >
+          {practiceMode === "fixed" ? "生成对话剧本" : "生成练习剧本"}
         </Button>
       </Card>
     </div>
   );
 
+  const renderDialogTurns = () => (
+    <div>
+      {dialogTurns.length === 0 ? (
+        <Empty description="暂无对话轮次" style={{ margin: "24px 0" }} />
+      ) : (
+        dialogTurns.map((turn, idx) => (
+          <Card
+            key={turn.id}
+            size="small"
+            style={{ marginBottom: 12 }}
+            title={<Text strong>第 {idx + 1} 轮</Text>}
+            extra={
+              <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeTurn(turn.id)} size="small" />
+            }
+          >
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <Tag color="blue" icon={<RobotOutlined />}>AI</Tag>
+                <Text type="secondary" style={{ fontSize: 12 }}>AI 提问/话术</Text>
+              </div>
+              <TextArea
+                value={turn.aiContent}
+                onChange={(e) => updateTurn(turn.id, "aiContent", e.target.value)}
+                placeholder="AI 应该说什么..."
+                autoSize={{ minRows: 2, maxRows: 5 }}
+              />
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                <Tag color="green" icon={<UserOutlined />}>学员</Tag>
+                <Text type="secondary" style={{ fontSize: 12 }}>学员标准回答</Text>
+              </div>
+              <TextArea
+                value={turn.traineeAnswer}
+                onChange={(e) => updateTurn(turn.id, "traineeAnswer", e.target.value)}
+                placeholder="学员应该回答什么..."
+                autoSize={{ minRows: 2, maxRows: 5 }}
+              />
+            </div>
+            <div>
+              <Text type="secondary" style={{ fontSize: 12 }}>评分要点</Text>
+              <Input
+                value={turn.keyPoints}
+                onChange={(e) => updateTurn(turn.id, "keyPoints", e.target.value)}
+                placeholder="关键评分要点（用；分隔）"
+              />
+            </div>
+          </Card>
+        ))
+      )}
+      <Button type="dashed" icon={<PlusOutlined />} onClick={addTurn} block>
+        添加对话轮次
+      </Button>
+    </div>
+  );
+
   const renderStep2 = () => {
+    const isFixed = practiceMode === "fixed";
+
     const tabItems = [
       {
         key: "basic",
@@ -282,15 +424,16 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
       },
       {
         key: "dialogue",
-        label: "对话设置",
-        children: (
+        label: isFixed ? "对话轮次" : "对话设置",
+        children: isFixed ? (
+          renderDialogTurns()
+        ) : (
           <div>
             <Form form={form} layout="vertical">
               <Form.Item label="对话目标" name="dialogueGoal">
                 <TextArea rows={3} placeholder="请输入对话目标" />
               </Form.Item>
             </Form>
-
             <Divider>评估标准</Divider>
             {formData.assessmentItems.map((item) => (
               <div key={item.id} style={{ display: "flex", gap: 8, marginBottom: 8 }}>
@@ -303,10 +446,7 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
                 <InputNumber
                   value={item.weight}
                   onChange={(value) => updateAssessmentItem(item.id, "weight", value || 0)}
-                  min={0}
-                  max={100}
-                  addonAfter="%"
-                  style={{ width: 120 }}
+                  min={0} max={100} addonAfter="%" style={{ width: 120 }}
                 />
                 <Button danger icon={<DeleteOutlined />} onClick={() => removeAssessmentItem(item.id)} />
               </div>
@@ -324,6 +464,9 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
         <Button onClick={() => setStep(1)} style={{ marginBottom: 16 }}>
           返回上一步
         </Button>
+        {isFixed && (
+          <Tag color="orange" style={{ marginBottom: 16, marginLeft: 8 }}>固定剧本模式</Tag>
+        )}
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabItems} />
       </div>
     );
@@ -331,7 +474,7 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
 
   return (
     <Drawer
-      title={step === 1 ? "新建练习计划" : "创建练习详情"}
+      title={step === 1 ? "新建练习计划" : "编辑练习详情"}
       placement="right"
       width={720}
       open={open}
@@ -341,9 +484,7 @@ export function PracticeEditSheet({ open, onOpenChange, onSave, initialData }: P
         step === 2 ? (
           <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
             <Button onClick={() => onOpenChange(false)}>取消</Button>
-            <Button type="primary" onClick={handleSave}>
-              保存
-            </Button>
+            <Button type="primary" onClick={handleSave}>保存</Button>
           </div>
         ) : null
       }

@@ -62,11 +62,6 @@ const menuItems: MenuProps["items"] = [
     label: "AI 制课",
   },
   {
-    key: "/dialog-scripts",
-    icon: <CommentOutlined />,
-    label: "AI 对话",
-  },
-  {
     key: "/learning-map",
     icon: <NodeIndexOutlined />,
     label: "学习地图",

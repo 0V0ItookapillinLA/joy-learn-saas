@@ -67,11 +67,6 @@ const App = () => (
                   <AICourseware />
                 </ProtectedRoute>
               } />
-              <Route path="/dialog-scripts" element={
-                <ProtectedRoute>
-                  <DialogScriptList />
-                </ProtectedRoute>
-              } />
               <Route path="/learning-map" element={
                 <ProtectedRoute>
                   <LearningMapLibrary />
