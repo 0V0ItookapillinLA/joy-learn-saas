@@ -3,6 +3,7 @@ import {
   Home,
   BookOpen,
   MessageSquare,
+  MessagesSquare,
   Bot,
   Map,
   BarChart3,
