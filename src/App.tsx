@@ -17,6 +17,8 @@ import LearningCenter from "./pages/learning-center/LearningCenter";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
 import BadgeManagement from "./pages/badges/BadgeManagement";
 import SmartExamBuilder from "./pages/exams/SmartExamBuilder";
+import PracticeReports from "./pages/practice-reports/PracticeReports";
+import CommunityManagement from "./pages/community/CommunityManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +43,8 @@ const App = () => (
               <Route path="/learning-center" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
               <Route path="/badges" element={<ProtectedRoute><BadgeManagement /></ProtectedRoute>} />
               <Route path="/exams" element={<ProtectedRoute><SmartExamBuilder /></ProtectedRoute>} />
+              <Route path="/practice-reports" element={<ProtectedRoute><PracticeReports /></ProtectedRoute>} />
+              <Route path="/community" element={<ProtectedRoute><CommunityManagement /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

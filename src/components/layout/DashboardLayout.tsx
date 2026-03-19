@@ -18,8 +18,11 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  FileTextOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/contexts/AuthContext";
+import { WorkspaceSelector } from "@/components/layout/WorkspaceSelector";
 import logoImage from "@/assets/logo.png";
 
 const { Header, Sider, Content } = Layout;
@@ -36,6 +39,7 @@ const menuItems: MenuProps["items"] = [
   { key: "/training/plans", icon: <BookOutlined />, label: "培训计划" },
   { key: "/ai-courseware", icon: <VideoCameraOutlined />, label: "AI 制课" },
   { key: "/practices", icon: <MessageOutlined />, label: "练习计划" },
+  { key: "/practice-reports", icon: <FileTextOutlined />, label: "练习报告" },
   { key: "/exams", icon: <BarChartOutlined />, label: "智能组卷" },
   { key: "/characters", icon: <RobotOutlined />, label: "角色配置" },
   { key: "/knowledge-base", icon: <DatabaseOutlined />, label: "知识库" },
@@ -43,6 +47,7 @@ const menuItems: MenuProps["items"] = [
   { key: "/growth-map", icon: <AreaChartOutlined />, label: "成长地图" },
   { key: "/learning-center", icon: <TrophyOutlined />, label: "学习中心" },
   { key: "/badges", icon: <StarOutlined />, label: "徽章管理" },
+  { key: "/community", icon: <TeamOutlined />, label: "公开社区" },
 ];
 
 export function DashboardLayout({ children, title, description }: DashboardLayoutProps) {
@@ -175,12 +180,15 @@ export function DashboardLayout({ children, title, description }: DashboardLayou
               </div>
             )}
           </div>
-          <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-            <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
-              <Avatar style={{ backgroundColor: "#1677ff" }}>{initials}</Avatar>
-              <Text>{displayName}</Text>
-            </div>
-          </Dropdown>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <WorkspaceSelector />
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
+              <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
+                <Avatar style={{ backgroundColor: "#1677ff" }}>{initials}</Avatar>
+                <Text>{displayName}</Text>
+              </div>
+            </Dropdown>
+          </div>
         </Header>
         <Content style={{ margin: 24, background: "#fff", borderRadius: 8, padding: 24, minHeight: "calc(100vh - 64px - 48px)" }}>
           {children}
