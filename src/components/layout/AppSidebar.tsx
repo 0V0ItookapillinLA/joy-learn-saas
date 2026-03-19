@@ -12,7 +12,9 @@ import {
   Route,
   Trophy,
   Award,
+  Users,
 } from "lucide-react";
+import { FileText } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
