@@ -208,7 +208,7 @@ export function DialogScriptCreator({ open, onClose, editingScript }: Props) {
     <Drawer
       title={editingScript ? "编辑对话剧本" : "新建对话剧本"}
       placement="right"
-      width={720}
+      width="50vw"
       open={open}
       onClose={onClose}
       destroyOnClose

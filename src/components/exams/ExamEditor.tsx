@@ -159,7 +159,7 @@ export function ExamEditor({ open, onOpenChange, onSave, initialData }: ExamEdit
       title="创建考试"
       open={open}
       onClose={() => onOpenChange(false)}
-      width={780}
+      width="50vw"
       zIndex={1000}
       footer={
         <div style={{ display: "flex", justifyContent: "space-between" }}>

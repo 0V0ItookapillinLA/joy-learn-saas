@@ -88,7 +88,7 @@ export function RiskStudentsDrawer({ open, onClose, onStudentClick }: RiskStuden
         </div>
       }
       placement="right"
-      width={560}
+      width="50vw"
       onClose={onClose}
       open={open}
       zIndex={1000}

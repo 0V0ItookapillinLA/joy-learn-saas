@@ -79,7 +79,7 @@ export function KnowledgeDocDrawer({ doc, onClose, onDelete, onRefresh }: Props)
       title={doc.title}
       open={!!doc}
       onClose={onClose}
-      width={560}
+      width="50vw"
       zIndex={1000}
       extra={
         <Space>

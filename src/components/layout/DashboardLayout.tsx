@@ -32,61 +32,17 @@ interface DashboardLayoutProps {
 }
 
 const menuItems: MenuProps["items"] = [
-  {
-    key: "/",
-    icon: <HomeOutlined />,
-    label: "首页",
-  },
-  {
-    key: "/training/plans",
-    icon: <BookOutlined />,
-    label: "培训计划",
-  },
-  {
-    key: "/practices",
-    icon: <MessageOutlined />,
-    label: "练习计划",
-  },
-  {
-    key: "/characters",
-    icon: <RobotOutlined />,
-    label: "角色配置",
-  },
-  {
-    key: "/knowledge-base",
-    icon: <DatabaseOutlined />,
-    label: "知识库",
-  },
-  {
-    key: "/ai-courseware",
-    icon: <VideoCameraOutlined />,
-    label: "AI 制课",
-  },
-  {
-    key: "/learning-map",
-    icon: <NodeIndexOutlined />,
-    label: "学习地图",
-  },
-  {
-    key: "/growth-map",
-    icon: <AreaChartOutlined />,
-    label: "成长地图",
-  },
-  {
-    key: "/learning-center",
-    icon: <TrophyOutlined />,
-    label: "学习中心",
-  },
-  {
-    key: "/badges",
-    icon: <StarOutlined />,
-    label: "徽章管理",
-  },
-  {
-    key: "/analytics",
-    icon: <BarChartOutlined />,
-    label: "数据看板",
-  },
+  { key: "/", icon: <HomeOutlined />, label: "首页" },
+  { key: "/training/plans", icon: <BookOutlined />, label: "培训计划" },
+  { key: "/practices", icon: <MessageOutlined />, label: "练习计划" },
+  { key: "/exams", icon: <BarChartOutlined />, label: "智能组卷" },
+  { key: "/characters", icon: <RobotOutlined />, label: "角色配置" },
+  { key: "/knowledge-base", icon: <DatabaseOutlined />, label: "知识库" },
+  { key: "/ai-courseware", icon: <VideoCameraOutlined />, label: "AI 制课" },
+  { key: "/learning-map", icon: <NodeIndexOutlined />, label: "学习地图" },
+  { key: "/growth-map", icon: <AreaChartOutlined />, label: "成长地图" },
+  { key: "/learning-center", icon: <TrophyOutlined />, label: "学习中心" },
+  { key: "/badges", icon: <StarOutlined />, label: "徽章管理" },
 ];
 
 export function DashboardLayout({ children, title, description }: DashboardLayoutProps) {

@@ -316,7 +316,7 @@ export function TrainingPlanSheet({
     <Drawer
       title={isEdit ? "编辑计划" : "新建计划"}
       placement="right"
-      width={640}
+      width="50vw"
       open={open}
       onClose={() => onOpenChange(false)}
       zIndex={1000}
