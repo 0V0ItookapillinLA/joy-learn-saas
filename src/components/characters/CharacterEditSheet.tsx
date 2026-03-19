@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Drawer, Button, Input, Form, Tabs, Card, Avatar, Space, App, Tag } from "antd";
+import { Drawer, Button, Input, Form, Tabs, Card, Avatar, Space, App, Tag, Switch, Divider } from "antd";
 import { PlusOutlined, DeleteOutlined, CheckOutlined } from "@ant-design/icons";
 import type { Database } from "@/integrations/supabase/types";
 
@@ -48,6 +48,7 @@ export function CharacterEditSheet({
   const [form] = Form.useForm();
   const [selectedAvatar, setSelectedAvatar] = useState(0);
   const [selectedVoiceStyle, setSelectedVoiceStyle] = useState("");
+  const [isDynamic, setIsDynamic] = useState(true);
 
   useEffect(() => {
     if (character) {
@@ -61,6 +62,7 @@ export function CharacterEditSheet({
       form.resetFields();
       setSelectedVoiceStyle("");
       setSelectedAvatar(0);
+      setIsDynamic(true);
     }
   }, [character, open, form]);
 
@@ -118,6 +120,15 @@ export function CharacterEditSheet({
           </Card>
 
           <Card size="small" title="数字形象" style={{ marginBottom: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <span>形象类型</span>
+              <Space>
+                <Tag color={isDynamic ? "blue" : undefined} style={{ cursor: "pointer" }} onClick={() => setIsDynamic(true)}>动态数字人</Tag>
+                <Switch checked={isDynamic} onChange={setIsDynamic} size="small" />
+                <Tag color={!isDynamic ? "blue" : undefined} style={{ cursor: "pointer" }} onClick={() => setIsDynamic(false)}>静态数字人</Tag>
+              </Space>
+            </div>
+            <Divider plain style={{ margin: "8px 0" }}>{isDynamic ? "动态数字人形象" : "静态数字人形象"}</Divider>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8 }}>
               {mockAvatars.map((avatar, index) => (
                 <div
@@ -134,20 +145,7 @@ export function CharacterEditSheet({
                 >
                   <img src={avatar} alt={`Avatar ${index + 1}`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                   {selectedAvatar === index && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        top: 4,
-                        right: 4,
-                        width: 20,
-                        height: 20,
-                        borderRadius: "50%",
-                        background: "#1677ff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
+                    <div style={{ position: "absolute", top: 4, right: 4, width: 20, height: 20, borderRadius: "50%", background: "#1677ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <CheckOutlined style={{ color: "#fff", fontSize: 12 }} />
                     </div>
                   )}
@@ -155,7 +153,7 @@ export function CharacterEditSheet({
               ))}
             </div>
             <Button type="dashed" icon={<PlusOutlined />} block style={{ marginTop: 8 }}>
-              点击添加数字形象
+              点击添加{isDynamic ? "动态" : "静态"}数字形象
             </Button>
           </Card>
 
@@ -187,6 +185,7 @@ export function CharacterEditSheet({
             </Avatar>
             <h3>{form.getFieldValue("name") || "AI角色"}</h3>
             <p style={{ color: "#999" }}>{form.getFieldValue("personality") || "请设置角色性格特点"}</p>
+            <Tag color={isDynamic ? "blue" : "default"}>{isDynamic ? "动态数字人" : "静态数字人"}</Tag>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
             <Input placeholder="请输入内容" style={{ flex: 1 }} />
@@ -218,9 +217,7 @@ export function CharacterEditSheet({
       footer={
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
           <Button onClick={() => onOpenChange(false)}>取消</Button>
-          <Button type="primary" onClick={handleSave} loading={isSaving}>
-            保存
-          </Button>
+          <Button type="primary" onClick={handleSave} loading={isSaving}>保存</Button>
         </div>
       }
     >

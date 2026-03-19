@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Drawer, Button, Form, Input, InputNumber, Select, Card, Space, Typography, Tag, Radio, Checkbox, Divider, Empty, App, Steps } from "antd";
-import { PlusOutlined, DeleteOutlined, EditOutlined, CheckCircleOutlined, HolderOutlined, LoadingOutlined, DatabaseOutlined, BookOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, EditOutlined, CheckCircleOutlined, HolderOutlined, LoadingOutlined } from "@ant-design/icons";
 import { supabase } from "@/integrations/supabase/client";
+import { KnowledgeTreeSelect } from "@/components/knowledge-base/KnowledgeTreeSelect";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -45,13 +46,6 @@ const questionTypeLabels: Record<QuestionType, { label: string; color: string }>
   short_answer: { label: "问答题", color: "orange" },
 };
 
-const mockKnowledgeBases = [
-  { id: "kb1", name: "销售话术知识库" },
-  { id: "kb2", name: "产品知识手册" },
-  { id: "kb3", name: "客服流程规范" },
-  { id: "kb4", name: "保险条款知识库" },
-];
-
 export function SmartExamGeneratorDrawer({ open, onOpenChange, onSave }: SmartExamGeneratorDrawerProps) {
   const { message } = App.useApp();
   const [currentStep, setCurrentStep] = useState(0);
@@ -59,12 +53,10 @@ export function SmartExamGeneratorDrawer({ open, onOpenChange, onSave }: SmartEx
   const [questions, setQuestions] = useState<Question[]>([]);
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
   const [questionForm] = Form.useForm();
-  const [form] = Form.useForm();
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
-  // Config state
   const [config, setConfig] = useState({
-    knowledgeBaseId: "",
+    knowledgeIds: [] as string[],
     questionCount: 20,
     selectedTypes: ["single_choice", "multiple_choice", "true_false", "fill_blank", "short_answer"] as QuestionType[],
     title: "",
@@ -84,7 +76,7 @@ export function SmartExamGeneratorDrawer({ open, onOpenChange, onSave }: SmartEx
       const { data, error } = await supabase.functions.invoke("generate-exam-questions", {
         body: {
           title: config.title,
-          knowledgeBaseId: config.knowledgeBaseId,
+          knowledgeIds: config.knowledgeIds,
           questionCount: config.questionCount,
           questionTypes: config.selectedTypes,
           description: config.description,
@@ -181,14 +173,12 @@ export function SmartExamGeneratorDrawer({ open, onOpenChange, onSave }: SmartEx
 
         <Divider>知识来源</Divider>
         <Form.Item label="选择知识库">
-          <Select value={config.knowledgeBaseId || undefined} onChange={v => setConfig(prev => ({ ...prev, knowledgeBaseId: v }))} placeholder="选择知识库" allowClear>
-            {mockKnowledgeBases.map(kb => <Select.Option key={kb.id} value={kb.id}>{kb.name}</Select.Option>)}
-          </Select>
+          <KnowledgeTreeSelect
+            value={config.knowledgeIds}
+            onChange={v => setConfig(prev => ({ ...prev, knowledgeIds: v }))}
+            placeholder="选择知识库或文档（可多选）"
+          />
         </Form.Item>
-        <Space style={{ marginBottom: 16 }}>
-          <Button icon={<DatabaseOutlined />}>从在线课堂选择</Button>
-          <Button icon={<BookOutlined />}>上传资料</Button>
-        </Space>
 
         <Divider>出题设置</Divider>
         <Form.Item label="题目数量">
@@ -275,7 +265,6 @@ export function SmartExamGeneratorDrawer({ open, onOpenChange, onSave }: SmartEx
         </Card>
       ))}
 
-      {/* Edit question inline */}
       {editingQuestion && (
         <Card title="编辑题目" style={{ marginTop: 16, borderColor: "#1677ff" }}
           extra={<Space><Button size="small" onClick={() => setEditingQuestion(null)}>取消</Button><Button type="primary" size="small" onClick={saveQuestion}>确认</Button></Space>}
