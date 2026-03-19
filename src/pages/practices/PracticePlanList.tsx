@@ -108,8 +108,8 @@ export default function PracticePlanList() {
       dataIndex: "practice_mode",
       key: "practice_mode",
       render: (mode) => (
-        <Tag color="blue">
-          {mode === 'free_dialogue' ? '自由对话' : '固定剧本'}
+        <Tag color={mode === 'fixed_script' ? 'orange' : 'blue'}>
+          {mode === 'free_dialogue' ? '自由对话' : mode === 'fixed_script' ? '固定剧本' : mode || '自由对话'}
         </Tag>
       ),
     },

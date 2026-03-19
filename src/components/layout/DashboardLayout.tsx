@@ -13,7 +13,7 @@ import {
   DatabaseOutlined,
   VideoCameraOutlined,
   TrophyOutlined,
-  CommentOutlined,
+  
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
