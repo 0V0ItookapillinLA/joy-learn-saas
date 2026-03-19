@@ -13,7 +13,7 @@ import {
   DatabaseOutlined,
   VideoCameraOutlined,
   TrophyOutlined,
-  CommentOutlined,
+  
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -60,11 +60,6 @@ const menuItems: MenuProps["items"] = [
     key: "/ai-courseware",
     icon: <VideoCameraOutlined />,
     label: "AI 制课",
-  },
-  {
-    key: "/dialog-scripts",
-    icon: <CommentOutlined />,
-    label: "AI 对话",
   },
   {
     key: "/learning-map",

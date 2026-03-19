@@ -47,14 +47,19 @@ export default function PracticePlanList() {
       passScore: data.passScore,
     };
 
+    const practiceMode = data.dialogTurns?.length > 0 ? 'fixed_script' : 'free_dialogue';
+
     await createMutation.mutateAsync({
       title: data.title,
-      description: data.dialogueGoal,
+      description: data.dialogueGoal || data.description,
       scenario_description: data.scenarioDescription,
       ai_role: data.aiRoleInfo,
       trainee_role: data.traineeRole,
-      scoring_criteria: scoringCriteria,
-      practice_mode: 'free_dialogue',
+      scoring_criteria: {
+        ...scoringCriteria,
+        dialogTurns: data.dialogTurns || [],
+      },
+      practice_mode: practiceMode,
     });
   };
 
@@ -103,8 +108,8 @@ export default function PracticePlanList() {
       dataIndex: "practice_mode",
       key: "practice_mode",
       render: (mode) => (
-        <Tag color="blue">
-          {mode === 'free_dialogue' ? '自由对话' : '固定剧本'}
+        <Tag color={mode === 'fixed_script' ? 'orange' : 'blue'}>
+          {mode === 'free_dialogue' ? '自由对话' : mode === 'fixed_script' ? '固定剧本' : mode || '自由对话'}
         </Tag>
       ),
     },
