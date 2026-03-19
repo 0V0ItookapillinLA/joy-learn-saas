@@ -51,6 +51,11 @@ const menuItems = [
     url: "/characters",
   },
   {
+    title: "AI 对话",
+    icon: MessagesSquare,
+    url: "/dialog-scripts",
+  },
+  {
     title: "学习地图",
     icon: Route,
     url: "/learning-map",
