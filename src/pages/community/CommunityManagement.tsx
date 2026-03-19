@@ -12,6 +12,11 @@ const mockCommunityPosts = [
   { id: "5", userName: "杨宇翔(Lip)", avatar: "", practiceTitle: "供应链产品-电商仓-服饰面试", practiceType: "固定对话", score: 71, publishTime: "2026-03-15 16:30:00", likes: 34, favorites: 9, status: "published" },
 ];
 
+const mockPracticeInfo = {
+  goal: "通过模拟客户拜访场景，训练销售人员在供应链产品推介中的沟通能力、需求分析能力和方案呈现能力，要求能够针对客户痛点提供专业解决方案。",
+  scenario: "你是京东物流的一名销售经理，正在拜访一位服饰电商客户。客户目前使用多平台仓储，面临库存同步、大促期间拢收效率低、服饰二次加工（烫贴标）等痛点。你需要了解客户需求，并提供京东物流的解决方案。",
+};
+
 const mockConversation = [
   { role: "ai", content: "来了啊，唐宁远。昨晚直播间那事真是头疼，爆款连衣裙针音爆爆了，结果仓库系统显示缺货，实际天猫仓那边还有，这库存数据得同步才行。" },
   { role: "user", content: "嗯，您这边的问题了解了。首先呢就是天猫抖音多平台库存不能同步。二是大促期间旺季拢收跟不上。三就是咱们的服饰烫贴标退费整理呢..." },
