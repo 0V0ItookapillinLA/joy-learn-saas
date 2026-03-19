@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Card, Select, Table, Tag, Button, Drawer, Avatar, Progress, Collapse, Statistic, Row, Col, Input } from "antd";
 import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
 
 const mockPlans = [
   { id: "p1", title: "供应链产品-电商仓-服饰面试详情" },
