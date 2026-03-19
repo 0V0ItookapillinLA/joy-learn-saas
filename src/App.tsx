@@ -14,9 +14,9 @@ import KnowledgeBase from "./pages/knowledge-base/KnowledgeBase";
 import AICourseware from "./pages/ai-courseware/AICourseware";
 import GrowthMap from "./pages/trainees/GrowthMap";
 import LearningCenter from "./pages/learning-center/LearningCenter";
-import TrainingAnalytics from "./pages/analytics/TrainingAnalytics";
 import OrganizationSettings from "./pages/settings/OrganizationSettings";
 import BadgeManagement from "./pages/badges/BadgeManagement";
+import SmartExamBuilder from "./pages/exams/SmartExamBuilder";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,10 +28,7 @@ const App = () => (
         <AuthProvider>
           <BrowserRouter>
             <Routes>
-              {/* Public routes */}
               <Route path="/auth" element={<Auth />} />
-              
-              {/* Protected routes */}
               <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Index /></ProtectedRoute>} />
               <Route path="/training/plans" element={<ProtectedRoute><TrainingPlans /></ProtectedRoute>} />
@@ -42,11 +39,9 @@ const App = () => (
               <Route path="/learning-map" element={<ProtectedRoute><LearningMapLibrary /></ProtectedRoute>} />
               <Route path="/growth-map" element={<ProtectedRoute><GrowthMap /></ProtectedRoute>} />
               <Route path="/learning-center" element={<ProtectedRoute><LearningCenter /></ProtectedRoute>} />
-              <Route path="/analytics" element={<ProtectedRoute><TrainingAnalytics /></ProtectedRoute>} />
               <Route path="/badges" element={<ProtectedRoute><BadgeManagement /></ProtectedRoute>} />
+              <Route path="/exams" element={<ProtectedRoute><SmartExamBuilder /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><OrganizationSettings /></ProtectedRoute>} />
-              
-              {/* Fallback */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
