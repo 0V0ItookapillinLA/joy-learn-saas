@@ -72,7 +72,7 @@ export function RiskOrgsDrawer({ open, onClose, onOrgClick }: RiskOrgsDrawerProp
         </div>
       }
       placement="right"
-      width={560}
+      width="50vw"
       onClose={onClose}
       open={open}
       zIndex={1000}

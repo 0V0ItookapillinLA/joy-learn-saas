@@ -352,7 +352,7 @@ export function StudentProfileDrawer({ open, onClose, studentId }: StudentProfil
       <Drawer
         title={null}
         placement="right"
-        width={720}
+        width="50vw"
         onClose={onClose}
         open={open}
         zIndex={1000}

@@ -211,7 +211,7 @@ export function CharacterEditSheet({
         </div>
       }
       placement="right"
-      width={640}
+      width="50vw"
       open={open}
       onClose={() => onOpenChange(false)}
       zIndex={1000}
