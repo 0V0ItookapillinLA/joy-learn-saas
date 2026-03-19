@@ -47,7 +47,7 @@ export default function PracticePlanList() {
       passScore: data.passScore,
     };
 
-    const practiceMode = data.dialogTurns?.length > 0 ? 'fixed_script' : 'free_dialogue';
+    const practiceMode = data.dialogTurns?.length > 0 ? (data.practiceMode || 'fixed_script') : 'free_dialogue';
 
     await createMutation.mutateAsync({
       title: data.title,
