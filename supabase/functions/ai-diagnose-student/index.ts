@@ -60,13 +60,26 @@ ${practiceHistory.map((p: any) => `- ${p.title}（${p.date}）：${p.score}分 |
       }),
     });
 
-    const data = await response.json();
+    const rawText = await response.text();
+    console.log("AI API response status:", response.status, "body preview:", rawText.substring(0, 200));
+    
+    if (!response.ok) {
+      throw new Error(`AI API returned ${response.status}: ${rawText.substring(0, 200)}`);
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      throw new Error(`Failed to parse AI API response as JSON: ${rawText.substring(0, 200)}`);
+    }
+    
     const content = data.choices?.[0]?.message?.content || "";
     
     // Extract JSON from response
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
-      throw new Error("Failed to parse AI response");
+      throw new Error("Failed to extract JSON from AI response: " + content.substring(0, 200));
     }
 
     const diagnosis = JSON.parse(jsonMatch[0]);
